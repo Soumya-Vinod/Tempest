@@ -15,7 +15,64 @@ from app.hazard.models import (
     HazardMetricResult,
     HazardType,
     Polygon,
+    ReplayTimeline,
 )
+from app.schemas.common import (
+    LANDFALL_TIMESTEP,
+    LIVE,
+    REPLAY_TIMESTEPS,
+)
+
+# ---------------------------------------------------------------------------
+# Replay Timeline Definition (shared/contracts.md §2)
+# ---------------------------------------------------------------------------
+EVENT_NAME: str = "amphan"
+LANDFALL_TIMESTAMP: str = LANDFALL_TIMESTEP
+TIMESTEP_INTERVAL_HOURS: int = 3
+TOTAL_TIMESTEPS: int = 25
+REPLAY_TIMELINE_TIMESTEPS: tuple[str, ...] = REPLAY_TIMESTEPS
+
+
+def validate_timestep(timestep: str) -> str:
+    """Validate a timestep string against the Cyclone Amphan replay timeline.
+
+    Validation rules (shared/contracts.md §2):
+    - Accepts any of the 25 official Amphan replay ISO 8601 UTC timesteps.
+    - Accepts 'live' as a reserved parameter value.
+    - Rejects all other values with a clear ValueError.
+
+    Args:
+        timestep: ISO 8601 UTC string (e.g. '2020-05-20T12:00:00Z') or 'live'.
+
+    Returns:
+        The validated timestep string.
+
+    Raises:
+        ValueError: If timestep is not in the 25 replay timesteps and not 'live'.
+    """
+    if timestep == LIVE:
+        return LIVE
+    if timestep in REPLAY_TIMESTEPS:
+        return timestep
+    raise ValueError(
+        f"Invalid timestep: {timestep!r}; must be one of the 25 Amphan replay timesteps or 'live'"
+    )
+
+
+def create_replay_timeline() -> ReplayTimeline:
+    """Construct an immutable contract-compliant ReplayTimeline model.
+
+    Contains:
+    - event: 'amphan'
+    - landfall: '2020-05-20T12:00:00Z' (official IMD crossing complete timestep)
+    - timesteps: exactly 25 timesteps, 3-hour intervals, strictly ordered from T-72 to T-0.
+    """
+    return ReplayTimeline(
+        event=EVENT_NAME,
+        landfall=LANDFALL_TIMESTAMP,
+        timesteps=list(REPLAY_TIMESTEPS),
+    )
+
 
 # ---------------------------------------------------------------------------
 # 1. Official IMD Cyclone Amphan Best-Track Waypoints (May 17-20, 2020)
