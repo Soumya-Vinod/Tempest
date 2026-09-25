@@ -181,6 +181,14 @@ aren't available, an H3 resolution-7 cell. Geometry: block `Polygon | MultiPolyg
 served as FC&lt;UnscoredArea&gt;: geometry `Polygon | MultiPolygon`, properties `{ id: string,
 label: string, area_km2: number }`, with `label` "Municipal area, not scored".
 
+**Risk breakdown** *(v1.1 change, pending Dev A)*: the parts behind each block's score, for
+explaining it. `RiskBreakdown = { timestep, blocks: RiskBlockBreakdown[] }` with
+`RiskBlockBreakdown = { block_id, block_name, population_2011: int, hospital_travel_min:
+number | null, hazard: { surge, wind, flood }, exposure: { isolated_facilities, cut_roads,
+cut_substations }, vulnerability: { population_density, hospital_access, low_literacy,
+mapped_shelters } }`; every part is a float in [0, 1]. `hospital_travel_min` is null when no
+road node in the block reaches a hospital.
+
 ### 4.5 Advisory (Dev B)
 Geometry: **null** (join to the block via `block_id`).
 
@@ -232,6 +240,7 @@ stated; `timestep=live` returns `501` in v1.0. FC = FeatureCollection.
 | B | GET | `/api/exposure/infra` | `infra_type?: InfraType` | FC&lt;InfraFeature&gt; (not time-dependent) |
 | B | GET | `/api/impact/results` | `timestep`, `hazard_type?`, `status?: ImpactStatus` | FC&lt;ImpactResult&gt; |
 | B | GET | `/api/risk/scores` | `timestep` | FC&lt;RiskScore&gt; |
+| B | GET | `/api/risk/breakdown` | `timestep` | RiskBreakdown. *v1.1 change, pending Dev A.* |
 | B | GET | `/api/risk/unscored-areas` | — | FC&lt;UnscoredArea&gt; (static; the same in DEMO_MODE, from reference data). *v1.1 change, pending Dev A.* |
 | B | GET | `/api/advisory/` | `status?`, `block_id?` | FC&lt;Advisory&gt; |
 | B | POST | `/api/advisory/` | `{ block_id, timestep, language }` | Advisory (`draft`) |
@@ -289,6 +298,7 @@ the schema listed here, and fails on any route resource not in this table.
 | `GET /api/exposure/infra` | `infra-<infra_type>`, one per type. Unfiltered: no fixture of its own; composed from the per-type files *(added in v0.9)* | no | FC&lt;InfraFeature&gt; |
 | `GET /api/impact/results` | `results`, or `results-<filter>` with `[a-z0-9-]` filter values | yes | FC&lt;ImpactResult&gt; |
 | `GET /api/risk/scores` | `scores` | yes | FC&lt;RiskScore&gt; |
+| `GET /api/risk/breakdown` | `breakdown` *(v1.1 change, pending Dev A)* | yes | RiskBreakdown |
 | `GET /api/advisory/` | `list` | no | FC&lt;Advisory&gt; |
 | `GET /api/advisory/{advisory_id}` | `item-<advisory_id>` | no | Advisory |
 | `POST /api/dispatch/{advisory_id}` | `receipt-<advisory_id>` | no | DispatchReceipt |

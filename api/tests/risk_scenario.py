@@ -23,7 +23,8 @@ POPULATION = 50_000
 EXTRA_LAND = box(88.60, 22.40, 88.70, 22.50)
 
 
-def blocks(population: int = POPULATION) -> Blocks:
+def blocks(population: int = POPULATION, protected=None) -> Blocks:
+    """`protected`: a polygon of uninhabited reserve land (none by default)."""
     frame = gpd.GeoDataFrame(
         {
             "census2011_code": list(BLOCK_BOXES),
@@ -35,7 +36,14 @@ def blocks(population: int = POPULATION) -> Blocks:
     )
     frame["land_area_km2"] = frame.geometry.to_crs(ingest.METRIC_CRS).area / 1e6
     land = shapely.union_all([*frame.geometry, EXTRA_LAND])
-    return make_blocks(frame, land)
+    if protected is None:
+        frame["inhabited_area_km2"] = frame["land_area_km2"]
+        return make_blocks(frame, land)
+    inhabited = land.difference(protected)
+    frame["inhabited_area_km2"] = (
+        frame.geometry.intersection(inhabited).to_crs(ingest.METRIC_CRS).area / 1e6
+    )
+    return make_blocks(frame, land, inhabited)
 
 
 def infra(extra_hospital_at_a: bool = False):

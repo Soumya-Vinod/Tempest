@@ -35,7 +35,9 @@ export interface ImpactMap {
   active: boolean
   /** Tooltip for impact layers; null elsewhere, so the exposure tooltip can take over. */
   tooltip: (info: PickingInfo) => TooltipContent
-  onClick: (info: PickingInfo) => void
+  /** Selects the clicked affected feature (true) or clears the selection (false). */
+  onClick: (info: PickingInfo) => boolean
+  clear: () => void
   panel: PanelProps
   card: PathwayCardProps
 }
@@ -72,6 +74,7 @@ export function useImpactMap(timestepIndex: number, infra: InfraByType): ImpactM
     const a = pickedAffected(info)
     setSelectedId(a?.id ?? null)
     setHighlightId(a?.id ?? null)
+    return a !== null
   }, [])
 
   const tooltip = useCallback(
@@ -100,6 +103,7 @@ export function useImpactMap(timestepIndex: number, infra: InfraByType): ImpactM
     active: shown.length > 0,
     tooltip,
     onClick,
+    clear,
     panel: {
       timestepIndex,
       state,

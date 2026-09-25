@@ -26,6 +26,7 @@ from app.schemas import (
     HazardLayerCollection,
     ImpactResultCollection,
     InfraFeatureCollection,
+    RiskBreakdown,
     RiskScore,
     RiskScoreCollection,
 )
@@ -76,10 +77,11 @@ class RiskContext:
     road_lengths: dict[str, dict[int, float]]  # road id -> {block index: metres inside}
     total_road_m: np.ndarray
     static: list[BlockStatic]
-    land_area_m2: np.ndarray = field(init=False)
+    hospital_sources: int = 0  # hospitals used as access sources (snapped, not too far)
+    inhabited_area_m2: np.ndarray = field(init=False)
 
     def __post_init__(self) -> None:
-        self.land_area_m2 = self.blocks.land_metric.area.to_numpy()
+        self.inhabited_area_m2 = self.blocks.inhabited_metric.area.to_numpy()
 
 
 def _hospital_times(net: ImpactNetwork, sources: list[Any]) -> dict[Any, float]:
@@ -135,15 +137,18 @@ def build_context(
                 road_lengths.setdefault(roads[r].id, {})[int(b)] = float(length)
                 total[b] += length
 
-    # Hospital access: nearest hospital (facility_level "hospital", Kolkata's included).
+    # Hospital access: nearest general hospital (facility_level "hospital", Kolkata's
+    # included, minus nursing homes and specialist clinics: weights.is_access_hospital).
     hospitals = [
         f
         for f in infra.features
         if f.properties.infra_type == "hospital"
         and f.properties.attributes.get("facility_level") == "hospital"
+        and W.is_access_hospital(f.properties.name)
     ]
     snaps = net.snap_many([tuple(f.geometry.coordinates[:2]) for f in hospitals])
-    times = _hospital_times(net, [s.node for s in snaps if not s.too_far])
+    sources = [s.node for s in snaps if not s.too_far]
+    times = _hospital_times(net, sources)
     node_block = np.full(len(net.node_ids), -1)
     for b, geom in enumerate(blocks.geometry):
         inside = shapely.contains_xy(geom, net.node_xy[:, 0], net.node_xy[:, 1])
@@ -162,7 +167,7 @@ def build_context(
         else:
             median_s = np.inf
         parts = {
-            "population_density": density_part(blocks.population[b], blocks.land_area_km2[b]),
+            "population_density": density_part(blocks.population[b], blocks.inhabited_area_km2[b]),
             "hospital_access": hospital_access_part(median_s),
             "low_literacy": 0.0,  # off until a primary source is available (weights.py)
             "mapped_shelters": mapped_shelters_part(int(shelters[b]), blocks.population[b]),
@@ -176,7 +181,7 @@ def build_context(
                 graph_nodes=len(nodes),
             )
         )
-    return RiskContext(blocks, point_block, road_lengths, total, static)
+    return RiskContext(blocks, point_block, road_lengths, total, static, len(sources))
 
 
 # --- Per timestep -------------------------------------------------------------------------------
@@ -197,10 +202,10 @@ class BlockRisk:
 
 
 def _hazard_parts(ctx: RiskContext, hazards: dict[str, HazardLayerCollection]) -> list[dict]:
-    """Land-weighted surge share, wind part and flood severity per block."""
+    """Surge share, wind part and flood severity per block, weighted by inhabited land."""
     n = len(ctx.blocks.codes)
     out = [{"surge": 0.0, "wind": 0.0, "flood": 0.0} for _ in range(n)]
-    land = ctx.blocks.land_metric.to_numpy()
+    land = ctx.blocks.inhabited_metric.to_numpy()
     for h, fc in hazards.items():
         if h not in ("surge", "wind", "flood") or not fc.features:
             continue
@@ -215,8 +220,8 @@ def _hazard_parts(ctx: RiskContext, hazards: dict[str, HazardLayerCollection]) -
             flooded = shapely.union_all(polys.to_numpy())
             areas = shapely.area(shapely.intersection(land, flooded))
             for b in range(n):
-                if ctx.land_area_m2[b] > 0:
-                    out[b]["surge"] = clip01(areas[b] / ctx.land_area_m2[b])
+                if ctx.inhabited_area_m2[b] > 0:
+                    out[b]["surge"] = clip01(areas[b] / ctx.inhabited_area_m2[b])
             continue
         if h == "wind":
             weights = np.array([wind_part(f.properties.value) for f in fc.features])
@@ -228,8 +233,8 @@ def _hazard_parts(ctx: RiskContext, hazards: dict[str, HazardLayerCollection]) -
         sums = np.zeros(n)
         np.add.at(sums, b_idx, areas * weights[p_idx])
         for b in range(n):
-            if ctx.land_area_m2[b] > 0:
-                out[b][h] = clip01(sums[b] / ctx.land_area_m2[b])
+            if ctx.inhabited_area_m2[b] > 0:
+                out[b][h] = clip01(sums[b] / ctx.inhabited_area_m2[b])
     return out
 
 
@@ -315,15 +320,10 @@ def evaluate(
     return out
 
 
-def compute_scores(
-    hazards: dict[str, HazardLayerCollection],
-    impacts: ImpactResultCollection,
-    ctx: RiskContext,
-    timestep: str,
-) -> RiskScoreCollection:
-    """One contract RiskScore per block at `timestep`, in block order."""
+def to_collection(risks: list[BlockRisk], ctx: RiskContext, timestep: str) -> RiskScoreCollection:
+    """Contract RiskScores from evaluated blocks, in block order."""
     features = []
-    for b, r in enumerate(evaluate(hazards, impacts, ctx)):
+    for b, r in enumerate(risks):
         rid = f"{r.code}__{timestep}"
         features.append(
             RiskScore.model_validate(
@@ -349,3 +349,38 @@ def compute_scores(
             )
         )
     return RiskScoreCollection(features=features)
+
+
+def to_breakdown(risks: list[BlockRisk], ctx: RiskContext, timestep: str) -> RiskBreakdown:
+    """Every part per block, plus population and hospital travel time (v1.1, pending Dev A)."""
+
+    def rounded(parts: dict[str, float]) -> dict[str, float]:
+        return {k: round(v, DECIMALS) for k, v in parts.items()}
+
+    blocks = []
+    for b, r in enumerate(risks):
+        minutes = ctx.static[b].hospital_minutes
+        blocks.append(
+            {
+                "block_id": r.code,
+                "block_name": r.name,
+                "population_2011": int(ctx.blocks.population[b]),
+                "hospital_travel_min": (
+                    round(minutes, 1) if minutes is not None and np.isfinite(minutes) else None
+                ),
+                "hazard": rounded(r.hazard_parts),
+                "exposure": rounded(r.exposure_parts),
+                "vulnerability": rounded(r.vulnerability_parts),
+            }
+        )
+    return RiskBreakdown.model_validate({"timestep": timestep, "blocks": blocks})
+
+
+def compute_scores(
+    hazards: dict[str, HazardLayerCollection],
+    impacts: ImpactResultCollection,
+    ctx: RiskContext,
+    timestep: str,
+) -> RiskScoreCollection:
+    """One contract RiskScore per block at `timestep`, in block order."""
+    return to_collection(evaluate(hazards, impacts, ctx), ctx, timestep)

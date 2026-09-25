@@ -156,6 +156,41 @@ class UnscoredAreaCollection(FeatureCollection[UnscoredArea]):
     pass
 
 
+# Per-block parts behind a RiskScore (§4.4, v1.1 change pending Dev A). Each part is 0-1.
+class RiskHazardParts(ContractModel):
+    surge: UnitFraction
+    wind: UnitFraction
+    flood: UnitFraction
+
+
+class RiskExposureParts(ContractModel):
+    isolated_facilities: UnitFraction
+    cut_roads: UnitFraction
+    cut_substations: UnitFraction
+
+
+class RiskVulnerabilityParts(ContractModel):
+    population_density: UnitFraction
+    hospital_access: UnitFraction
+    low_literacy: UnitFraction
+    mapped_shelters: UnitFraction
+
+
+class RiskBlockBreakdown(ContractModel):
+    block_id: BlockId
+    block_name: str
+    population_2011: int = Field(ge=0)
+    hospital_travel_min: float | None = Field(ge=0)  # null: no road node reaches a hospital
+    hazard: RiskHazardParts
+    exposure: RiskExposureParts
+    vulnerability: RiskVulnerabilityParts
+
+
+class RiskBreakdown(ContractModel):
+    timestep: Timestep
+    blocks: list[RiskBlockBreakdown]
+
+
 # --- 4.5 Advisory (Dev B) ---
 
 

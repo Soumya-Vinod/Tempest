@@ -12,8 +12,13 @@ from app.exposure import service as exposure
 from app.impact import service as impact
 from app.main import app
 from app.risk import blocks as block_data
-from app.risk import service
-from app.schemas import LANDFALL_TIMESTEP, RiskScoreCollection, UnscoredAreaCollection
+from app.risk import service, weights
+from app.schemas import (
+    LANDFALL_TIMESTEP,
+    RiskBreakdown,
+    RiskScoreCollection,
+    UnscoredAreaCollection,
+)
 from tests import impact_scenario as S
 from tests import risk_scenario as R
 
@@ -124,3 +129,39 @@ def test_unscored_areas(files, monkeypatch, demo_mode):
     assert resp.status_code == 200
     fc = UnscoredAreaCollection.model_validate(resp.json())
     assert [f.properties.label for f in fc.features] == ["Municipal area, not scored"]
+
+
+def test_breakdown_matches_scores(live):
+    scores = client.get(f"{URL}?timestep={TS}&synthetic=true").json()
+    resp = client.get(f"/api/risk/breakdown?timestep={TS}&synthetic=true")
+    assert resp.status_code == 200, resp.text
+    bd = RiskBreakdown.model_validate(resp.json())
+    assert bd.timestep == TS
+    assert [b.block_id for b in bd.blocks] == [
+        f["properties"]["block_id"] for f in scores["features"]
+    ]
+    by_id = {f["properties"]["block_id"]: f["properties"] for f in scores["features"]}
+    for b in bd.blocks:
+        hazard = min(1, max(b.hazard.surge, b.hazard.wind) + weights.FLOOD_WEIGHT * b.hazard.flood)
+        assert hazard == pytest.approx(by_id[b.block_id]["components"]["hazard"], abs=1e-3)
+        assert b.population_2011 == R.POPULATION
+    fragment = next(b for b in bd.blocks if b.block_id == "90003")
+    assert fragment.hospital_travel_min is not None  # the cut-off hospital is in this block
+    mainland = next(b for b in bd.blocks if b.block_id == "90001")
+    assert mainland.hospital_travel_min is None  # no hospital reachable
+
+
+def test_breakdown_shares_the_risk_cache(live, monkeypatch):
+    calls = []
+    compute = service._compute
+    monkeypatch.setattr(service, "_compute", lambda ts, syn: calls.append(ts) or compute(ts, syn))
+    client.get(f"{URL}?timestep={TS}&synthetic=true")
+    client.get(f"/api/risk/breakdown?timestep={TS}&synthetic=true")
+    assert calls == [TS]
+
+
+def test_breakdown_demo_rules(files, monkeypatch):
+    _mode(monkeypatch, demo_mode=True, demo_dir=files)
+    assert client.get(f"/api/risk/breakdown?timestep={TS}&synthetic=true").status_code == 422
+    resp = client.get(f"/api/risk/breakdown?timestep={TS}")
+    assert resp.status_code == 501 and service.breakdown_fixture_key(TS) in resp.json()["detail"]

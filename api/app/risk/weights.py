@@ -7,20 +7,25 @@ Every component and part is 0-1 on a FIXED scale (never relative to this timeste
 scores are comparable across timesteps.
 """
 
+import re
+
+from app.exposure.ingest import HOSPITAL_NAME_PATTERNS
 from app.impact.thresholds import ROAD_CUT_SURGE_M
 
 # --- Score ---
 W_EXPOSURE = 0.6
 W_VULNERABILITY = 0.4
 
-# --- Hazard (land only: the blocks' share of the unfilled OSM district land polygon) ---
-# surge part: share of the block's land with surge depth >= the road-cut threshold.
+# --- Hazard (inhabited land only: the block's land outside OSM protected areas, so the
+# uninhabited Sundarbans reserve forest doesn't count) ---
+# surge part: share of the block's inhabited land with surge depth >= the road-cut threshold.
 SURGE_LAND_THRESHOLD_M = ROAD_CUT_SURGE_M
-# wind part: land-weighted mean of (wind - WIND_FLOOR) / (WIND_CEILING - WIND_FLOOR), clipped 0-1.
+# wind part: inhabited-land-weighted mean of (wind - WIND_FLOOR) / (WIND_CEILING - WIND_FLOOR),
+# clipped 0-1.
 # Assumption: below gale force (17 m/s, Beaufort 8) wind adds no risk; 60 m/s is the top of scale.
 WIND_FLOOR_MS = 17.0
 WIND_CEILING_MS = 60.0
-# hazard = max(surge, wind) + FLOOD_WEIGHT x land-weighted flood severity, capped at 1.
+# hazard = max(surge, wind) + FLOOD_WEIGHT x inhabited-land-weighted flood severity, capped at 1.
 # Flood is static susceptibility (contracts.md §4.1), so it only adds a small constant weight.
 FLOOD_WEIGHT = 0.1
 
@@ -35,10 +40,38 @@ EXPOSURE_PARTS = {
 }
 
 # --- Vulnerability (static; computed once) ---
-DENSITY_SCALE_PER_KM2 = 2000.0  # population / land km2; 2,000 or more = 1
+DENSITY_SCALE_PER_KM2 = 2000.0  # population / inhabited km2; 2,000 or more = 1
 # Hospital access: travel time from the nearest hospital (facility_level "hospital", Kolkata's
 # included), median over the block's road graph nodes; 2 h or more (or unreachable) = 1.
 HOSPITAL_ACCESS_SCALE_S = 2 * 3600.0
+# Hospital access sources: facility_level "hospital" minus private / specialist facilities that
+# are not general hospitals (OSM tags many nursing homes amenity=hospital). Matched on the name,
+# case-insensitive. Names matching a KEEP pattern (government hospitals, medical colleges) are
+# always sources, even if they also match an EXCLUDE pattern. Unnamed hospitals are kept.
+HOSPITAL_ACCESS_EXCLUDE_PATTERNS: tuple[str, ...] = (
+    r"nursing\s*home",
+    r"poly\s*clinic",
+    r"diagnostic",
+    r"\bclinic\b",
+    r"\beye\b",
+    r"\bdental\b",
+    r"\bmaternity\b",
+)
+HOSPITAL_ACCESS_KEEP_PATTERNS: tuple[str, ...] = (
+    *HOSPITAL_NAME_PATTERNS,  # rural / block hospital, BPHC, sub-divisional / district hospital
+    r"medical college",
+)
+_EXCLUDE_RE = re.compile("|".join(HOSPITAL_ACCESS_EXCLUDE_PATTERNS), re.IGNORECASE)
+_KEEP_RE = re.compile("|".join(HOSPITAL_ACCESS_KEEP_PATTERNS), re.IGNORECASE)
+
+
+def is_access_hospital(name: str | None) -> bool:
+    """Whether a facility_level "hospital" counts as a source for hospital access."""
+    if not name or _KEEP_RE.search(name):
+        return True
+    return not _EXCLUDE_RE.search(name)
+
+
 # Mapped shelters: 1 - min(1, shelters and stand-ins per 10,000 people / 2).
 MAPPED_SHELTERS_PER_10K_TARGET = 2.0
 # Low literacy is OFF (weight 0) until a primary source is available: the Census PCA file for the

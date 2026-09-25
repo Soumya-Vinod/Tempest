@@ -49,11 +49,18 @@ interface Props {
   getTooltip?: DeckProps['getTooltip']
   /** Called for every click, with info.object unset when nothing was picked. */
   onClick?: DeckProps['onClick']
+  /** Called once the style has loaded, for features that add MapLibre sources and layers. */
+  onMapLoad?: (map: MapLibreMap) => void
 }
 
-export default function MapView({ layers = [], getTooltip, onClick }: Props) {
+export default function MapView({ layers = [], getTooltip, onClick, onMapLoad }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const overlayRef = useRef<MapboxOverlay | null>(null)
+  // Latest onMapLoad without re-creating the map when the callback changes.
+  const onMapLoadRef = useRef(onMapLoad)
+  useEffect(() => {
+    onMapLoadRef.current = onMapLoad
+  }, [onMapLoad])
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -79,6 +86,7 @@ export default function MapView({ layers = [], getTooltip, onClick }: Props) {
     map.on('load', () => {
       loaded = true
       fitAoi(map)
+      onMapLoadRef.current?.(map)
     })
     map.on('resize', () => {
       if (loaded && !userMoved) fitAoi(map)

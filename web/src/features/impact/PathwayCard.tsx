@@ -1,4 +1,4 @@
-import { ABOVE_TIMELINE, ATTRIBUTION_CLEARANCE, PANEL_WIDTH, UI_GAP } from '../../lib/layout'
+import { CARD_BOTTOM, CARD_TOP_CLEARANCE, PANEL_WIDTH, UI_GAP } from '../../lib/layout'
 import type { ImpactResultProperties, ImpactStatus, PathwayStep } from '../../types/contracts'
 import type { Affected } from './layers'
 import { baselineAccess, featureName, type InfraLookup } from './labels'
@@ -14,8 +14,6 @@ export interface PathwayCardProps {
 }
 
 // Bottom-left of the map, above the timeline and the attribution control; below the zoom buttons.
-const BOTTOM = ABOVE_TIMELINE + ATTRIBUTION_CLEARANCE
-const TOP_CLEARANCE = 128 // MapLibre's navigation control, top-left
 
 function StatusDot({ status }: { status: ImpactStatus }) {
   return (
@@ -115,9 +113,9 @@ export default function PathwayCard(props: PathwayCardProps) {
       className="absolute overflow-y-auto rounded-lg bg-white p-3 text-sm text-slate-800 shadow-lg"
       style={{
         left: UI_GAP,
-        bottom: BOTTOM,
+        bottom: CARD_BOTTOM,
         width: PANEL_WIDTH,
-        maxHeight: `calc(100% - ${BOTTOM + TOP_CLEARANCE}px)`,
+        maxHeight: `calc(100% - ${CARD_BOTTOM + CARD_TOP_CLEARANCE}px)`,
       }}
       aria-label="Impact pathway"
     >

@@ -482,3 +482,68 @@ def test_missing_way_id_lookup_returns_none(tmp_path, clip):
     # The real boundary edge whose clipped road feature came out empty (way 657485282).
     assert ingest.road_feature_for_way(index, 657485282) is None
     assert ingest.road_feature_for_way(index, "657485282") is None  # GraphML-loaded ids too
+
+
+# --- Forest department buildings are not shelters ------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("tags", "kind"),
+    [
+        ({"office": "government", "name": "Sudhanyakhali Forest Office"}, None),
+        ({"office": "government", "name": "Sajnekhali Range Office"}, None),
+        ({"building": "public", "name": "Beat office"}, None),
+        ({"office": "government", "name": "Dobanki Forest Camp"}, None),
+        ({"office": "government", "name": "Permissions counter"}, None),
+        ({"office": "government", "name": "Permission Counter"}, None),
+        ({"building": "civic", "name": "Jharkhali Check Post"}, None),
+        ({"office": "government", "name:en": "Checkpost"}, None),
+        ({"office": "government", "name": "Burirdabri Watch Tower"}, None),
+        ({"office": "government", "name": "Watchtower"}, None),
+        ({"office": "government", "name": "BDO Office Gosaba"}, "public_building_proxy"),
+        ({"office": "government"}, "public_building_proxy"),  # unnamed: can't tell, kept
+        # The name rule only narrows public buildings; other kinds are unaffected.
+        ({"amenity": "school", "name": "Forest Office Primary School"}, "school_proxy"),
+        ({"amenity": "townhall", "name": "Range Office Hall"}, "community_proxy"),
+    ],
+)
+def test_forest_offices_are_not_public_building_stand_ins(tags, kind):
+    got = ingest.classify("shelter", tags)
+    assert (got and got["shelter_kind"]) == kind
+
+
+def test_no_stand_ins_inside_protected_areas():
+    from shapely.geometry import box
+
+    reserve = box(88.0, 22.0, 88.1, 22.1)
+
+    def rec(fid, infra_type, attrs, x):
+        return ingest.InfraRecord(fid, infra_type, None, f"node/{fid[-1]}", attrs, Point(x, 22.05))
+
+    records = [
+        rec("shelter-node-1", "shelter", {"shelter_kind": "public_building_proxy"}, 88.05),
+        rec("shelter-node-2", "shelter", {"shelter_kind": "school_proxy"}, 88.05),
+        rec("shelter-node-3", "shelter", {"shelter_kind": "community_proxy"}, 88.05),
+        rec("shelter-node-4", "shelter", {"shelter_kind": "cyclone_shelter"}, 88.05),
+        rec("hospital-node-5", "hospital", {"facility_level": "health_centre"}, 88.05),
+        rec("shelter-node-6", "shelter", {"shelter_kind": "public_building_proxy"}, 88.20),
+    ]
+    kept, dropped = ingest.drop_protected_stand_ins(records, reserve)
+    assert {r.id for r in dropped} == {"shelter-node-1", "shelter-node-2", "shelter-node-3"}
+    assert {r.id for r in kept} == {"shelter-node-4", "hospital-node-5", "shelter-node-6"}
+
+
+def test_protected_polygons_from_overpass():
+    data = {
+        "elements": [
+            {"type": "node", "id": 1, "lat": 22.0, "lon": 88.0, "tags": {"name": "Bird point"}},
+            {"type": "way", "id": 2, "tags": {"name": "Reserve", "boundary": "protected_area"},
+             "geometry": [{"lat": 22.0, "lon": 88.0}, {"lat": 22.0, "lon": 88.1},
+                          {"lat": 22.1, "lon": 88.1}, {"lat": 22.0, "lon": 88.0}]},
+            {"type": "way", "id": 3, "tags": {"leisure": "nature_reserve"},  # not closed
+             "geometry": [{"lat": 22.0, "lon": 88.0}, {"lat": 22.0, "lon": 88.1}]},
+        ]
+    }  # fmt: skip
+    polygons = ingest.protected_polygons(data)
+    assert [label for label, _ in polygons] == ["Reserve (way/2)"]
+    assert "[bbox:21.5,88.0,22.7,89.1]" in ingest.protected_areas_query((88.0, 21.5, 89.1, 22.7))

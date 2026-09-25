@@ -75,3 +75,11 @@ def test_no_block_area_inside_kolkata(blocks_m):
 def test_land_plus_water_equals_total(blocks):
     diff = (blocks["land_area_km2"] + blocks["water_area_km2"] - blocks["area_km2"]).abs()
     assert (diff <= AREA_TOLERANCE_KM2).all(), blocks.loc[diff > AREA_TOLERANCE_KM2, "block_name"]
+
+
+def test_inhabited_area_within_land(blocks):
+    """inhabited_area_km2 = land outside OSM protected areas (reserve forest)."""
+    assert (blocks["inhabited_area_km2"] > 0).all()
+    assert (blocks["inhabited_area_km2"] <= blocks["land_area_km2"] + AREA_TOLERANCE_KM2).all()
+    gosaba = blocks.set_index("block_name").loc["Gosaba"]
+    assert gosaba["land_area_km2"] - gosaba["inhabited_area_km2"] > 1000  # Sunderban Tiger Reserve

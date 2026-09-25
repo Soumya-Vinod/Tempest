@@ -17,6 +17,7 @@ from pathlib import Path
 
 import httpx
 import networkx as nx
+import shapely
 from shapely.geometry import Point
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -123,6 +124,10 @@ def main() -> None:
     neighbours = ingest.clip_polygon(boundary, ingest.NEIGHBOUR_RELATIONS)
     polygon = ingest.fill_water_gaps(land, neighbours)
     bangladesh = ingest.clip_polygon(boundary, ingest.BORDER_CHECK_RELATIONS)
+    areas = ingest.protected_polygons(
+        cached_overpass("protected-areas", ingest.protected_areas_query(bbox), args.refresh)
+    )
+    protected = shapely.union_all([g for _, g in areas])
 
     print("Power line count")
     line_n, minor_n = ingest.power_counts(
@@ -159,7 +164,14 @@ def main() -> None:
             deduped = ingest.dedupe_health(found)
         elif infra_type == "shelter":
             deduped = ingest.dedupe_shelters(found)
-        records += ingest.clip_records(deduped, polygon)
+        clipped = ingest.clip_records(deduped, polygon)
+        if infra_type == "shelter":
+            clipped, protected_stand_ins = ingest.drop_protected_stand_ins(clipped, protected)
+        records += clipped
+
+    in_reserve = [r for r in records if r.infra_type == "hospital" and protected.covers(r.geometry)]
+    print(f"  stand-in shelters inside protected areas, dropped: {len(protected_stand_ins)}")
+    print(f"  hospitals / health centres inside protected areas, kept: {len(in_reserve)}")
 
     print("Road graph (from overpass-road.json)", flush=True)
     G = ingest.build_road_graph(road_data, polygon)

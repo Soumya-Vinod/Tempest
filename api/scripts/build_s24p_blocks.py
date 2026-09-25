@@ -8,8 +8,9 @@ its cached api/data/raw/overpass-boundary.json; run that script first if the fil
 Blocks are picked by shapeID from api/data/reference/s24p_blocks.csv, which also supplies the
 Census 2011 codes. Kolkata is subtracted from every block (it is not risk-scored). Each feature
 gets area_km2 = land_area_km2 + water_area_km2 (UTM 45N, 0.1 km2), where land is the unfilled
-OSM S24P district and water the river channels the clip fills. Writes
-api/data/reference/s24p_blocks.geojson.
+OSM S24P district and water the river channels the clip fills. inhabited_area_km2 is the land
+outside OSM protected areas (reserve forest), from api/data/reference/s24p_inhabited_land.geojson
+(run build_s24p_land.py first). Writes api/data/reference/s24p_blocks.geojson.
 """
 
 import argparse
@@ -37,6 +38,7 @@ GB_PATH = ingest.RAW_DIR / "geoBoundaries-IND-ADM3.geojson"
 REFERENCE_DIR = API_DIR / "data" / "reference"
 LOOKUP_CSV = REFERENCE_DIR / "s24p_blocks.csv"
 BLOCKS_GEOJSON = REFERENCE_DIR / "s24p_blocks.geojson"
+INHABITED_GEOJSON = REFERENCE_DIR / "s24p_inhabited_land.geojson"
 BOUNDARY_JSON = ingest.RAW_DIR / "overpass-boundary.json"
 EXPECTED_BLOCKS = 29
 S24P_RELATION, KOLKATA_RELATION = 9513027, 10371838  # keys of ingest.CLIP_RELATIONS
@@ -60,6 +62,7 @@ class Aoi:
     polygon: shapely.Geometry  # ingest clip: S24P + Kolkata, narrow river channels filled
     kolkata: shapely.Geometry  # subtracted from every block (excluded from risk scoring)
     land: shapely.Geometry  # unfilled OSM S24P district: the land part of each block
+    inhabited: shapely.Geometry  # land minus protected areas (s24p_inhabited_land.geojson)
 
 
 def load_aoi() -> Aoi:
@@ -68,21 +71,31 @@ def load_aoi() -> Aoi:
     boundary = json.loads(BOUNDARY_JSON.read_text(encoding="utf-8"))
     land = ingest.clip_polygon(boundary)
     neighbours = ingest.clip_polygon(boundary, ingest.NEIGHBOUR_RELATIONS)
+    if not INHABITED_GEOJSON.exists():
+        sys.exit(f"missing {INHABITED_GEOJSON}; run api/scripts/build_s24p_land.py first")
+    inhabited = shapely.union_all(gpd.read_file(INHABITED_GEOJSON).geometry.to_numpy())
     return Aoi(
         polygon=ingest.fill_water_gaps(land, neighbours),
         kolkata=ingest.clip_polygon(boundary, [KOLKATA_RELATION]),
         land=ingest.clip_polygon(boundary, [S24P_RELATION]),
+        inhabited=inhabited,
     )
 
 
-def add_areas(blocks: gpd.GeoDataFrame, land: shapely.Geometry) -> gpd.GeoDataFrame:
-    """area_km2 = land_area_km2 + water_area_km2 (filled river channels), in UTM 45N."""
+def add_areas(
+    blocks: gpd.GeoDataFrame, land: shapely.Geometry, inhabited: shapely.Geometry
+) -> gpd.GeoDataFrame:
+    """area_km2 = land_area_km2 + water_area_km2 (filled river channels), in UTM 45N;
+    inhabited_area_km2 = land outside protected areas (<= land_area_km2)."""
     metric = blocks.geometry.to_crs(ingest.METRIC_CRS)
     land_m = gpd.GeoSeries([land], crs="EPSG:4326").to_crs(ingest.METRIC_CRS).iloc[0]
     blocks = blocks.copy()
     blocks["area_km2"] = (metric.area / 1e6).round(1)
     blocks["land_area_km2"] = (metric.intersection(land_m).area / 1e6).round(1)
     blocks["water_area_km2"] = (metric.difference(land_m).area / 1e6).round(1)
+    inhabited_m = gpd.GeoSeries([inhabited], crs="EPSG:4326").to_crs(ingest.METRIC_CRS).iloc[0]
+    inhabited_land = metric.intersection(land_m).intersection(inhabited_m)
+    blocks["inhabited_area_km2"] = (inhabited_land.area / 1e6).round(1)
     return blocks
 
 
@@ -103,7 +116,7 @@ def build_blocks(gb_path: Path, lookup: pd.DataFrame, aoi: Aoi) -> gpd.GeoDataFr
     empty = blocks[blocks.geometry.is_empty]["block_name"].tolist()
     if empty:
         raise ValueError(f"blocks empty after clipping: {empty}")
-    blocks = add_areas(blocks, aoi.land)
+    blocks = add_areas(blocks, aoi.land, aoi.inhabited)
     return blocks[
         [
             "census2011_code",
@@ -112,6 +125,7 @@ def build_blocks(gb_path: Path, lookup: pd.DataFrame, aoi: Aoi) -> gpd.GeoDataFr
             "area_km2",
             "land_area_km2",
             "water_area_km2",
+            "inhabited_area_km2",
             "geometry",
         ]
     ]

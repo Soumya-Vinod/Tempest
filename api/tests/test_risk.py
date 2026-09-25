@@ -212,3 +212,63 @@ def test_unscored_areas_are_land_outside_blocks():
     area = fc.features[0].properties
     assert area.label == UNSCORED_LABEL
     assert area.area_km2 == pytest.approx(10.3 * 11.1, rel=0.05)  # 0.1 deg x 0.1 deg at 22.45 N
+
+
+@pytest.mark.parametrize(
+    ("name", "source"),
+    [
+        ("Gosaba Rural Hospital", True),
+        ("Kakdwip Sub-Divisional Hospital", True),
+        ("Diamond Harbour Govt Medical College", True),
+        ("Rural Hospital & Maternity Ward", True),  # keep pattern wins over "maternity"
+        ("Peerless Hospital", True),
+        (None, True),  # unnamed: can't judge, kept
+        ("ABC Nursing Home", False),
+        ("City Polyclinic", False),
+        ("Suraksha Diagnostic Centre", False),
+        ("Care Clinic", False),
+        ("Disha Eye Hospital", False),
+        ("Smile Dental Clinic", False),
+        ("Matri Maternity Home", False),
+    ],
+)
+def test_hospital_access_sources(name, source):
+    assert weights.is_access_hospital(name) is source
+
+
+# --- Inhabited land (reserve forest excluded) ---------------------------------------------------
+
+ISLAND_WEST = (88.15, 22.25, 88.25, 22.35)  # the island block's west half, made "protected"
+
+
+@pytest.fixture(scope="module")
+def reserve_ctx(graph):
+    from shapely.geometry import box
+
+    blocks = R.blocks(protected=box(*ISLAND_WEST))
+    return engine.build_context(blocks, R.infra(), graph, S.ANCHOR)
+
+
+def test_surge_on_protected_land_does_not_count(reserve_ctx, graph):
+    on_reserve, *_ = run(reserve_ctx, graph, surge=[S.box(*ISLAND_WEST, 2.0)])
+    assert on_reserve[ISLAND].hazard_parts["surge"] == 0
+    east = S.box(88.25, 22.25, 88.35, 22.35, 2.0)
+    on_villages, *_ = run(reserve_ctx, graph, surge=[east])
+    assert on_villages[ISLAND].hazard_parts["surge"] == pytest.approx(1.0, abs=0.01)
+
+
+def test_wind_and_flood_weighted_by_inhabited_land(reserve_ctx, graph):
+    risks, *_ = run(
+        reserve_ctx, graph,
+        wind=[S.box(*ISLAND_WEST, 60.0), S.box(88.25, 22.25, 88.35, 22.35, 17.0)],
+    )  # fmt: skip
+    assert risks[ISLAND].hazard_parts["wind"] == pytest.approx(0.0, abs=0.01)  # gale floor only
+
+
+def test_density_uses_inhabited_area(reserve_ctx, ctx):
+    full = ctx.static[ISLAND].vulnerability_parts["population_density"]
+    half = reserve_ctx.static[ISLAND].vulnerability_parts["population_density"]
+    assert reserve_ctx.blocks.inhabited_area_km2[ISLAND] == pytest.approx(
+        ctx.blocks.land_area_km2[ISLAND] / 2, rel=0.02
+    )
+    assert half == pytest.approx(2 * full, rel=0.02)

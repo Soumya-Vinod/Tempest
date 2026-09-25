@@ -148,6 +148,37 @@ export interface UnscoredAreaProperties {
 export type UnscoredArea = Feature<AreaGeometry, UnscoredAreaProperties>;
 export type UnscoredAreaCollection = FeatureCollection<UnscoredArea>;
 
+/** The parts behind each block's score (v1.1 change pending Dev A). Every part is in [0, 1]. */
+export interface RiskHazardParts {
+  surge: number;
+  wind: number;
+  flood: number;
+}
+export interface RiskExposureParts {
+  isolated_facilities: number;
+  cut_roads: number;
+  cut_substations: number;
+}
+export interface RiskVulnerabilityParts {
+  population_density: number;
+  hospital_access: number;
+  low_literacy: number;
+  mapped_shelters: number;
+}
+export interface RiskBlockBreakdown {
+  block_id: BlockId;
+  block_name: string;
+  population_2011: number;
+  hospital_travel_min: number | null; // null: no road node reaches a hospital
+  hazard: RiskHazardParts;
+  exposure: RiskExposureParts;
+  vulnerability: RiskVulnerabilityParts;
+}
+export interface RiskBreakdown {
+  timestep: Timestep;
+  blocks: RiskBlockBreakdown[];
+}
+
 // ---------- §4.5 Advisory (Dev B) ----------
 
 export interface Citation {
