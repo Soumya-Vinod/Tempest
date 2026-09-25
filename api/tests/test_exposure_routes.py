@@ -163,3 +163,18 @@ def test_no_gzip_when_not_accepted(live):
 def test_small_responses_are_not_gzipped():
     resp = client.get("/health", headers={"Accept-Encoding": "gzip"})  # < minimum_size
     assert "content-encoding" not in resp.headers
+
+
+def test_live_geometry_matches_fixtures(live, tmp_path):
+    """Live and demo share service.display_gdf: same parquet in, identical collections out."""
+    live_fc = get("/api/exposure/infra").model_dump(mode="json")
+    build_fixtures(ingest.read_infra(SAMPLE), tmp_path)
+    composed = [f for t in ingest.INFRA_TYPES for f in _fixture(tmp_path, t)["features"]]
+    assert live_fc["features"] == composed
+    xy = shapely.get_coordinates([shape(f["geometry"]) for f in live_fc["features"]])
+    assert (np.round(xy, 5) == xy).all()
+
+
+def test_live_leaves_parquet_unchanged(live):
+    get("/api/exposure/infra")
+    assert ingest.read_infra(SAMPLE).geometry.equals(live.geometry)

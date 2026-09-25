@@ -1,3 +1,4 @@
+import type { DeckProps, LayersList } from '@deck.gl/core'
 import { MapboxOverlay } from '@deck.gl/mapbox'
 import {
   AttributionControl,
@@ -42,8 +43,15 @@ function fitAoi(map: MapLibreMap) {
   map.fitBounds(AOI_BOUNDS, { padding: roomy ? p : UI_GAP, animate: false })
 }
 
-export default function MapView() {
+interface Props {
+  /** deck.gl layers from the features, drawn in order (first = bottom). */
+  layers?: LayersList
+  getTooltip?: DeckProps['getTooltip']
+}
+
+export default function MapView({ layers = [], getTooltip }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
+  const overlayRef = useRef<MapboxOverlay | null>(null)
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -74,15 +82,23 @@ export default function MapView() {
       if (loaded && !userMoved) fitAoi(map)
     })
 
-    // deck.gl layers render on top of the basemap; features will supply layers.
+    // deck.gl layers render on top of the basemap; features supply them via props.
     const overlay = new MapboxOverlay({ interleaved: false, layers: [] })
     map.addControl(overlay)
+    overlayRef.current = overlay
 
     return () => {
+      overlayRef.current = null
       map.removeControl(overlay)
       map.remove()
     }
   }, [])
+
+  // Runs after the effect above on mount, and whenever a feature changes its layers. deck.gl
+  // diffs layers by id, so unchanged layers keep their GPU buffers.
+  useEffect(() => {
+    overlayRef.current?.setProps({ layers, getTooltip })
+  }, [layers, getTooltip])
 
   // MapLibre adds .maplibregl-map (position: relative) to its container, so positioning
   // lives on the wrapper and the container only fills it.
