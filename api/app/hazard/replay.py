@@ -245,43 +245,60 @@ def get_aoi_grid(rows: int = 8, cols: int = 8) -> list[GridCell]:
 
 
 # ---------------------------------------------------------------------------
-# 3. Parametric Physics: Wind, Surge, Flood Susceptibility
+# 3. Parametric Physics: Holland Wind, Surge, Flood Susceptibility
 # ---------------------------------------------------------------------------
-def compute_wind_metric(cell: GridCell, track_pt: CycloneTrackPoint) -> HazardMetricResult:
-    """Compute physical 10m sustained wind speed (m/s) and normalized severity [0, 1].
+P_ENV_HPA: float = 1010.0  # Ambient/environmental background barometric pressure (hPa)
+RHO_AIR: float = 1.15  # Surface air density in tropical marine boundary layer (kg/m^3)
+OMEGA_EARTH: float = 7.292115e-5  # Earth rotational angular velocity (rad/s)
+HOLLAND_B_MIN: float = 1.0  # Lower bound for Holland shape parameter B
+HOLLAND_B_MAX: float = 2.5  # Upper bound for Holland shape parameter B
+SURFACE_REDUCTION_COAST: float = 0.90  # 10m wind reduction factor over sea / near-coast
+SURFACE_REDUCTION_INLAND: float = 0.82  # 10m wind reduction factor over rough inland terrain
+INLAND_THRESHOLD_KM: float = 20.0  # Distance threshold to switch from coastal to inland friction
+MAX_PHYSICAL_WIND_SPEED_MPS: float = 65.0  # Physical upper cutoff for 10m sustained wind speed
 
-    Uses modified Holland parametric wind profile with translation asymmetry and surface friction.
+
+def compute_holland_b(
+    central_pressure_hpa: float,
+    max_wind_mps: float,
+    env_pressure_hpa: float = P_ENV_HPA,
+    air_density: float = RHO_AIR,
+) -> float:
+    """Compute the Holland peakedness shape parameter B (Holland 1980).
+
+    Formulation:
+        B = (rho * e * V_max^2) / Delta_P
+    where:
+        Delta_P = (P_env - P_c) * 100 (in Pa)
+        e = exp(1) ≈ 2.718281828
+        rho = air density (kg/m^3)
+        V_max = maximum sustained wind speed (m/s)
+
+    The resulting B is bounded to the physically realistic range [1.0, 2.5].
     """
-    dist_km = haversine_distance_km(
-        cell.centroid_lat, cell.centroid_lon, track_pt.lat, track_pt.lon
-    )
+    delta_p_pa = max(1.0, env_pressure_hpa - central_pressure_hpa) * 100.0
+    b = (air_density * math.e * (max_wind_mps**2)) / delta_p_pa
+    return max(HOLLAND_B_MIN, min(HOLLAND_B_MAX, b))
 
-    # Holland wind profile formulation
-    rmw = track_pt.radius_max_wind_km
-    r = max(dist_km, 5.0)
-    b = 1.25  # Holland scaling parameter
-    ratio = (rmw / r) ** b
-    v_gradient = track_pt.max_wind_mps * math.sqrt(ratio * math.exp(1.0 - ratio))
 
-    # Inflow angle and storm motion enhancement
-    # Stronger winds on the east / north-east (forward-right) quadrant of the cyclone
-    d_lon = cell.centroid_lon - track_pt.lon
-    d_lat = cell.centroid_lat - track_pt.lat
-    bearing = math.degrees(math.atan2(d_lon, d_lat)) % 360.0
-    relative_angle = math.radians(bearing - track_pt.heading_deg)
-    asymmetry_factor = 1.0 + 0.18 * math.sin(relative_angle)
+def normalize_wind_severity(wind_speed: float) -> float:
+    """Normalize 10m sustained wind speed (m/s) to severity score in [0.0, 1.0].
 
-    # Surface friction reduction over land
-    friction_factor = 0.82 if cell.dist_to_coast_km > 20.0 else 0.90
+    Mapped to India Meteorological Department (IMD) cyclone severity categories:
+    - [0, 10 m/s]  : [0.00, 0.20] (Calm to Moderate Breeze)
+    - (10, 17 m/s] : (0.20, 0.35] (Strong Breeze / Depression)
+    - (17, 24 m/s] : (0.35, 0.55] (Deep Depression to Cyclonic Storm)
+    - (24, 33 m/s] : (0.55, 0.75] (Severe Cyclonic Storm)
+    - (33, 48 m/s] : (0.75, 1.00] (Very Severe to Super Cyclonic Storm)
+    - >= 48 m/s    : 1.00
 
-    wind_speed = v_gradient * asymmetry_factor * friction_factor
-
-    # Ambient environmental wind floor (increases as storm approaches Bay of Bengal head)
-    ambient_floor = 6.0 + max(0.0, 14.0 - dist_km / 60.0)
-    wind_speed = max(wind_speed, ambient_floor)
-    wind_speed = min(round(wind_speed, 1), 60.0)
-
-    # Severity normalization [0, 1] mapped to IMD storm severity categories
+    Guarantees:
+    - Monotonic non-decreasing
+    - Bounded in [0.0, 1.0]
+    - Deterministic
+    """
+    if wind_speed <= 0.0:
+        return 0.0
     if wind_speed <= 10.0:
         severity = (wind_speed / 10.0) * 0.20
     elif wind_speed <= 17.0:
@@ -293,7 +310,80 @@ def compute_wind_metric(cell: GridCell, track_pt: CycloneTrackPoint) -> HazardMe
     else:
         severity = 0.75 + min(0.25, ((wind_speed - 33.0) / 15.0) * 0.25)
 
-    severity = max(0.0, min(1.0, round(severity, 3)))
+    return max(0.0, min(1.0, round(severity, 3)))
+
+
+def compute_wind_metric(cell: GridCell, track_pt: CycloneTrackPoint) -> HazardMetricResult:
+    """Compute physical 10m sustained wind speed (m/s) and normalized severity [0, 1].
+
+    Implements the classical Holland (1980) parametric wind field model with:
+    - Central pressure Pc and ambient environmental pressure P_env
+    - Great-circle distance r from cell centroid to cyclone eye center
+    - Radius of maximum wind (RMW)
+    - Holland shape parameter B dynamically computed from cyclone intensity
+    - Coriolis acceleration balance
+    - Forward storm translation velocity asymmetry (forward-right enhancement)
+    - Boundary layer surface roughness / friction reduction over land
+    - Ambient environmental wind floor
+
+    Args:
+        cell: Spatial GridCell with centroid coordinates and distance to coast.
+        track_pt: CycloneTrackPoint with eye coordinates, central pressure,
+                  maximum wind speed, RMW, forward translation speed, and heading.
+
+    Returns:
+        HazardMetricResult with value in m/s, unit="m/s", and severity in [0.0, 1.0].
+    """
+    # 1. Great-circle distance to cyclone eye center
+    dist_km = haversine_distance_km(
+        cell.centroid_lat, cell.centroid_lon, track_pt.lat, track_pt.lon
+    )
+    dist_m = max(dist_km, 0.1) * 1000.0  # Distance in meters (min 100m to prevent singularity)
+
+    # 2. Pressure deficit Delta_P (Pa)
+    delta_p_pa = max(1.0, P_ENV_HPA - track_pt.central_pressure_hpa) * 100.0
+
+    # 3. Holland peakedness parameter B
+    b = compute_holland_b(track_pt.central_pressure_hpa, track_pt.max_wind_mps)
+
+    # 4. Coriolis parameter at cell latitude
+    f_coriolis = 2.0 * OMEGA_EARTH * math.sin(math.radians(cell.centroid_lat))
+
+    # 5. Holland gradient wind formulation:
+    # V_g(r) = sqrt( (B/rho) * (R_max/r)^B * Delta_P * exp(-(R_max/r)^B)
+    #                + (r * f / 2)^2 ) - (r * f / 2)
+    rmw_km = track_pt.radius_max_wind_km
+    ratio = rmw_km / max(dist_km, 0.1)
+    exp_arg = min(ratio**b, 50.0)  # Safeguard against float overflow at tiny r
+    term = (b / RHO_AIR) * delta_p_pa * (ratio**b) * math.exp(-exp_arg)
+    coriolis_term = dist_m * f_coriolis / 2.0
+    v_gradient = math.sqrt(term + coriolis_term**2) - coriolis_term
+
+    # 6. Forward translation asymmetry:
+    # Northern hemisphere cyclone winds are enhanced on the forward-right quadrant
+    d_lon = cell.centroid_lon - track_pt.lon
+    d_lat = cell.centroid_lat - track_pt.lat
+    bearing = math.degrees(math.atan2(d_lon, d_lat)) % 360.0
+    relative_angle = math.radians(bearing - track_pt.heading_deg)
+    asymmetry_factor = 1.0 + 0.18 * math.sin(relative_angle)
+
+    # 7. Surface friction reduction from gradient level to 10m elevation
+    friction_factor = (
+        SURFACE_REDUCTION_INLAND
+        if cell.dist_to_coast_km > INLAND_THRESHOLD_KM
+        else SURFACE_REDUCTION_COAST
+    )
+
+    wind_speed = v_gradient * asymmetry_factor * friction_factor
+
+    # 8. Ambient environmental background wind floor
+    ambient_floor = 6.0 + max(0.0, 14.0 - dist_km / 60.0)
+    wind_speed = max(wind_speed, ambient_floor)
+    wind_speed = min(round(wind_speed, 1), MAX_PHYSICAL_WIND_SPEED_MPS)
+
+    # 9. Normalized severity mapped to IMD classification
+    severity = normalize_wind_severity(wind_speed)
+
     return HazardMetricResult(value=wind_speed, unit="m/s", severity=severity)
 
 
@@ -365,22 +455,84 @@ def compute_flood_susceptibility_metric(cell: GridCell) -> HazardMetricResult:
 
 
 # ---------------------------------------------------------------------------
-# 4. Feature Collection Generator
+# 4. Feature Collection Generators
 # ---------------------------------------------------------------------------
-def generate_hazard_layer(hazard_type: HazardType, timestep: str) -> HazardLayerCollection:
-    """Generate a validated FeatureCollection<HazardLayer> for the requested hazard and timestep."""
-    if timestep not in AMPHAN_TRACK:
-        raise ValueError(f"Unknown replay timestep: {timestep}")
+def generate_wind_layer(timestep: str) -> HazardLayerCollection:
+    """Generate a contract-compliant HazardLayerCollection for wind at the requested timestep.
 
-    track_pt = AMPHAN_TRACK[timestep]
+    Validation rules (shared/contracts.md §2, §6):
+    - Validates timestep using the centralized validate_timestep validator.
+    - 'live' raises NotImplementedError.
+    - Other invalid timesteps raise ValueError.
+    - Uses canonical replay track to retrieve the CycloneTrackPoint.
+    - Computes deterministic Holland parametric wind speeds for every AOI grid cell.
+    - Returns FeatureCollection<HazardLayer> with hazard_type='wind' and unit='m/s'.
+
+    Args:
+        timestep: ISO 8601 UTC replay timestamp string.
+
+    Returns:
+        HazardLayerCollection containing 64 validated HazardLayer features.
+
+    Raises:
+        NotImplementedError: If timestep is 'live'.
+        ValueError: If timestep is not in the official 25 replay timesteps.
+    """
+    clean_ts = validate_timestep(timestep)
+    if clean_ts == LIVE:
+        raise NotImplementedError("live mode is reserved and not implemented in v0.9")
+
+    track_dict = _load_track_dict()
+    if clean_ts not in track_dict:
+        raise ValueError(f"Unknown replay timestep: {clean_ts}")
+
+    track_pt = track_dict[clean_ts]
     grid_cells = get_aoi_grid()
-    compact_ts = iso_to_compact_ts(timestep)
+    compact_ts = iso_to_compact_ts(clean_ts)
 
     features: list[HazardLayer] = []
     for cell in grid_cells:
-        if hazard_type == "wind":
-            metric = compute_wind_metric(cell, track_pt)
-        elif hazard_type == "surge":
+        metric = compute_wind_metric(cell, track_pt)
+        feature_id = f"wind__{cell.id}__{compact_ts}"
+        props = HazardLayerProperties(
+            id=feature_id,
+            hazard_type="wind",
+            timestep=clean_ts,
+            value=metric.value,
+            unit="m/s",
+            severity=metric.severity,
+        )
+        features.append(
+            HazardLayer(
+                id=feature_id,
+                geometry=cell.polygon,
+                properties=props,
+            )
+        )
+
+    return HazardLayerCollection(type="FeatureCollection", features=features)
+
+
+def generate_hazard_layer(hazard_type: HazardType, timestep: str) -> HazardLayerCollection:
+    """Generate a validated FeatureCollection<HazardLayer> for the requested hazard and timestep."""
+    if hazard_type == "wind":
+        return generate_wind_layer(timestep)
+
+    clean_ts = validate_timestep(timestep)
+    if clean_ts == LIVE:
+        raise NotImplementedError("live mode is reserved and not implemented in v0.9")
+
+    track_dict = _load_track_dict()
+    if clean_ts not in track_dict:
+        raise ValueError(f"Unknown replay timestep: {clean_ts}")
+
+    track_pt = track_dict[clean_ts]
+    grid_cells = get_aoi_grid()
+    compact_ts = iso_to_compact_ts(clean_ts)
+
+    features: list[HazardLayer] = []
+    for cell in grid_cells:
+        if hazard_type == "surge":
             metric = compute_surge_metric(cell, track_pt)
         elif hazard_type == "flood":
             metric = compute_flood_susceptibility_metric(cell)
@@ -393,7 +545,7 @@ def generate_hazard_layer(hazard_type: HazardType, timestep: str) -> HazardLayer
         props = HazardLayerProperties(
             id=feature_id,
             hazard_type=hazard_type,
-            timestep=timestep,
+            timestep=clean_ts,
             value=metric.value,
             unit=metric.unit,
             severity=metric.severity,

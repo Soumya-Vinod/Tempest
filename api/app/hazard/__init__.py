@@ -15,7 +15,12 @@ from app.hazard.replay import (
     REPLAY_TIMELINE_TIMESTEPS,
     TIMESTEP_INTERVAL_HOURS,
     TOTAL_TIMESTEPS,
+    compute_holland_b,
+    compute_wind_metric,
     create_replay_timeline,
+    generate_hazard_layer,
+    generate_wind_layer,
+    normalize_wind_severity,
     validate_timestep,
 )
 from app.hazard.routes import router
@@ -38,10 +43,15 @@ __all__ = [
     "HazardLayerProperties",
     "HazardType",
     "ReplayTimeline",
+    "compute_holland_b",
+    "compute_wind_metric",
     "create_replay_timeline",
+    "generate_hazard_layer",
+    "generate_wind_layer",
     "get_hazard_layer",
     "get_replay_timeline",
     "get_replay_track",
+    "normalize_wind_severity",
     "router",
     "validate_timestep",
 ]

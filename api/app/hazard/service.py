@@ -16,6 +16,7 @@ from app.hazard.models import (
 from app.hazard.replay import (
     create_replay_timeline,
     generate_hazard_layer,
+    generate_wind_layer,
     iso_to_compact_ts,
     validate_timestep,
 )
@@ -109,6 +110,9 @@ def get_hazard_layer(hazard_type: HazardType, timestep: str) -> HazardLayerColle
             )
 
     # 2. Compute via replay physics engine
-    layer_col = generate_hazard_layer(hazard_type, clean_ts)
+    if hazard_type == "wind":
+        layer_col = generate_wind_layer(clean_ts)
+    else:
+        layer_col = generate_hazard_layer(hazard_type, clean_ts)
     _LAYER_CACHE[cache_key] = layer_col
     return layer_col
