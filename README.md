@@ -75,6 +75,13 @@ built from the cached road response with osmnx, so it needs no download of its o
 changing a query in `api\app\exposure\ingest.py`, delete its `overpass-*.json` file or pass
 `--refresh`, since the cache is keyed by file name only.
 
+After an ingest, rebuild the committed exposure demo fixtures (`api\data\demo\exposure__infra*.json`)
+from `infra.parquet`:
+
+```powershell
+api\.venv\Scripts\python api\scripts\build_exposure_fixtures.py
+```
+
 ### 3. Frontend (`web/`)
 
 React + Vite + TypeScript, Tailwind v4, MapLibre with the keyless OpenFreeMap Positron basemap, and

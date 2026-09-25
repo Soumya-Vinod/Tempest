@@ -1,5 +1,6 @@
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 
 from app.advisory.router import router as advisory_router
 from app.core.config import get_settings
@@ -11,6 +12,10 @@ from app.insurance.router import router as insurance_router
 from app.risk.router import router as risk_router
 
 app = FastAPI(title="Tempest API")
+
+# Large GeoJSON compresses well (/api/exposure/infra: ~4x live, ~8x demo); small responses
+# (< 1000 bytes) stay plain.
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 app.add_middleware(
     CORSMiddleware,

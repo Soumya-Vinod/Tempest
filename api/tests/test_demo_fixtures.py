@@ -39,7 +39,8 @@ ROUTE_SCHEMAS = {
         (r"timesteps", ReplayTimeline, False, None),
         (rf"layers-({_alternatives(HazardType)})", HazardLayerCollection, True, None),
     ],
-    "exposure": [(rf"infra(-({_alternatives(InfraType)}))?", InfraFeatureCollection, False, None)],
+    # Per type only: the unfiltered route is composed from these (contracts.md §7).
+    "exposure": [(rf"infra-({_alternatives(InfraType)})", InfraFeatureCollection, False, None)],
     "impact": [(r"results(-[a-z0-9-]+)?", ImpactResultCollection, True, None)],
     "risk": [(r"scores", RiskScoreCollection, True, None)],
     "advisory": [

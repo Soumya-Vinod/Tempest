@@ -22,7 +22,7 @@ pending Dev A's review.
 | Units | Wind speed **m/s**; surge depth **m** above ground; money **INR**. |
 | Timestamps | ISO 8601 UTC, always `YYYY-MM-DDTHH:MM:SSZ` (e.g. `2020-05-20T12:00:00Z`). |
 | Null geometry | Allowed only where stated (Advisory). |
-| Errors | FastAPI default `{"detail": ...}`. `404` unknown id, `409` invalid state change, `422` bad params (incl. unknown `timestep`), `501` not implemented yet. |
+| Errors | FastAPI default `{"detail": ...}`. `404` unknown id, `409` invalid state change, `422` bad params (incl. unknown `timestep`), `501` not implemented yet, `503` required processed data missing (live mode) *(v0.9 addition, pending Dev A review)*. |
 
 ## 2. Replay timeline — Cyclone Amphan
 
@@ -254,7 +254,7 @@ the schema listed here, and fails on any route resource not in this table.
 |---|---|---|---|
 | `GET /api/hazard/timesteps` | `timesteps` | no | ReplayTimeline |
 | `GET /api/hazard/layers` | `layers-<hazard_type>` | yes | FC&lt;HazardLayer&gt; |
-| `GET /api/exposure/infra` | `infra`, or `infra-<infra_type>` when filtered | no | FC&lt;InfraFeature&gt; |
+| `GET /api/exposure/infra` | `infra-<infra_type>`, one per type. Unfiltered: no fixture of its own; composed from the per-type files *(v0.9 addition, pending Dev A review)* | no | FC&lt;InfraFeature&gt; |
 | `GET /api/impact/results` | `results`, or `results-<filter>` with `[a-z0-9-]` filter values | yes | FC&lt;ImpactResult&gt; |
 | `GET /api/risk/scores` | `scores` | yes | FC&lt;RiskScore&gt; |
 | `GET /api/advisory/` | `list` | no | FC&lt;Advisory&gt; |
@@ -270,7 +270,6 @@ Examples:
 hazard__timesteps.json
 hazard__layers-surge__20200520T1200Z.json
 hazard__gee-flood-susceptibility.json
-exposure__infra.json
 exposure__infra-power-line.json
 exposure__overpass-substations.json
 impact__results__20200519T0000Z.json
@@ -283,4 +282,5 @@ insurance__triggers__20200520T1200Z.json
 ```
 
 Fixture content is exactly the route response (or the raw upstream body) as JSON, UTF-8, LF.
-Keep each file under ~2 MB. Anything larger or regenerable goes in `api/data/cache/` (ignored).
+Keep each file under ~2 MB, roads up to 5 MB (`exposure__infra-road`) *(v0.9 addition, pending Dev A
+review)*. Anything larger or regenerable goes in `api/data/cache/` (ignored).
