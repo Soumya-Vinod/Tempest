@@ -25,6 +25,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from app.core.config import get_settings  # noqa: E402
 from app.exposure import ingest  # noqa: E402
 from app.impact.network import baseline_access  # noqa: E402
+from app.risk.weights import is_access_source  # noqa: E402
 
 # Tried in order. A 429 / 504 (or a timeout) fails over to the next one right away; only when a
 # round of endpoints has failed does the script back off and start again from the first.
@@ -177,13 +178,15 @@ def main() -> None:
     G = ingest.build_road_graph(road_data, polygon)
     ingest.annotate_components(G)
     ingest.annotate_roads(records, ingest.way_components(G))
-    # Hospitals and shelters: snap distance and baseline travel time from the impact anchor.
+    # Hospitals and shelters: snap distance, baseline travel time from the impact anchor
+    # (internal) and travel time to the nearest access hospital (the risk engine's sources).
     facilities = {
         r.id: (r.geometry.x, r.geometry.y)
         for r in records
         if r.infra_type in ("hospital", "shelter")
     }
-    access = baseline_access(G, facilities)
+    hospitals = [r.id for r in records if is_access_source(r.infra_type, r.attributes, r.name)]
+    access = baseline_access(G, facilities, hospitals=hospitals)
     for r in records:
         r.attributes.update(access.get(r.id, {}))
     ingest.write_infra(records)
@@ -263,9 +266,10 @@ def report(records, raw_counts, land, polygon, bangladesh, line_n, minor_n, long
     fac = [r for r in records if "snap_too_far" in r.attributes]
     far = sum(r.attributes["snap_too_far"] for r in fac)
     timed = sum(r.attributes["baseline_travel_time_s"] is not None for r in fac)
+    to_hospital = sum(r.attributes["hospital_travel_time_s"] is not None for r in fac)
     print(
-        f"  facilities: {len(fac)}; with baseline travel time: {timed}; "
-        f"more than 2 km from the graph: {far}"
+        f"  facilities: {len(fac)}; with baseline travel time: {timed}; with a road route to a "
+        f"hospital: {to_hospital}; more than 2 km from the graph: {far}"
     )
     print(f"  baseline_component values: 0..{max(comp0)} ({len(comp0)} distinct)")
     for name, info in ingest.island_links(G).items():

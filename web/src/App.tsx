@@ -13,8 +13,7 @@ export default function App() {
   const [timestepIndex, setTimestepIndex] = useState(0)
   const infra = useInfraMap()
   const impact = useImpactMap(timestepIndex, infra.state)
-  // Risk follows the impact panel's synthetic toggle (dev only, DEMO_MODE off).
-  const risk = useRiskMap(timestepIndex, impact.panel.synthetic)
+  const risk = useRiskMap(timestepIndex)
   // Red and orange mean impact only: exposure mutes its colours while impact results show.
   const infraLayers = useInfraLayers(infra, impact.active)
 

@@ -23,8 +23,8 @@ export type RiskState =
 const CACHE_SIZE = 8
 const cache = new Map<string, Promise<RiskData>>()
 
-function load(timestep: Timestep, synthetic: boolean): Promise<RiskData> {
-  const key = `${timestep}|${synthetic}`
+function load(timestep: Timestep): Promise<RiskData> {
+  const key = timestep
   const hit = cache.get(key)
   if (hit) {
     cache.delete(key)
@@ -32,8 +32,8 @@ function load(timestep: Timestep, synthetic: boolean): Promise<RiskData> {
     return hit
   }
   const promise = Promise.all([
-    getRiskScores(timestep, { synthetic }),
-    getRiskBreakdown(timestep, { synthetic }).catch(() => null),
+    getRiskScores(timestep),
+    getRiskBreakdown(timestep).catch(() => null),
   ]).then(([scores, breakdown]) => ({ scores, breakdown }))
   promise.catch(() => cache.delete(key))
   cache.set(key, promise)
@@ -52,17 +52,14 @@ function failure(err: unknown): RiskState {
  * Risk scores (and breakdown) for the selected timestep. `shown` keeps the last successful data
  * on the map while the next timestep loads, as impact does.
  */
-export function useRisk(
-  timestep: Timestep,
-  synthetic: boolean,
-): { state: RiskState; shown: RiskData | null } {
-  const key = `${timestep}|${synthetic}`
+export function useRisk(timestep: Timestep): { state: RiskState; shown: RiskData | null } {
+  const key = timestep
   const [settled, setSettled] = useState<{ key: string; state: RiskState } | null>(null)
   const [lastOk, setLastOk] = useState<RiskData | null>(null)
 
   useEffect(() => {
     let cancelled = false
-    load(timestep, synthetic).then(
+    load(timestep).then(
       (data) => {
         if (cancelled) return
         setSettled({ key, state: { status: 'ok', data } })
@@ -77,7 +74,7 @@ export function useRisk(
     return () => {
       cancelled = true
     }
-  }, [key, timestep, synthetic])
+  }, [key, timestep])
 
   const state: RiskState = settled?.key === key ? settled.state : { status: 'loading' }
   return { state, shown: state.status === 'ok' ? state.data : lastOk }

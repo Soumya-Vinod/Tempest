@@ -70,6 +70,7 @@ def test_no_hazard_scores_zero(ctx):
     risks = engine.evaluate({}, NO_IMPACTS, ctx)
     assert [r.score for r in risks] == [0, 0, 0]
     assert all(r.hazard == 0 and r.top_driver is None for r in risks)
+    assert all(r.reach == "direct" for r in risks)  # a tie at 0 counts as direct
     assert all(r.vulnerability > 0 for r in risks)  # static, still there
 
 
@@ -109,17 +110,47 @@ def test_isolated_facility_raises_exposure(ctx, graph):
         for f in impacts.features
     )
     before, after = calm[MAINLAND], cut_off[MAINLAND]
-    assert after.exposure_parts["isolated_facilities"] == pytest.approx(1 / 3)
+    # The clinic is the mainland's only eligible facility: 1 of 1 isolated.
+    assert ctx.eligible_facilities[MAINLAND] == 1
+    assert after.exposure_parts["isolated_facilities"] == pytest.approx(1.0)
+    assert before.exposure_parts["isolated_facilities"] == 0
     assert after.exposure > before.exposure
     assert after.score > before.score
+
+
+def test_cut_off_block_scores_without_its_own_hazard(ctx, graph):
+    # Surge only on the clinic's road: almost no hazard on the mainland's land, but the storm
+    # has cut its only facility off. Reached indirectly, so exposure scales the score.
+    risks, _, impacts = run(ctx, graph, surge=[CLINIC_ROAD_SURGE])
+    assert any(
+        f.properties.infra_id == S.CLINIC and f.properties.status == "isolated"
+        for f in impacts.features
+    )
+    r = risks[MAINLAND]
+    assert r.hazard < 0.1
+    assert r.exposure > r.hazard and r.reach == "cut_off"
+    assert r.score > 0.2
+    assert r.score == pytest.approx(
+        r.exposure * (weights.W_EXPOSURE * r.exposure + weights.W_VULNERABILITY * r.vulnerability)
+    )
+
+
+def test_reach_is_the_larger_of_hazard_and_exposure(ctx, graph):
+    # Wind everywhere (hazard 0.5) also stops the island's ferry: its shelter is cut off.
+    risks, *_ = run(ctx, graph, wind=[BACKGROUND_WIND])
+    assert [r.reach for r in risks] == ["direct", "cut_off", "direct"]
+    for r in risks:
+        assert r.reach == ("direct" if r.hazard >= r.exposure else "cut_off")
+    breakdown = engine.to_breakdown(risks, ctx, TS)
+    assert [b.reach for b in breakdown.blocks] == [r.reach for r in risks]
 
 
 def test_cut_road_share_uses_length(ctx, graph):
     risks, *_ = run(ctx, graph, surge=[S.box(88.12, 22.49, 88.18, 22.51, 1.0)])  # way 1 only
     assert {r for r in ctx.road_lengths if r.startswith("road-way-")} >= {"road-way-1"}
     share = ctx.road_lengths["road-way-1"][MAINLAND] / ctx.total_road_m[MAINLAND]
-    expected = min(1.0, share / weights.CUT_ROAD_SHARE_CAP)
-    assert risks[MAINLAND].exposure_parts["cut_roads"] == pytest.approx(expected)
+    assert 0 < share < 1
+    assert risks[MAINLAND].exposure_parts["cut_roads"] == pytest.approx(share)  # no cap
 
 
 def test_cut_substation_counts(ctx, graph):
@@ -170,7 +201,7 @@ def test_scores_are_contract_valid_and_deterministic(ctx, graph):
         assert p.block_source == "census2011_cd"
         assert 0 <= p.score <= 1
         assert p.score == pytest.approx(
-            p.components.hazard
+            max(p.components.hazard, p.components.exposure)
             * (weights.W_EXPOSURE * p.components.exposure
                + weights.W_VULNERABILITY * p.components.vulnerability),
             abs=1e-3,
@@ -179,10 +210,13 @@ def test_scores_are_contract_valid_and_deterministic(ctx, graph):
 
 
 def test_top_driver_is_largest_part(ctx, graph):
-    # No hospital reachable from the mainland: access (0.4 x 0.5 x 1 = 0.2) beats the isolated
-    # clinic (0.6 x 0.5 x 1/3 = 0.1).
+    # Nothing isolated and no hospital reachable from the mainland: access (0.4 x 0.5 x 1 = 0.2)
+    # is the largest part.
+    calm, *_ = run(ctx, graph, wind=[BACKGROUND_WIND])
+    assert calm[MAINLAND].top_driver == "hospital_access"
+    # The clinic cut off: 1 of 1 eligible facilities, 0.6 x 0.5 x 1 = 0.3 beats access.
     risks, *_ = run(ctx, graph, wind=[BACKGROUND_WIND], surge=[CLINIC_ROAD_SURGE])
-    assert risks[MAINLAND].top_driver == "hospital_access"
+    assert risks[MAINLAND].top_driver == "isolated_facilities"
     # In general: the part with the largest weighted contribution to the score.
     near = engine.build_context(R.blocks(), R.infra(True), graph, S.ANCHOR)
     risks, *_ = run(near, graph, wind=[BACKGROUND_WIND], surge=[CLINIC_ROAD_SURGE])
@@ -194,8 +228,16 @@ def test_top_driver_is_largest_part(ctx, graph):
                for k, v in r.vulnerability_parts.items()},
         }  # fmt: skip
         assert r.top_driver == max(contributions, key=lambda k: contributions[k])
-    # Clinic Road is 41 % of this tiny mainland's roads: cut_roads (0.17) beats the clinic (0.1).
-    assert risks[MAINLAND].top_driver == "cut_roads"
+    assert risks[MAINLAND].top_driver == "isolated_facilities"
+
+
+def test_eligible_facilities_exclude_unreachable_and_far(ctx, graph):
+    # Mainland: the clinic. Island: the shelter (reached by ferry). Fragment: the cut-off
+    # hospital is not in the main component at baseline, so it can never be isolated.
+    assert list(ctx.eligible_facilities) == [1, 1, 0]
+    everything, *_ = run(ctx, graph, surge=[S.box(*S.EVERYWHERE, 5.0)])
+    assert everything[FRAGMENT].exposure_parts["isolated_facilities"] == 0
+    assert everything[MAINLAND].exposure_parts["isolated_facilities"] == 1.0
 
 
 def test_top_driver_falls_back_to_hazard():

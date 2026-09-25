@@ -63,6 +63,8 @@ export type RiskDriver =
   | "hospital_access"
   | "low_literacy"
   | "mapped_shelters";
+/** How the cyclone reaches a block (§4.4 risk breakdown, v1.1 change pending Dev A). */
+export type RiskReach = "direct" | "cut_off";
 export type Channel = "telegram" | "email";
 
 /** One of the 25 Amphan replay keys, `YYYY-MM-DDTHH:MM:SSZ`. */
@@ -170,6 +172,7 @@ export interface RiskBlockBreakdown {
   block_name: string;
   population_2011: number;
   hospital_travel_min: number | null; // null: no road node reaches a hospital
+  reach: RiskReach; // direct: hazard on its land; cut_off: exposure (the storm cut it off)
   hazard: RiskHazardParts;
   exposure: RiskExposureParts;
   vulnerability: RiskVulnerabilityParts;

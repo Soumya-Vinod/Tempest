@@ -1,7 +1,7 @@
 import { CARD_BOTTOM, CARD_TOP_CLEARANCE, PANEL_WIDTH, UI_GAP } from '../../lib/layout'
 import type { ImpactResultProperties, ImpactStatus, PathwayStep } from '../../types/contracts'
 import type { Affected } from './layers'
-import { baselineAccess, featureName, type InfraLookup } from './labels'
+import { featureName, hospitalAccess, type InfraLookup } from './labels'
 import { cssColor, HAZARD_LABEL, STATUS_COLOR, STATUS_LABEL } from './style'
 
 export interface PathwayCardProps {
@@ -107,7 +107,7 @@ function Pathway({
 export default function PathwayCard(props: PathwayCardProps) {
   const { selectedId, selected, lookup } = props
   if (!selectedId) return null
-  const access = baselineAccess(selectedId, lookup)
+  const access = hospitalAccess(selectedId, lookup)
   return (
     <aside
       className="absolute overflow-y-auto rounded-lg bg-white p-3 text-sm text-slate-800 shadow-lg"

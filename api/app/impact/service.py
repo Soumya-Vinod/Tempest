@@ -2,8 +2,6 @@
 
 - DEMO_MODE: the compact fixture impact__results__<ts> (non-ok rows), expanded with ok rows.
 - Live: Dev A's get_hazard_layer for each hazard type, then compute_impacts on the road graph.
-- ?synthetic=true (TEMPORARY, dev only, DEMO_MODE off): synthetic hazards instead of Dev A's.
-  Remove once get_hazard_layer is implemented.
 """
 
 from functools import lru_cache
@@ -19,16 +17,11 @@ from app.exposure.ingest import ROADS_GRAPHML, load_road_graph
 from app.hazard.service import get_hazard_layer
 from app.impact.engine import HAZARD_TYPES, compute_impacts
 from app.impact.fixtures import fixture_key, from_fixture
-from app.impact.synthetic import synthetic_hazards
 from app.impact.thresholds import ANCHOR_LONLAT
 from app.schemas import LIVE, HazardLayerCollection, ImpactResultCollection
 
 GRAPH_PATH: Path = ROADS_GRAPHML  # tests point this at a small graph
 ANCHOR: tuple[float, float] = ANCHOR_LONLAT  # and this at its mainland node
-
-
-class SyntheticNotAllowed(ValueError):
-    """?synthetic=true is only for development with DEMO_MODE off."""
 
 
 class DemoFixtureMissing(RuntimeError):
@@ -46,32 +39,30 @@ def _graph(path: Path) -> nx.MultiDiGraph:
     return load_road_graph(path)
 
 
-# Hazard layers and computed collections by (timestep, synthetic), each computed once even when the
-# web client's parallel requests arrive together (app/core/cache.py). Risk reuses both.
+# Hazard layers and computed collections per timestep, each computed once even when the web
+# client's parallel requests arrive together (app/core/cache.py). Risk reuses both.
 CACHE_SIZE = 8
-_hazard_cache = SingleFlightLRU(lambda ts, synthetic: _load_hazards(ts, synthetic), CACHE_SIZE)
-_results_cache = SingleFlightLRU(lambda ts, synthetic: _compute(ts, synthetic), CACHE_SIZE)
+_hazard_cache = SingleFlightLRU(lambda ts: _load_hazards(ts), CACHE_SIZE)
+_results_cache = SingleFlightLRU(lambda ts: _compute(ts), CACHE_SIZE)
 
 
-def _load_hazards(timestep: str, synthetic: bool) -> dict[str, HazardLayerCollection]:
-    if synthetic:
-        return synthetic_hazards(timestep)
+def _load_hazards(timestep: str) -> dict[str, HazardLayerCollection]:
     return {h: get_hazard_layer(h, timestep) for h in HAZARD_TYPES}
 
 
-def hazard_layers(timestep: str, synthetic: bool) -> dict[str, HazardLayerCollection]:
-    """The hazard layers for a replay timestep (Dev A's, or synthetic in dev), cached."""
-    return _hazard_cache.get((timestep, synthetic))
+def hazard_layers(timestep: str) -> dict[str, HazardLayerCollection]:
+    """Dev A's hazard layers for a replay timestep, cached."""
+    return _hazard_cache.get(timestep)
 
 
-def results(timestep: str, synthetic: bool) -> ImpactResultCollection:
-    """The full computed collection (live mode), cached per (timestep, synthetic)."""
-    return _results_cache.get((timestep, synthetic))
+def results(timestep: str) -> ImpactResultCollection:
+    """The full computed collection (live mode), cached per timestep."""
+    return _results_cache.get(timestep)
 
 
-def _compute(timestep: str, synthetic: bool) -> ImpactResultCollection:
+def _compute(timestep: str) -> ImpactResultCollection:
     # Hazards first: without them (Dev A's NotImplementedError) nothing else needs loading.
-    hazards = hazard_layers(timestep, synthetic)
+    hazards = hazard_layers(timestep)
     graph = _graph(GRAPH_PATH)
     return compute_impacts(hazards, exposure.get_infra(), graph, timestep, anchor=ANCHOR)
 
@@ -80,13 +71,10 @@ def get_results(
     timestep: str,
     hazard_type: str | None = None,
     status: str | None = None,
-    synthetic: bool = False,
 ) -> ImpactResultCollection:
     if timestep == LIVE:
         raise NotImplementedError("timestep=live is not implemented yet")
     if get_settings().DEMO_MODE:
-        if synthetic:
-            raise SyntheticNotAllowed("synthetic=true is only available with DEMO_MODE off")
         key = fixture_key(timestep)
         try:
             fixture = load_fixture(key)
@@ -94,7 +82,7 @@ def get_results(
             raise DemoFixtureMissing(f"no demo fixture for this timestep yet ({key})") from e
         collection = from_fixture(fixture, exposure.get_infra(), timestep)
     else:
-        collection = results(timestep, synthetic)
+        collection = results(timestep)
     features = [
         f
         for f in collection.features

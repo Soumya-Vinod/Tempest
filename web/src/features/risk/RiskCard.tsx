@@ -1,6 +1,6 @@
 import { relativeLabel } from '../../lib/constants'
 import { CARD_BOTTOM, CARD_TOP_CLEARANCE, PANEL_WIDTH, UI_GAP } from '../../lib/layout'
-import type { RiskBlockBreakdown, RiskScore } from '../../types/contracts'
+import type { RiskBlockBreakdown, RiskReach, RiskScore } from '../../types/contracts'
 import { cssColor, DRIVER_LABEL, PART_LABEL, riskColor } from './style'
 
 export interface RiskCardProps {
@@ -39,11 +39,17 @@ function Parts({ parts, skip = [] }: { parts: object; skip?: string[] }) {
   )
 }
 
+// Which factor scaled the score: hazard on the block's land, or exposure (cut off by the storm).
+const REACH_LABEL: Record<RiskReach, string> = {
+  direct: 'Direct hazard',
+  cut_off: 'Cut off by the storm',
+}
+
 function travel(minutes: number | null): string {
-  if (minutes === null) return 'No road route to a hospital'
-  if (minutes < 60) return `${Math.round(minutes)} min to the nearest hospital`
+  if (minutes === null) return 'No road route'
+  if (minutes < 60) return `${Math.round(minutes)} min`
   const m = Math.round(minutes)
-  return `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')} min to the nearest hospital`
+  return `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')} min`
 }
 
 /** Floating card for the selected block, in the pathway card's slot (bottom-left). */
@@ -91,6 +97,11 @@ export default function RiskCard({ timestepIndex, selected, breakdown, onClose }
           Main driver: <span className="font-medium">{DRIVER_LABEL[p.top_driver]}</span>
         </p>
       )}
+      {bd && p.score > 0 && (
+        <p className="mt-0.5 text-xs">
+          Reached by: <span className="font-medium">{REACH_LABEL[bd.reach]}</span>
+        </p>
+      )}
 
       <Bar label="Hazard" value={p.components.hazard} strong />
       {bd && <Parts parts={bd.hazard} />}
@@ -111,7 +122,7 @@ export default function RiskCard({ timestepIndex, selected, breakdown, onClose }
             <dd className="ml-auto tabular-nums">{bd.population_2011.toLocaleString()}</dd>
           </div>
           <div className="flex">
-            <dt className="text-slate-500">Hospital access</dt>
+            <dt className="text-slate-500">Median travel time to a hospital (residents)</dt>
             <dd className="ml-auto">{travel(bd.hospital_travel_min)}</dd>
           </div>
         </dl>

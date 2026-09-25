@@ -115,9 +115,13 @@ OSM ingest attributes and scope *(added in v0.9)*:
 
 Access keys on hospitals and shelters *(v1.1 change, pending Dev A)*, from the impact engine's
 road network: `snap_distance_m` (float, to the nearest graph node), `snap_too_far` (boolean,
-more than 2 km: such a facility is never marked `isolated`) and `baseline_travel_time_s`
-(number \| null: network travel time from the Diamond Harbour anchor; null when too far or not
-in the anchor's component).
+more than 2 km: such a facility is never marked `isolated`), `hospital_travel_time_s`
+(number \| null: usual road travel time to the nearest access hospital, the same sources as the
+risk engine's hospital access (facility_level `hospital` minus nursing homes and specialist
+clinics); for such a hospital itself, to the nearest *other* one; null when too far or with no
+road route to one) and `baseline_travel_time_s` (number \| null: network travel time from the
+Diamond Harbour anchor; null when too far or not in the anchor's component). The anchor time is
+**internal** (the impact engine's baseline); display `hospital_travel_time_s` instead.
 
 `shelter_kind` values *(added in v0.9)*, highest priority first. An OSM element
 matching several gets the first. The `*_proxy` kinds are **stand-ins**: buildings that could shelter
@@ -192,10 +196,12 @@ label: string, area_km2: number }`, with `label` "Municipal area, not scored".
 **Risk breakdown** *(v1.1 change, pending Dev A)*: the parts behind each block's score, for
 explaining it. `RiskBreakdown = { timestep, blocks: RiskBlockBreakdown[] }` with
 `RiskBlockBreakdown = { block_id, block_name, population_2011: int, hospital_travel_min:
-number | null, hazard: { surge, wind, flood }, exposure: { isolated_facilities, cut_roads,
+number | null, reach: RiskReach, hazard: { surge, wind, flood }, exposure: { isolated_facilities, cut_roads,
 cut_substations }, vulnerability: { population_density, hospital_access, low_literacy,
 mapped_shelters } }`; every part is a float in [0, 1]. `hospital_travel_min` is null when no
-road node in the block reaches a hospital.
+road node in the block reaches a hospital. `RiskReach` is `direct` (the cyclone reaches the block
+through hazard on its land) or `cut_off` (it reaches it by cutting it off, i.e. through exposure):
+which of the two scaled the score.
 
 ### 4.5 Advisory (Dev B)
 Geometry: **null** (join to the block via `block_id`).
@@ -249,7 +255,7 @@ stated; `timestep=live` returns `501` in v1.0. FC = FeatureCollection.
 | B | GET | `/api/impact/results` | `timestep`, `hazard_type?`, `status?: ImpactStatus` | FC&lt;ImpactResult&gt; |
 | B | GET | `/api/risk/scores` | `timestep` | FC&lt;RiskScore&gt; |
 | B | GET | `/api/risk/breakdown` | `timestep` | RiskBreakdown. *v1.1 change, pending Dev A.* |
-| B | GET | `/api/risk/unscored-areas` | — | FC&lt;UnscoredArea&gt; (static; the same in DEMO_MODE, from reference data). *v1.1 change, pending Dev A.* |
+| B | GET | `/api/risk/unscored-areas` | — | FC&lt;UnscoredArea&gt; (static; live from reference data, DEMO_MODE from the `unscored-areas` fixture). *v1.1 change, pending Dev A.* |
 | B | GET | `/api/advisory/` | `status?`, `block_id?` | FC&lt;Advisory&gt; |
 | B | POST | `/api/advisory/` | `{ block_id, timestep, language }` | Advisory (`draft`) |
 | B | GET | `/api/advisory/{advisory_id}` | — | Advisory |
@@ -308,6 +314,7 @@ the schema listed here, and fails on any route resource not in this table.
 | `GET /api/impact/results` | `results`, or `results-<filter>` with `[a-z0-9-]` filter values | yes | FC&lt;ImpactResult&gt; |
 | `GET /api/risk/scores` | `scores` | yes | FC&lt;RiskScore&gt; |
 | `GET /api/risk/breakdown` | `breakdown` *(v1.1 change, pending Dev A)* | yes | RiskBreakdown |
+| `GET /api/risk/unscored-areas` | `unscored-areas` *(v1.1 change, pending Dev A)* | no | FC&lt;UnscoredArea&gt; |
 | `GET /api/advisory/` | `list` | no | FC&lt;Advisory&gt; |
 | `GET /api/advisory/{advisory_id}` | `item-<advisory_id>` | no | Advisory |
 | `POST /api/dispatch/{advisory_id}` | `receipt-<advisory_id>` | no | DispatchReceipt |
@@ -337,4 +344,9 @@ Fixture content is exactly the route response (or the raw upstream body) as JSON
 *Exception (v1.1 change, pending Dev A):* `impact__results__<ts>` stores only the non-`ok` rows.
 When loading it, the route adds an `ok` row (empty `pathway`) for every InfraFeature and hazard
 type not present, so the response is exactly the full contract collection.
+*Exception (v1.1 change, pending Dev A):* `risk__scores__<ts>` stores each RiskScore without its
+`geometry` (the block polygon, the same at every timestep). When loading it, the route adds the
+geometry back from the block reference file (`api/data/reference/s24p_blocks.geojson`), so the
+response is exactly the full contract collection. `risk__breakdown__<ts>` has no geometry and is
+stored as is.
 Keep each file under ~2 MB, roads up to 5 MB (`exposure__infra-road`) *(added in v0.9)*. Anything larger or regenerable goes in `api/data/cache/` (ignored).

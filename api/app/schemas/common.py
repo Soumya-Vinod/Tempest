@@ -26,6 +26,9 @@ RiskDriver = Literal[
     "low_literacy",
     "mapped_shelters",
 ]
+# How the cyclone reaches a block: hazard on its inhabited land, or cut off (exposure)
+# (§4.4 risk breakdown, v1.1 change pending Dev A).
+RiskReach = Literal["direct", "cut_off"]
 Channel = Literal["telegram", "email"]
 
 TIMESTEP_FORMAT = "%Y-%m-%dT%H:%M:%SZ"

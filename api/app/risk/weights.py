@@ -1,7 +1,13 @@
 """Risk score weights and fixed normalisation scales. Every value is an ASSUMPTION, not a
 calibrated model; change them here only.
 
-    score = hazard x (W_EXPOSURE * exposure + W_VULNERABILITY * vulnerability)
+    score = max(hazard, exposure) x (W_EXPOSURE * exposure + W_VULNERABILITY * vulnerability)
+
+The first factor is the cyclone's reach. A block is reached either directly (hazard on its
+inhabited land) or indirectly (the cyclone cut it off: its facilities isolated, roads and
+substations cut, which exposure measures). Either one alone is enough, so the larger counts; a
+block with little hazard of its own but cut off by the storm still scores. The breakdown's
+`reach` says which was used (direct on a tie).
 
 Every component and part is 0-1 on a FIXED scale (never relative to this timestep's maximum), so
 scores are comparable across timesteps.
@@ -30,9 +36,14 @@ WIND_CEILING_MS = 60.0
 FLOOD_WEIGHT = 0.1
 
 # --- Exposure (from the timestep's impact results inside the block) ---
-ISOLATED_FACILITIES_CAP = 3  # isolated hospitals + shelters; 3 or more = 1
-CUT_ROAD_SHARE_CAP = 0.5  # cut road length / all road length; half the network cut = 1
-CUT_SUBSTATIONS_CAP = 2  # 2 or more cut substations = 1
+# isolated_facilities: SHARE of the block's eligible facilities that are isolated. Eligible =
+#   hospitals, health centres and shelters in the block that are reachable from the main road
+#   component at baseline and within 2 km of the graph (exactly those that can be isolated).
+#   0 if the block has none. No cap needed: a share is already 0-1.
+# cut_roads: SHARE of the block's road length that is cut (cut metres / all road metres), 0-1.
+# Both used to be counts / fixed caps (3 facilities, half the road length), which saturated at 1
+# in the worst-hit blocks on Dev A's real hazards and stopped separating them.
+CUT_SUBSTATIONS_CAP = 2  # cut substations: 2 or more = 1 (few per block, so a count stays)
 EXPOSURE_PARTS = {
     "isolated_facilities": 0.5,
     "cut_roads": 0.35,
@@ -70,6 +81,16 @@ def is_access_hospital(name: str | None) -> bool:
     if not name or _KEEP_RE.search(name):
         return True
     return not _EXCLUDE_RE.search(name)
+
+
+def is_access_source(infra_type: str, attributes: dict, name: str | None) -> bool:
+    """A hospital access source: a facility_level "hospital" that is_access_hospital keeps.
+    Shared by the risk engine and the ingest's hospital_travel_time_s."""
+    return (
+        infra_type == "hospital"
+        and attributes.get("facility_level") == "hospital"
+        and is_access_hospital(name)
+    )
 
 
 # Mapped shelters: 1 - min(1, shelters and stand-ins per 10,000 people / 2).

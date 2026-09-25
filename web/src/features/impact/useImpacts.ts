@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-import { ApiError, getHealth, getImpactResults } from '../../lib/api'
+import { ApiError, getImpactResults } from '../../lib/api'
 import type { ImpactResult, Timestep } from '../../types/contracts'
 import { NON_OK } from './style'
 
@@ -18,8 +18,8 @@ const cache = new Map<string, Promise<ImpactResult[]>>()
  * Non-ok rows for one timestep. The contract's `status` filter takes one value, so this makes
  * one request per non-ok status and merges them; ok rows are never downloaded.
  */
-function load(timestep: Timestep, synthetic: boolean): Promise<ImpactResult[]> {
-  const key = `${timestep}|${synthetic}`
+function load(timestep: Timestep): Promise<ImpactResult[]> {
+  const key = timestep
   const hit = cache.get(key)
   if (hit) {
     cache.delete(key)
@@ -27,7 +27,7 @@ function load(timestep: Timestep, synthetic: boolean): Promise<ImpactResult[]> {
     return hit
   }
   const promise = Promise.all(
-    NON_OK.map((status) => getImpactResults(timestep, { status }, { synthetic })),
+    NON_OK.map((status) => getImpactResults(timestep, { status })),
   ).then((parts) => parts.flatMap((fc) => fc.features))
   promise.catch(() => cache.delete(key))
   cache.set(key, promise)
@@ -51,17 +51,14 @@ interface Settled {
  * Impact results for the selected timestep. `state` is for the current key; `shown` keeps the
  * last successful data on the map while the next timestep loads, so scrubbing doesn't flicker.
  */
-export function useImpacts(
-  timestep: Timestep,
-  synthetic: boolean,
-): { state: ImpactState; shown: ImpactResult[] } {
-  const key = `${timestep}|${synthetic}`
+export function useImpacts(timestep: Timestep): { state: ImpactState; shown: ImpactResult[] } {
+  const key = timestep
   const [settled, setSettled] = useState<Settled | null>(null)
   const [lastOk, setLastOk] = useState<ImpactResult[]>([])
 
   useEffect(() => {
     let cancelled = false
-    load(timestep, synthetic).then(
+    load(timestep).then(
       (data) => {
         if (cancelled) return
         setSettled({ key, state: { status: 'ok', data } })
@@ -76,28 +73,10 @@ export function useImpacts(
     return () => {
       cancelled = true
     }
-  }, [key, timestep, synthetic])
+  }, [key, timestep])
 
   const state: ImpactState = settled?.key === key ? settled.state : { status: 'loading' }
   return { state, shown: state.status === 'ok' ? state.data : lastOk }
-}
-
-/** DEMO_MODE from /health: null until known (the synthetic toggle stays hidden meanwhile). */
-export function useDemoMode(): boolean | null {
-  const [demoMode, setDemoMode] = useState<boolean | null>(null)
-  useEffect(() => {
-    let cancelled = false
-    getHealth().then(
-      (h) => {
-        if (!cancelled) setDemoMode(h.demo_mode)
-      },
-      () => {}, // unreachable backend: HealthPanel already reports it
-    )
-    return () => {
-      cancelled = true
-    }
-  }, [])
-  return demoMode
 }
 
 /** Flips every PULSE_MS while active; the ring layer animates between the two sizes. */

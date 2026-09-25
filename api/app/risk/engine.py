@@ -7,7 +7,6 @@ impact service's cache). The static part (vulnerability, block membership, road 
 once by build_context. Weights and fixed scales live in weights.py.
 """
 
-import heapq
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -19,7 +18,7 @@ from shapely.geometry import shape
 
 from app.exposure.ingest import METRIC_CRS
 from app.impact.engine import network_for
-from app.impact.network import ImpactNetwork
+from app.impact.network import ImpactNetwork, nearest_sources
 from app.risk import weights as W
 from app.risk.blocks import BLOCK_SOURCE, Blocks
 from app.schemas import (
@@ -78,28 +77,18 @@ class RiskContext:
     total_road_m: np.ndarray
     static: list[BlockStatic]
     hospital_sources: int = 0  # hospitals used as access sources (snapped, not too far)
+    # Per block: hospitals, health centres and shelters that could be isolated (baseline
+    # reachable from the main component and not snap_too_far); the isolated share's divisor.
+    eligible_facilities: np.ndarray | None = None
     inhabited_area_m2: np.ndarray = field(init=False)
 
     def __post_init__(self) -> None:
         self.inhabited_area_m2 = self.blocks.inhabited_metric.area.to_numpy()
 
 
-def _hospital_times(net: ImpactNetwork, sources: list[Any]) -> dict[Any, float]:
-    """Multi-source Dijkstra (seconds) from every hospital node over the undirected links."""
-    dist: dict[Any, float] = {}
-    heap = [(0.0, i, n) for i, n in enumerate(dict.fromkeys(sources))]
-    heapq.heapify(heap)
-    tie = len(heap)
-    while heap:
-        d, _, n = heapq.heappop(heap)
-        if n in dist:
-            continue
-        dist[n] = d
-        for m, link in net.adjacency[n]:
-            if m not in dist:
-                tie += 1
-                heapq.heappush(heap, (d + float(net.link_tt[link]), tie, m))
-    return dist
+def _hospital_times(net: ImpactNetwork, sources: dict[str, Any]) -> dict[Any, float]:
+    """Seconds from every reached node to its nearest hospital (multi-source Dijkstra)."""
+    return {n: found[0][0] for n, found in nearest_sources(net, sources).items() if found}
 
 
 def build_context(
@@ -142,17 +131,25 @@ def build_context(
     hospitals = [
         f
         for f in infra.features
-        if f.properties.infra_type == "hospital"
-        and f.properties.attributes.get("facility_level") == "hospital"
-        and W.is_access_hospital(f.properties.name)
+        if W.is_access_source(f.properties.infra_type, f.properties.attributes, f.properties.name)
     ]
     snaps = net.snap_many([tuple(f.geometry.coordinates[:2]) for f in hospitals])
-    sources = [s.node for s in snaps if not s.too_far]
+    sources = {f.id: s.node for f, s in zip(hospitals, snaps, strict=True) if not s.too_far}
     times = _hospital_times(net, sources)
     node_block = np.full(len(net.node_ids), -1)
     for b, geom in enumerate(blocks.geometry):
         inside = shapely.contains_xy(geom, net.node_xy[:, 0], net.node_xy[:, 1])
         node_block[inside & (node_block < 0)] = b
+
+    eligible = np.zeros(len(blocks.codes), dtype=int)
+    for f in infra.features:
+        if f.properties.infra_type not in ("hospital", "shelter"):
+            continue
+        if (b := point_block.get(f.id)) is None:
+            continue
+        snap = net.snap(f.id, *f.geometry.coordinates[:2])
+        if not snap.too_far and snap.node in net.main:
+            eligible[b] += 1
 
     shelters = np.zeros(len(blocks.codes), dtype=int)
     for f in infra.features:
@@ -181,7 +178,7 @@ def build_context(
                 graph_nodes=len(nodes),
             )
         )
-    return RiskContext(blocks, point_block, road_lengths, total, static, len(sources))
+    return RiskContext(blocks, point_block, road_lengths, total, static, len(sources), eligible)
 
 
 # --- Per timestep -------------------------------------------------------------------------------
@@ -199,6 +196,7 @@ class BlockRisk:
     vulnerability: float
     score: float
     top_driver: str | None
+    reach: str = "direct"  # direct (hazard) or cut_off (exposure), see weights.py
 
 
 def _hazard_parts(ctx: RiskContext, hazards: dict[str, HazardLayerCollection]) -> list[dict]:
@@ -264,8 +262,12 @@ def _exposure_parts(ctx: RiskContext, impacts: ImpactResultCollection) -> list[d
         share = cut_m[b] / ctx.total_road_m[b] if ctx.total_road_m[b] > 0 else 0.0
         out.append(
             {
-                "isolated_facilities": clip01(len(isolated[b]) / W.ISOLATED_FACILITIES_CAP),
-                "cut_roads": clip01(share / W.CUT_ROAD_SHARE_CAP),
+                "isolated_facilities": (
+                    clip01(len(isolated[b]) / ctx.eligible_facilities[b])
+                    if ctx.eligible_facilities[b] > 0
+                    else 0.0
+                ),
+                "cut_roads": clip01(share),
                 "cut_substations": clip01(len(cut_subs[b]) / W.CUT_SUBSTATIONS_CAP),
             }
         )
@@ -302,7 +304,10 @@ def evaluate(
         hazard = clip01(max(hz["surge"], hz["wind"]) + W.FLOOD_WEIGHT * hz["flood"])
         exposure = sum(W.EXPOSURE_PARTS[k] * v for k, v in ex.items())
         vulnerability = static.vulnerability
-        score = hazard * (W.W_EXPOSURE * exposure + W.W_VULNERABILITY * vulnerability)
+        reach = "direct" if hazard >= exposure else "cut_off"
+        score = max(hazard, exposure) * (
+            W.W_EXPOSURE * exposure + W.W_VULNERABILITY * vulnerability
+        )
         out.append(
             BlockRisk(
                 code=ctx.blocks.codes[b],
@@ -315,6 +320,7 @@ def evaluate(
                 vulnerability=vulnerability,
                 score=score,
                 top_driver=_top_driver(hz, ex, static.vulnerability_parts, score),
+                reach=reach,
             )
         )
     return out
@@ -368,6 +374,7 @@ def to_breakdown(risks: list[BlockRisk], ctx: RiskContext, timestep: str) -> Ris
                 "hospital_travel_min": (
                     round(minutes, 1) if minutes is not None and np.isfinite(minutes) else None
                 ),
+                "reach": r.reach,
                 "hazard": rounded(r.hazard_parts),
                 "exposure": rounded(r.exposure_parts),
                 "vulnerability": rounded(r.vulnerability_parts),

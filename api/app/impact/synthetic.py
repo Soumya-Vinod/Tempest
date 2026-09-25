@@ -1,9 +1,10 @@
-"""SYNTHETIC HAZARDS FOR DEVELOPMENT ONLY. NOT AMPHAN DATA.
+"""SYNTHETIC HAZARDS FOR TESTS ONLY. NOT AMPHAN DATA.
 
-Made-up but contract-valid HazardLayerCollections so the impact engine can be developed and
-tested before Dev A's get_hazard_layer exists. Every feature id starts with "synthetic-"
-(HazardLayerProperties has no field for a flag). Never write these to api/data/demo/, never
-show them as real, and remove the ?synthetic=true route parameter once real hazards exist.
+Made-up but contract-valid HazardLayerCollections. Only tests import this module, directly (for
+example by patching the impact service's get_hazard_layer); no route or service uses it, and
+there is no ?synthetic parameter any more: the app runs on Dev A's real hazard layers. Every
+feature id starts with "synthetic-" (HazardLayerProperties has no field for a flag). Never write
+these to api/data/demo/ and never show them as real.
 
 - Surge: a coastal band whose landward edge moves north and whose depth grows towards landfall.
 - Wind: a vortex moving north to the landfall point, strengthening over time.

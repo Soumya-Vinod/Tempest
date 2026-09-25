@@ -37,10 +37,10 @@ export interface RiskMap {
   card: RiskCardProps
 }
 
-/** Risk for the scrubber's timestep; `synthetic` follows the impact toggle. */
-export function useRiskMap(timestepIndex: number, synthetic: boolean): RiskMap {
+/** Risk for the scrubber's timestep. */
+export function useRiskMap(timestepIndex: number): RiskMap {
   const timestep = REPLAY_TIMESTEPS[timestepIndex]
-  const { state, shown } = useRisk(timestep, synthetic)
+  const { state, shown } = useRisk(timestep)
   const unscored = useUnscoredAreas()
   const [visible, setVisible] = useState(true)
   const [selectedId, setSelectedId] = useState<string | null>(null)

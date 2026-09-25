@@ -16,6 +16,7 @@ from app.schemas.common import (
     InfraType,
     Language,
     RiskDriver,
+    RiskReach,
     StepType,
     Timestep,
     TimestepParam,
@@ -241,6 +242,7 @@ class RiskBlockBreakdown(ContractModel):
     block_name: str
     population_2011: int = Field(ge=0)
     hospital_travel_min: float | None = Field(ge=0)  # null: no road node reaches a hospital
+    reach: RiskReach  # which of hazard or exposure scaled the score
     hazard: RiskHazardParts
     exposure: RiskExposureParts
     vulnerability: RiskVulnerabilityParts

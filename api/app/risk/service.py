@@ -1,8 +1,10 @@
-"""Risk service for GET /api/risk/scores and /api/risk/unscored-areas (contracts.md §4.4, §5).
+"""Risk service for GET /api/risk/scores, /breakdown and /unscored-areas (contracts.md §4.4, §5).
 
-Scores reuse the impact service's caches: the same hazard layers and impact results per
-(timestep, synthetic), so a timestep's hazards and impacts are computed once for both routes.
-DEMO_MODE and ?synthetic=true follow the impact rules (synthetic is dev-only, DEMO_MODE off).
+Live: scores and breakdown reuse the impact service's caches (the same hazard layers and impact
+results per timestep), so a timestep's hazards and impacts are computed once for all routes.
+DEMO_MODE: the fixtures risk__scores__<ts>, risk__breakdown__<ts> and risk__unscored-areas,
+built from Dev A's real hazards by scripts/build_impact_risk_fixtures.py. Score fixtures carry no
+block polygons; they are added back from s24p_blocks.geojson (app/risk/fixtures.py).
 """
 
 from app.core.cache import SingleFlightLRU
@@ -12,6 +14,7 @@ from app.exposure import service as exposure
 from app.impact import service as impact
 from app.impact.fixtures import compact_timestep
 from app.risk import blocks as block_data
+from app.risk import fixtures as risk_fixtures
 from app.risk.engine import (
     BlockRisk,
     RiskContext,
@@ -22,12 +25,12 @@ from app.risk.engine import (
 )
 from app.schemas import LIVE, RiskBreakdown, RiskScoreCollection, UnscoredAreaCollection
 
-# Re-exported so the router maps the same errors for both routes.
-SyntheticNotAllowed = impact.SyntheticNotAllowed
+# Re-exported so the router maps the same errors for all routes.
 DemoFixtureMissing = impact.DemoFixtureMissing
 ReferenceDataMissing = block_data.ReferenceDataMissing
 
 CACHE_SIZE = 8
+UNSCORED_FIXTURE_KEY = "risk__unscored-areas"
 
 
 def _build_context() -> RiskContext:
@@ -40,8 +43,11 @@ def _build_context() -> RiskContext:
 
 
 _context_cache = SingleFlightLRU(lambda _: _build_context(), maxsize=1)
-# Evaluated blocks per (timestep, synthetic): scores and breakdown both come from one evaluation.
-_risk_cache = SingleFlightLRU(lambda ts, synthetic: _compute(ts, synthetic), CACHE_SIZE)
+# Evaluated blocks per timestep: scores and breakdown both come from one evaluation.
+_risk_cache = SingleFlightLRU(lambda ts: _compute(ts), CACHE_SIZE)
+_unscored_cache = SingleFlightLRU(
+    lambda _: block_data.unscored_areas(block_data.load_blocks()), maxsize=1
+)
 
 
 def context() -> RiskContext:
@@ -49,10 +55,10 @@ def context() -> RiskContext:
     return _context_cache.get("context")
 
 
-def _compute(timestep: str, synthetic: bool) -> list[BlockRisk]:
+def _compute(timestep: str) -> list[BlockRisk]:
     # Hazards first: Dev A's NotImplementedError stops here before anything heavy loads.
-    hazards = impact.hazard_layers(timestep, synthetic)
-    impacts = impact.results(timestep, synthetic)
+    hazards = impact.hazard_layers(timestep)
+    impacts = impact.results(timestep)
     return evaluate(hazards, impacts, context())
 
 
@@ -60,18 +66,14 @@ def _demo_fixture(key: str) -> dict:
     try:
         return load_fixture(key)
     except FileNotFoundError as e:
-        raise DemoFixtureMissing(f"no demo fixture for this timestep yet ({key})") from e
+        raise DemoFixtureMissing(f"no demo fixture yet ({key})") from e
 
 
-def _live_or_demo(timestep: str, synthetic: bool) -> bool:
-    """True in DEMO_MODE (after its checks); raises for live timesteps and demo+synthetic."""
+def _demo(timestep: str | None = None) -> bool:
+    """True in DEMO_MODE; raises for the reserved "live" timestep (501 in v1.0)."""
     if timestep == LIVE:
         raise NotImplementedError("timestep=live is not implemented yet")
-    if get_settings().DEMO_MODE:
-        if synthetic:
-            raise SyntheticNotAllowed("synthetic=true is only available with DEMO_MODE off")
-        return True
-    return False
+    return get_settings().DEMO_MODE
 
 
 def fixture_key(timestep: str) -> str:
@@ -82,27 +84,25 @@ def breakdown_fixture_key(timestep: str) -> str:
     return f"risk__breakdown__{compact_timestep(timestep)}"
 
 
-def get_scores(timestep: str, synthetic: bool = False) -> RiskScoreCollection:
-    if _live_or_demo(timestep, synthetic):
-        return RiskScoreCollection.model_validate(_demo_fixture(fixture_key(timestep)))
-    return to_collection(_risk_cache.get((timestep, synthetic)), context(), timestep)
+def get_scores(timestep: str) -> RiskScoreCollection:
+    if _demo(timestep):
+        fixture = _demo_fixture(fixture_key(timestep))
+        return risk_fixtures.from_fixture(fixture, block_data.load_blocks())
+    return to_collection(_risk_cache.get(timestep), context(), timestep)
 
 
-def get_breakdown(timestep: str, synthetic: bool = False) -> RiskBreakdown:
+def get_breakdown(timestep: str) -> RiskBreakdown:
     """Every part per block (v1.1 change, pending Dev A); same cache as get_scores."""
-    if _live_or_demo(timestep, synthetic):
+    if _demo(timestep):
         return RiskBreakdown.model_validate(_demo_fixture(breakdown_fixture_key(timestep)))
-    return to_breakdown(_risk_cache.get((timestep, synthetic)), context(), timestep)
+    return to_breakdown(_risk_cache.get(timestep), context(), timestep)
 
 
 def get_unscored_areas() -> UnscoredAreaCollection:
-    """Static, from the committed reference files: the same in DEMO_MODE and live."""
+    """Static: live from the committed reference files, DEMO_MODE from its fixture."""
+    if _demo():
+        return UnscoredAreaCollection.model_validate(_demo_fixture(UNSCORED_FIXTURE_KEY))
     return _unscored_cache.get("unscored")
-
-
-_unscored_cache = SingleFlightLRU(
-    lambda _: block_data.unscored_areas(block_data.load_blocks()), maxsize=1
-)
 
 
 def clear_cache() -> None:
