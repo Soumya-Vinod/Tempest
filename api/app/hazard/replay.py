@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import json
 import math
 from functools import lru_cache
 
 from app.core.config import get_settings
+from app.core.demo import DEMO_DIR
 from app.hazard.models import (
     CycloneTrackPoint,
     GridCell,
@@ -75,40 +77,59 @@ def create_replay_timeline() -> ReplayTimeline:
 
 
 # ---------------------------------------------------------------------------
-# 1. Official IMD Cyclone Amphan Best-Track Waypoints (May 17-20, 2020)
+# 1. Official IBTrACS Cyclone Amphan Best-Track Waypoints (May 17-20, 2020)
 # ---------------------------------------------------------------------------
+# hazard__track.json is a generated artifact produced by api/scripts/ingest_track.py
+# from the official IBTrACS dataset. The repository uses the generated fixture at runtime
+# to ensure deterministic replay behavior and avoid network dependencies.
+#
 # (timestep, lat, lon, central_pressure_hpa, max_wind_mps, rmw_km, fwd_speed_mps, heading_deg)
 _AMPHAN_WAYPOINTS: tuple[tuple[str, float, float, float, float, float, float, float], ...] = (
-    ("2020-05-17T12:00:00Z", 11.4, 86.0, 990.0, 25.0, 45.0, 3.5, 355.0),
-    ("2020-05-17T15:00:00Z", 11.8, 86.1, 985.0, 28.0, 40.0, 4.0, 0.0),
-    ("2020-05-17T18:00:00Z", 12.2, 86.2, 980.0, 32.0, 35.0, 4.5, 5.0),
-    ("2020-05-17T21:00:00Z", 12.6, 86.3, 972.0, 36.0, 30.0, 5.0, 10.0),
-    ("2020-05-18T00:00:00Z", 13.0, 86.4, 960.0, 42.0, 25.0, 5.0, 10.0),
-    ("2020-05-18T03:00:00Z", 13.4, 86.4, 945.0, 50.0, 22.0, 5.0, 10.0),
-    ("2020-05-18T06:00:00Z", 13.8, 86.5, 930.0, 58.0, 20.0, 5.5, 15.0),
-    ("2020-05-18T09:00:00Z", 14.3, 86.5, 925.0, 65.0, 18.0, 5.5, 15.0),
-    ("2020-05-18T12:00:00Z", 14.8, 86.6, 920.0, 68.0, 18.0, 6.0, 15.0),
-    ("2020-05-18T15:00:00Z", 15.3, 86.6, 925.0, 65.0, 20.0, 6.0, 15.0),
-    ("2020-05-18T18:00:00Z", 15.9, 86.7, 930.0, 60.0, 22.0, 6.5, 15.0),
-    ("2020-05-18T21:00:00Z", 16.5, 86.8, 935.0, 56.0, 25.0, 7.0, 20.0),
-    ("2020-05-19T00:00:00Z", 17.0, 86.9, 940.0, 53.0, 25.0, 7.5, 20.0),
-    ("2020-05-19T03:00:00Z", 17.6, 87.0, 945.0, 50.0, 28.0, 8.0, 20.0),
-    ("2020-05-19T06:00:00Z", 18.2, 87.1, 948.0, 48.0, 28.0, 8.5, 20.0),
-    ("2020-05-19T09:00:00Z", 18.8, 87.2, 950.0, 46.0, 30.0, 9.0, 25.0),
-    ("2020-05-19T12:00:00Z", 19.3, 87.4, 952.0, 45.0, 30.0, 9.5, 25.0),
-    ("2020-05-19T15:00:00Z", 19.8, 87.6, 955.0, 44.0, 32.0, 10.0, 25.0),
-    ("2020-05-19T18:00:00Z", 20.2, 87.8, 958.0, 43.0, 32.0, 10.5, 30.0),
-    ("2020-05-19T21:00:00Z", 20.6, 88.0, 960.0, 42.0, 35.0, 11.0, 30.0),
-    ("2020-05-20T00:00:00Z", 21.0, 88.1, 960.0, 42.0, 35.0, 11.5, 30.0),
-    ("2020-05-20T03:00:00Z", 21.3, 88.2, 958.0, 43.0, 35.0, 12.0, 30.0),
-    ("2020-05-20T06:00:00Z", 21.5, 88.25, 955.0, 44.0, 32.0, 12.5, 35.0),
-    ("2020-05-20T09:00:00Z", 21.75, 88.3, 952.0, 45.0, 30.0, 13.0, 35.0),
-    ("2020-05-20T12:00:00Z", 22.0, 88.35, 950.0, 46.0, 30.0, 13.0, 35.0),
+    ("2020-05-17T12:00:00Z", 11.9, 86.2, 978.0, 36.01, 37.0, 6.06, 15.5),
+    ("2020-05-17T15:00:00Z", 12.4675, 86.3612, 972.0, 38.58, 31.5, 0.35, 341.4),
+    ("2020-05-17T18:00:00Z", 12.5, 86.35, 970.0, 41.16, 27.8, 3.93, 17.09),
+    ("2020-05-17T21:00:00Z", 12.865, 86.4651, 962.0, 46.3, 22.2, 3.15, 338.53),
+    ("2020-05-18T00:00:00Z", 13.15, 86.35, 952.0, 51.44, 18.5, 1.7, 317.31),
+    ("2020-05-18T03:00:00Z", 13.2713, 86.235, 936.0, 59.16, 18.5, 1.37, 345.18),
+    ("2020-05-18T06:00:00Z", 13.4, 86.2, 930.0, 61.73, 18.5, 3.21, 6.26),
+    ("2020-05-18T09:00:00Z", 13.71, 86.235, 930.0, 61.73, 18.5, 3.68, 18.16),
+    ("2020-05-18T12:00:00Z", 14.05, 86.35, 926.0, 64.31, 18.5, 4.49, 12.83),
+    ("2020-05-18T15:00:00Z", 14.475, 86.45, 926.0, 64.31, 18.5, 3.99, 14.45),
+    ("2020-05-18T18:00:00Z", 14.85, 86.55, 920.0, 66.88, 18.5, 3.38, 17.1),
+    ("2020-05-18T21:00:00Z", 15.1637, 86.65, 920.0, 66.88, 20.4, 4.1, 14.0),
+    ("2020-05-19T00:00:00Z", 15.55, 86.75, 926.0, 64.31, 22.2, 4.71, 12.59),
+    ("2020-05-19T03:00:00Z", 15.9963, 86.8537, 930.0, 61.73, 20.4, 5.27, 10.39),
+    ("2020-05-19T06:00:00Z", 16.5, 86.95, 936.0, 59.16, 18.5, 4.64, 3.5),
+    ("2020-05-19T09:00:00Z", 16.95, 86.9788, 942.0, 56.59, 18.5, 4.18, 9.64),
+    ("2020-05-19T12:00:00Z", 17.35, 87.05, 946.0, 54.02, 18.5, 6.17, 6.16),
+    ("2020-05-19T15:00:00Z", 17.9462, 87.1176, 948.0, 51.44, 18.5, 4.23, 10.96),
+    ("2020-05-19T18:00:00Z", 18.35, 87.2, 948.0, 51.44, 18.5, 3.8, 9.43),
+    ("2020-05-19T21:00:00Z", 18.7137, 87.2638, 948.0, 51.44, 18.5, 5.05, 27.08),
+    ("2020-05-20T00:00:00Z", 19.15, 87.5, 952.0, 48.87, 18.5, 6.91, 15.98),
+    ("2020-05-20T03:00:00Z", 19.795, 87.6963, 954.0, 48.87, 18.5, 8.15, 17.46),
+    ("2020-05-20T06:00:00Z", 20.55, 87.95, 956.0, 46.3, 18.5, 8.52, 8.76),
+    ("2020-05-20T09:00:00Z", 21.3674, 88.0853, 960.0, 46.3, 18.5, 7.47, 19.76),
+    ("2020-05-20T12:00:00Z", 22.05, 88.35, 957.0, 43.73, 18.5, 7.47, 19.76),
 )
 
-AMPHAN_TRACK: dict[str, CycloneTrackPoint] = {
-    row[0]: CycloneTrackPoint(*row) for row in _AMPHAN_WAYPOINTS
-}
+
+def _load_track_dict() -> dict[str, CycloneTrackPoint]:
+    """Load canonical track points from demo fixture if present, else fallback."""
+    fixture_path = DEMO_DIR / "hazard__track.json"
+    if fixture_path.is_file():
+        try:
+            with fixture_path.open(encoding="utf-8") as f:
+                data = json.load(f)
+                return {
+                    pt["timestep"]: CycloneTrackPoint.model_validate(pt)
+                    for pt in data["points"]
+                }
+        except Exception:
+            pass
+    return {row[0]: CycloneTrackPoint(*row) for row in _AMPHAN_WAYPOINTS}
+
+
+AMPHAN_TRACK: dict[str, CycloneTrackPoint] = _load_track_dict()
 
 
 @lru_cache(maxsize=1)
@@ -120,6 +141,11 @@ def get_replay_track() -> tuple[CycloneTrackPoint, ...]:
         India Meteorological Department (IMD) RSMC Best Track Report for Super Cyclonic
         Storm AMPHAN (16–21 May 2020).
 
+    Provenance:
+        hazard__track.json is a generated artifact produced by api/scripts/ingest_track.py
+        from the official IBTrACS dataset. The repository uses the generated fixture at runtime
+        to ensure deterministic replay behavior and avoid network dependencies.
+
     Sampling:
         One track point per 3-hour synoptic timestep over the 72-hour replay window
         from 2020-05-17T12:00:00Z to landfall at 2020-05-20T12:00:00Z (25 points).
@@ -130,7 +156,8 @@ def get_replay_track() -> tuple[CycloneTrackPoint, ...]:
         - heading_deg: Meteorological forward heading azimuth (0° = North, 90° = East)
           computed using spherical forward geodesic bearing between consecutive fixes.
     """
-    return tuple(AMPHAN_TRACK[ts] for ts in REPLAY_TIMESTEPS)
+    track_dict = _load_track_dict()
+    return tuple(track_dict[ts] for ts in REPLAY_TIMESTEPS)
 
 
 
