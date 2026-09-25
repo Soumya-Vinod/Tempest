@@ -1,4 +1,4 @@
-"""Pydantic mirror of shared/contracts.md v0.9. Keep in sync with web/src/types/contracts.ts."""
+"""Pydantic mirror of shared/contracts.md v1.0. Keep in sync with web/src/types/contracts.ts."""
 
 from typing import Any, Literal, Self
 
@@ -25,7 +25,7 @@ from app.schemas.geojson import AreaGeometry, Feature, FeatureCollection, InfraG
 
 HAZARD_UNITS: dict[str, str] = {"wind": "m/s", "surge": "m", "flood": "index"}
 METRIC_UNITS: dict[str, str] = {"wind_speed": "m/s", "surge_depth": "m"}
-# <infra_type with - for _>-<osm_type>-<osm_number>, e.g. power-line-way-123 (§4.2, v0.9 addition).
+# <infra_type with - for _>-<osm_type>-<osm_number>, e.g. power-line-way-123 (§4.2, added in v0.9).
 INFRA_ID_PATTERN = r"^(substation|power-line|road|hospital|shelter)-(node|way|relation)-\d+$"
 
 

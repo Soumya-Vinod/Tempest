@@ -40,7 +40,7 @@ def _check_timestep_param(value: str) -> str:
 
 # In responses: a replay key only.
 Timestep = Annotated[str, AfterValidator(_check_timestep)]
-# In parameters: a replay key or "live" (501 / NotImplementedError in v0.9).
+# In parameters: a replay key or "live" (501 / NotImplementedError in v1.0).
 TimestepParam = Annotated[str, AfterValidator(_check_timestep_param)]
 
 BlockId = Annotated[str, Field(pattern=r"^[a-z0-9-]+$")]

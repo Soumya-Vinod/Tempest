@@ -90,7 +90,10 @@ def features_from_gdf(gdf: gpd.GeoDataFrame) -> list[InfraFeature]:
 def _parquet_features(path: Path) -> tuple[InfraFeature, ...]:
     if not path.is_file():
         raise InfraDataMissing(f"{path.name} not found; run api/scripts/ingest_osm.py")
-    return tuple(features_from_gdf(display_gdf(read_infra(path))))
+    features = features_from_gdf(display_gdf(read_infra(path)))
+    # INFRA_TYPES order (stable within a type), the same order as the composed demo response,
+    # so live and demo collections, and the impact results built from them, line up exactly.
+    return tuple(sorted(features, key=lambda f: INFRA_TYPES.index(f.properties.infra_type)))
 
 
 @lru_cache(maxsize=8)
