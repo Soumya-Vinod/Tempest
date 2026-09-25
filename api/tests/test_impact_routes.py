@@ -60,10 +60,23 @@ def get(params: str):
     return ImpactResultCollection.model_validate(resp.json())
 
 
-def test_live_without_dev_a_hazards_is_501(live):
+def test_live_without_dev_a_hazards_is_501(live, monkeypatch):
+    def _stub(hazard_type, timestep):
+        raise NotImplementedError("get_hazard_layer: not implemented")
+
+    monkeypatch.setattr(service, "get_hazard_layer", _stub)
+    service.clear_cache()
     resp = client.get(f"{URL}?timestep={TS}")
     assert resp.status_code == 501
     assert "get_hazard_layer" in resp.json()["detail"]
+
+
+def test_live_with_dev_a_hazards_succeeds(live):
+    service.clear_cache()
+    resp = client.get(f"{URL}?timestep={TS}")
+    assert resp.status_code == 200
+    fc = ImpactResultCollection.model_validate(resp.json())
+    assert len(fc.features) > 0
 
 
 def test_live_synthetic_returns_full_collection(live):

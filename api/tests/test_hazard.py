@@ -77,18 +77,22 @@ def test_iso_to_compact_ts():
 
 
 def test_aoi_grid_generation():
-    grid = get_aoi_grid(rows=8, cols=8)
-    assert len(grid) == 64
+    grid = get_aoi_grid()
+    assert len(grid) == 528
     for cell in grid:
         assert isinstance(cell, GridCell)
         assert cell.id.startswith("c")
         assert 88.0 <= cell.min_lon < cell.max_lon <= 89.1
         assert 21.5 <= cell.min_lat < cell.max_lat <= 22.7
-        assert cell.elevation_m >= 0.5
+        assert cell.elevation_m >= 0.0
         assert cell.dist_to_coast_km >= 0.0
         coords = cell.polygon.coordinates[0]
         assert len(coords) == 5
         assert coords[0] == coords[-1]  # Closed polygon ring
+
+    # Also verify custom resolution fallback
+    custom = get_aoi_grid(rows=8, cols=8)
+    assert len(custom) == 64
 
 
 def test_wind_metric_physics():
@@ -145,7 +149,7 @@ def test_get_hazard_layer_validations():
 def test_get_hazard_layer_returns_valid_collection(hazard_type):
     col = get_hazard_layer(hazard_type, TS_LANDFALL)
     assert isinstance(col, HazardLayerCollection)
-    assert len(col.features) == 64
+    assert len(col.features) == 528
     for feat in col.features:
         assert feat.id == feat.properties.id
         assert feat.properties.hazard_type == hazard_type
@@ -156,6 +160,7 @@ def test_get_hazard_layer_returns_valid_collection(hazard_type):
 def test_flood_layer_static_across_timesteps():
     f_start = get_hazard_layer("flood", TS_START)
     f_landfall = get_hazard_layer("flood", TS_LANDFALL)
+    assert len(f_start.features) == len(f_landfall.features) == 528
     for feat1, feat2 in zip(f_start.features, f_landfall.features, strict=True):
         assert feat1.properties.value == feat2.properties.value
         assert feat1.properties.severity == feat2.properties.severity
@@ -407,7 +412,7 @@ def test_hazard_routes_http():
     resp_layers = client.get(f"/api/hazard/layers?hazard_type=wind&timestep={TS_LANDFALL}")
     assert resp_layers.status_code == 200
     features = resp_layers.json()["features"]
-    assert len(features) == 64
+    assert len(features) == 528
 
     # 3. Live returns 501
     resp_live = client.get("/api/hazard/layers?hazard_type=wind&timestep=live")
@@ -681,9 +686,9 @@ def test_wind_severity_monotonic_and_bounded():
 
     # 2. Strict monotonicity (non-decreasing)
     for i in range(len(severities) - 1):
-        assert (
-            severities[i + 1] >= severities[i]
-        ), f"Severity decreased from {speeds[i]} m/s to {speeds[i + 1]} m/s"
+        assert severities[i + 1] >= severities[i], (
+            f"Severity decreased from {speeds[i]} m/s to {speeds[i + 1]} m/s"
+        )
 
     # 3. Negative speed edge case
     assert normalize_wind_severity(-5.0) == 0.0
@@ -693,7 +698,7 @@ def test_generate_wind_layer_contract():
     """Verify generate_wind_layer returns a contract-compliant HazardLayerCollection."""
     col = generate_wind_layer(TS_LANDFALL)
     assert isinstance(col, HazardLayerCollection)
-    assert len(col.features) == 64
+    assert len(col.features) == 528
     assert col.type == "FeatureCollection"
 
     compact_ts = iso_to_compact_ts(TS_LANDFALL)
@@ -740,7 +745,7 @@ def test_wind_fixtures_exist_and_match_generation():
         fixture_model = HazardLayerCollection.model_validate_json(raw_bytes)
         generated_model = generate_wind_layer(ts)
 
-        assert len(fixture_model.features) == len(generated_model.features) == 64
+        assert len(fixture_model.features) == len(generated_model.features) == 528
         for f_fix, f_gen in zip(fixture_model.features, generated_model.features, strict=True):
             assert f_fix.id == f_gen.id
             assert f_fix.properties.hazard_type == "wind"
@@ -764,7 +769,7 @@ def test_service_get_hazard_layer_wind_demo_and_computed(monkeypatch):
     )
     col_demo = get_hazard_layer("wind", TS_LANDFALL)
     assert isinstance(col_demo, HazardLayerCollection)
-    assert len(col_demo.features) == 64
+    assert len(col_demo.features) == 528
 
     # 2. In DEMO_MODE=False: computes directly via generate_wind_layer
     hazard_service._LAYER_CACHE.clear()
@@ -774,7 +779,7 @@ def test_service_get_hazard_layer_wind_demo_and_computed(monkeypatch):
     )
     col_computed = get_hazard_layer("wind", TS_LANDFALL)
     assert isinstance(col_computed, HazardLayerCollection)
-    assert len(col_computed.features) == 64
+    assert len(col_computed.features) == 528
 
     # Both modes must produce identical hazard layers
     for f_d, f_c in zip(col_demo.features, col_computed.features, strict=True):
@@ -790,7 +795,7 @@ def test_hazard_routes_wind_endpoint():
     assert resp.status_code == 200
     data = resp.json()
     assert data["type"] == "FeatureCollection"
-    assert len(data["features"]) == 64
+    assert len(data["features"]) == 528
     for feat in data["features"]:
         assert feat["properties"]["hazard_type"] == "wind"
         assert feat["properties"]["unit"] == "m/s"
@@ -812,7 +817,7 @@ def test_replay_consistency_across_all_25_timesteps():
 
     for ts in REPLAY_TIMESTEPS:
         col = generate_wind_layer(ts)
-        assert len(col.features) == 64
+        assert len(col.features) == 528
         speeds = [f.properties.value for f in col.features]
         severities = [f.properties.severity for f in col.features]
 
@@ -848,5 +853,67 @@ def test_build_wind_fixtures_script(tmp_path):
         raw = path.read_bytes()
         assert b"\r\n" not in raw
         parsed = HazardLayerCollection.model_validate_json(raw)
-        assert len(parsed.features) == 64
+        assert len(parsed.features) == 528
 
+
+def test_all_75_hazard_fixtures_exist_and_validate():
+    """Verify all 75 DEMO_MODE hazard fixtures (3 types x 25 timesteps) exist and validate."""
+    types_and_units = {
+        "wind": "m/s",
+        "surge": "m",
+        "flood": "index",
+    }
+    for hazard_type, expected_unit in types_and_units.items():
+        for ts in REPLAY_TIMESTEPS:
+            compact_ts = iso_to_compact_ts(ts)
+            fixture_path = DEMO_DIR / f"hazard__layers-{hazard_type}__{compact_ts}.json"
+            assert fixture_path.is_file(), f"Missing fixture: {fixture_path.name}"
+
+            raw = fixture_path.read_bytes()
+            assert b"\r\n" not in raw, f"{fixture_path.name} contains CRLF"
+
+            parsed = HazardLayerCollection.model_validate_json(raw)
+            assert len(parsed.features) == 528, f"{fixture_path.name} does not have 528 features"
+            for feat in parsed.features:
+                assert feat.properties.hazard_type == hazard_type
+                assert feat.properties.unit == expected_unit
+                assert feat.properties.timestep == ts
+                assert 0.0 <= feat.properties.severity <= 1.0
+
+
+def test_hazard_elevation_reference_file():
+    """Verify the GEE SRTM sampled elevation reference file exists and has 528 cells."""
+    from app.hazard.replay import ELEVATION_GRID_PATH
+
+    assert ELEVATION_GRID_PATH.is_file(), f"Reference file missing: {ELEVATION_GRID_PATH}"
+
+    with open(ELEVATION_GRID_PATH, encoding="utf-8") as f:
+        data = json.load(f)
+
+    assert "SRTM" in data["dataset"]
+    assert data["total_cells"] == 528
+    assert len(data["cells"]) == 528
+
+    elevations = [c["elevation_m"] for c in data["cells"]]
+    assert all(elev >= 0.0 for elev in elevations)
+    assert min(elevations) == 0.0
+    assert max(elevations) > 5.0  # inland cells reach > 5m
+
+
+def test_build_hazard_fixtures_script(tmp_path):
+    """Verify scripts.build_hazard_fixtures generates all 75 fixtures cleanly."""
+    from scripts.build_hazard_fixtures import build_hazard_fixtures
+
+    written = build_hazard_fixtures(out_dir=tmp_path)
+    assert len(written) == 75
+    for hazard_type in ("wind", "surge", "flood"):
+        for ts in REPLAY_TIMESTEPS:
+            compact_ts = iso_to_compact_ts(ts)
+            key = f"hazard__layers-{hazard_type}__{compact_ts}"
+            assert key in written
+            path = written[key]
+            assert path.is_file()
+            raw = path.read_bytes()
+            assert b"\r\n" not in raw
+            parsed = HazardLayerCollection.model_validate_json(raw)
+            assert len(parsed.features) == 528
