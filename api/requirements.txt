@@ -1,0 +1,14 @@
+# Top-level dependencies, pinned. Install: .venv\Scripts\python -m pip install -r requirements.txt
+fastapi==0.141.1
+uvicorn[standard]==0.53.0
+pydantic-settings==2.15.0
+httpx==0.28.1
+geopandas==1.1.4
+shapely==2.1.2
+pyarrow==25.0.1
+osmnx==2.1.1
+networkx==3.7
+google-genai==2.25.0
+earthengine-api==1.7.45
+pytest==9.1.1
+ruff==0.16.9
