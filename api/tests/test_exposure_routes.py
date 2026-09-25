@@ -178,3 +178,18 @@ def test_live_geometry_matches_fixtures(live, tmp_path):
 def test_live_leaves_parquet_unchanged(live):
     get("/api/exposure/infra")
     assert ingest.read_infra(SAMPLE).geometry.equals(live.geometry)
+
+
+def test_live_order_matches_demo_order(live, tmp_path):
+    """Live output is in INFRA_TYPES order whatever the parquet row order."""
+    shuffled = ingest.read_infra(SAMPLE).sample(frac=1, random_state=1)
+    path = tmp_path / "shuffled.parquet"
+    shuffled.to_parquet(path, index=False)
+    service.INFRA_PATH = path
+    service.clear_cache()
+    try:
+        types = [f.properties.infra_type for f in get("/api/exposure/infra").features]
+    finally:
+        service.INFRA_PATH = SAMPLE
+        service.clear_cache()
+    assert types == sorted(types, key=ingest.INFRA_TYPES.index)

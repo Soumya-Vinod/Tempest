@@ -10,6 +10,37 @@ type HealthState =
   | { kind: 'ok'; data: HealthResponse }
   | { kind: 'error'; message: string }
 
+/** One line ("Keys: 2/6 configured ▸") that expands into the per-key list. Values never shown. */
+function ConfiguredKeys({ configured }: { configured: Record<string, boolean> }) {
+  const [open, setOpen] = useState(false)
+  const keys = Object.entries(configured)
+  const set = keys.filter(([, ok]) => ok).length
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className="text-xs text-slate-500 hover:text-slate-800"
+      >
+        Keys: {set}/{keys.length} configured {open ? '▾' : '▸'}
+      </button>
+      {open && (
+        <ul className="mt-1 space-y-1">
+          {keys.map(([key, ok]) => (
+            <li key={key} className="flex justify-between font-mono text-xs">
+              <span>{key}</span>
+              <span className={ok ? 'text-emerald-600' : 'text-slate-400'}>
+                {ok ? '✓ set' : '✗ not set'}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </>
+  )
+}
+
 /** Side panel: backend status, then feature sections passed as children. */
 export default function HealthPanel({ children }: { children?: ReactNode }) {
   const [health, setHealth] = useState<HealthState>({ kind: 'loading' })
@@ -61,16 +92,7 @@ export default function HealthPanel({ children }: { children?: ReactNode }) {
               {health.data.demo_mode ? 'DEMO MODE' : 'LIVE'}
             </span>
           </div>
-          <ul className="space-y-1">
-            {Object.entries(health.data.configured).map(([key, ok]) => (
-              <li key={key} className="flex justify-between font-mono text-xs">
-                <span>{key}</span>
-                <span className={ok ? 'text-emerald-600' : 'text-slate-400'}>
-                  {ok ? '✓ set' : '✗ not set'}
-                </span>
-              </li>
-            ))}
-          </ul>
+          <ConfiguredKeys configured={health.data.configured} />
         </>
       )}
       {children}

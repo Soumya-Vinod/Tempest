@@ -17,6 +17,7 @@ import {
   FULL_SIZE_M_PER_PX,
   LINK_WIDTH,
   MAJOR_ROADS,
+  MUTED,
   OUTLINE_PX,
   POINT_PX,
   ROAD_WIDTH,
@@ -38,6 +39,14 @@ function roadColor(f: InfraGeoFeature): Color {
   return MAJOR_ROADS.has(highway(f).replace(/_link$/, '')) ? COLOR.roadMajor : COLOR.roadMinor
 }
 
+function mutedRoadColor(f: InfraGeoFeature): Color {
+  if (noMainland(f)) return MUTED.noMainland
+  if (isFerry(f)) return MUTED.ferry
+  const hw = highway(f).replace(/_link$/, '')
+  if (MAJOR_ROADS.has(hw)) return MUTED.roadMajor
+  return hw === 'secondary' || hw === 'tertiary' ? MUTED.roadMid : MUTED.roadMinor
+}
+
 function roadWidth(f: InfraGeoFeature): number {
   if (isFerry(f)) return FERRY_WIDTH
   const hw = highway(f)
@@ -51,6 +60,10 @@ const standIn = (f: InfraGeoFeature) => STAND_IN[String(attr(f, 'shelter_kind'))
 const shelterFill = (f: InfraGeoFeature): Color => (standIn(f) ? COLOR.standInFill : COLOR.shelter)
 const shelterLine = (f: InfraGeoFeature): Color => standIn(f)?.ring ?? COLOR.outline
 const shelterLineWidth = (f: InfraGeoFeature) => (standIn(f) ? STAND_IN_RING_PX : OUTLINE_PX)
+const mutedShelterFill = (f: InfraGeoFeature): Color =>
+  standIn(f) ? COLOR.standInFill : MUTED.shelter
+const mutedShelterLine = (f: InfraGeoFeature): Color =>
+  standIn(f) ? MUTED.standInRing : COLOR.outline
 
 const HIGHLIGHT: number[] = [250, 204, 21, 200] // yellow-400
 
@@ -85,7 +98,7 @@ function splitHealth(fc: InfraFeatureCollection): Pair {
 
 type PointStyle = Pick<
   GeoJsonLayerProps<InfraFeatureProperties>,
-  'getFillColor' | 'getLineColor' | 'getLineWidth'
+  'getFillColor' | 'getLineColor' | 'getLineWidth' | 'updateTriggers'
 >
 
 /** Points sized in metres, clamped to [min, max] px: small at AOI zoom, full size zoomed in. */
@@ -114,7 +127,12 @@ function pointLayer(
 export function buildInfraLayers(
   state: InfraByType,
   visible: Record<InfraType, boolean>,
+  muted = false,
 ): Layer[] {
+  // Colour accessors are fixed functions; updateTriggers make deck.gl recolour only when `muted`
+  // flips, never on other rebuilds.
+  const colours = { getLineColor: muted, getFillColor: muted }
+  const palette = muted ? MUTED : COLOR
   const data = (t: InfraType) => {
     const s = state[t]
     return s.status === 'ok' ? s.data : EMPTY
@@ -131,7 +149,8 @@ export function buildInfraLayers(
       data: data('road'),
       visible: visible.road,
       ...COMMON,
-      getLineColor: roadColor,
+      getLineColor: muted ? mutedRoadColor : roadColor,
+      updateTriggers: colours,
       getLineWidth: roadWidth,
       lineWidthMinPixels: 1,
     }),
@@ -140,7 +159,7 @@ export function buildInfraLayers(
       data: data('power_line'),
       visible: visible.power_line,
       ...COMMON,
-      getLineColor: COLOR.powerLine,
+      getLineColor: palette.powerLine,
       getLineWidth: 1.2,
     }),
     pointLayer(
@@ -148,26 +167,27 @@ export function buildInfraLayers(
       data('substation'),
       visible.substation,
       POINT_PX.substation,
-      outlined(COLOR.substation),
+      outlined(palette.substation),
     ),
     pointLayer('infra-shelter', data('shelter'), visible.shelter, POINT_PX.shelter, {
-      getFillColor: shelterFill,
-      getLineColor: shelterLine,
+      getFillColor: muted ? mutedShelterFill : shelterFill,
+      getLineColor: muted ? mutedShelterLine : shelterLine,
       getLineWidth: shelterLineWidth,
+      updateTriggers: colours,
     }),
     pointLayer(
       'infra-health-centre',
       healthCentres,
       visible.hospital,
       POINT_PX.healthCentre,
-      outlined(COLOR.healthCentre),
+      outlined(palette.healthCentre),
     ),
     pointLayer(
       'infra-hospital',
       hospitals,
       visible.hospital,
       POINT_PX.hospital,
-      outlined(COLOR.hospital),
+      outlined(palette.hospital),
     ),
   ]
 }

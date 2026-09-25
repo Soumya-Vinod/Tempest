@@ -92,9 +92,12 @@ export const getInfra = (infra_type?: InfraType) =>
 export const getImpactResults = (
   timestep: TimestepParam,
   filters: { hazard_type?: HazardType; status?: ImpactStatus } = {},
+  // TEMPORARY, dev only (not in the contract): synthetic hazards, DEMO_MODE off. Remove once
+  // Dev A's get_hazard_layer exists.
+  dev: { synthetic?: boolean } = {},
 ) =>
   request<ImpactResultCollection>('GET', '/api/impact/results', {
-    query: { timestep, ...filters },
+    query: { timestep, ...filters, synthetic: dev.synthetic ? 'true' : undefined },
   })
 
 export const getRiskScores = (timestep: TimestepParam) =>

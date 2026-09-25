@@ -1,4 +1,4 @@
-// TypeScript mirror of shared/contracts.md v0.9 (DRAFT — pending Dev A review).
+// TypeScript mirror of shared/contracts.md v1.0 (FROZEN).
 // Keep in sync with api/app/schemas/. Changing anything here breaks the other dev: flag it.
 
 // ---------- GeoJSON (EPSG:4326, [lon, lat]) ----------
@@ -55,7 +55,7 @@ export type Channel = "telegram" | "email";
 
 /** One of the 25 Amphan replay keys, `YYYY-MM-DDTHH:MM:SSZ`. */
 export type Timestep = string;
-/** Accepted by every timestep parameter; "live" returns 501 in v0.9. */
+/** Accepted by every timestep parameter; "live" returns 501 in v1.0. */
 export type TimestepParam = Timestep | "live";
 /** ISO 8601 UTC datetime. */
 export type IsoDateTime = string;

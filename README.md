@@ -75,6 +75,16 @@ built from the cached road response with osmnx, so it needs no download of its o
 changing a query in `api\app\exposure\ingest.py`, delete its `overpass-*.json` file or pass
 `--refresh`, since the cache is keyed by file name only.
 
+Impact results (`GET /api/impact/results`) need Dev A's hazard layers; until
+`get_hazard_layer` exists the live route returns 501. For development only, with
+`DEMO_MODE=false`, `?synthetic=true` runs the engine on made-up hazards from
+`api\app\impact\synthetic.py` (never real data, never written to `api\data\demo\`). This parameter
+is temporary: remove it once Dev A's hazards exist.
+
+```powershell
+curl "http://localhost:8000/api/impact/results?timestep=2020-05-20T12:00:00Z&synthetic=true&status=isolated"
+```
+
 After an ingest, rebuild the committed exposure demo fixtures (`api\data\demo\exposure__infra*.json`)
 from `infra.parquet`:
 

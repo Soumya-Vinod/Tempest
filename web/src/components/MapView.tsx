@@ -47,9 +47,11 @@ interface Props {
   /** deck.gl layers from the features, drawn in order (first = bottom). */
   layers?: LayersList
   getTooltip?: DeckProps['getTooltip']
+  /** Called for every click, with info.object unset when nothing was picked. */
+  onClick?: DeckProps['onClick']
 }
 
-export default function MapView({ layers = [], getTooltip }: Props) {
+export default function MapView({ layers = [], getTooltip, onClick }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const overlayRef = useRef<MapboxOverlay | null>(null)
 
@@ -97,8 +99,8 @@ export default function MapView({ layers = [], getTooltip }: Props) {
   // Runs after the effect above on mount, and whenever a feature changes its layers. deck.gl
   // diffs layers by id, so unchanged layers keep their GPU buffers.
   useEffect(() => {
-    overlayRef.current?.setProps({ layers, getTooltip })
-  }, [layers, getTooltip])
+    overlayRef.current?.setProps({ layers, getTooltip, onClick })
+  }, [layers, getTooltip, onClick])
 
   // MapLibre adds .maplibregl-map (position: relative) to its container, so positioning
   // lives on the wrapper and the container only fills it.

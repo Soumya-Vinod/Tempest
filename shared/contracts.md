@@ -1,12 +1,12 @@
-# Tempest contracts — v0.9 (DRAFT — pending Dev A review)
+# Tempest contracts — v1.0 (FROZEN)
 
 The interface between **Dev A (hazard)** and **Dev B (exposure, impact, risk, advisory, dispatch,
 insurance)**. This file is the source of truth. `api/app/schemas/` (Pydantic) and
 `web/src/types/contracts.ts` (TypeScript) mirror it exactly.
 
-**Change rule (from v1.0 onward):** any change needs sign-off from both devs, a version bump here,
-and the matching Pydantic + TS edits in the same commit. While in v0.9 draft, edits are open
-pending Dev A's review.
+**Change rule (active):** any change needs sign-off from both devs, a version bump here, and the
+matching Pydantic + TS edits in the same commit. Proposed changes are marked *v1.1 change, pending
+Dev A* until both devs sign off and the version is bumped.
 
 ---
 
@@ -22,7 +22,7 @@ pending Dev A's review.
 | Units | Wind speed **m/s**; surge depth **m** above ground; money **INR**. |
 | Timestamps | ISO 8601 UTC, always `YYYY-MM-DDTHH:MM:SSZ` (e.g. `2020-05-20T12:00:00Z`). |
 | Null geometry | Allowed only where stated (Advisory). |
-| Errors | FastAPI default `{"detail": ...}`. `404` unknown id, `409` invalid state change, `422` bad params (incl. unknown `timestep`), `501` not implemented yet, `503` required processed data missing (live mode) *(v0.9 addition, pending Dev A review)*. |
+| Errors | FastAPI default `{"detail": ...}`. `404` unknown id, `409` invalid state change, `422` bad params (incl. unknown `timestep`), `501` not implemented yet, `503` required processed data missing (live mode) *(added in v0.9)*. |
 
 ## 2. Replay timeline — Cyclone Amphan
 
@@ -33,7 +33,7 @@ pending Dev A's review.
 - **Step:** 3 hours → **25 timesteps**, T-72h … T-0 inclusive.
 - **Timestep key:** the ISO string itself, e.g. `2020-05-18T03:00:00Z`.
 - **Reserved value `"live"`:** every `timestep` parameter (HTTP query param or Python argument) also
-  accepts `"live"`. In v0.9, `"live"` returns `501` from routes and raises `NotImplementedError` from
+  accepts `"live"`. In v1.0, `"live"` returns `501` from routes and raises `NotImplementedError` from
   Python functions. `"live"` never appears in a response's `timestep` property.
 - Any other `timestep` value not in the list returns `422`.
 
@@ -44,7 +44,7 @@ pending Dev A's review.
 2020-05-18T12:00:00Z  T-48     2020-05-20T12:00:00Z  T-0 (landfall)
 ```
 
-Live mode is reserved but not implemented in v0.9. See the `"live"` value above.
+Live mode is reserved but not implemented in v1.0. See the `"live"` value above.
 
 ## 3. Shared types
 
@@ -77,7 +77,11 @@ One feature per hazard cell/polygon. Geometry: `Polygon | MultiPolygon`.
 | `timestep` | Timestep | Flood susceptibility is static; Dev A repeats it at every timestep. |
 | `value` | float | Physical value in `unit`. |
 | `unit` | `"m/s" \| "m" \| "index"` | wind → `m/s`, surge → `m`, flood → `index` (0–1). |
-| `severity` | float [0, 1] | Normalised by Dev A. Dev B uses only this for thresholds. |
+| `severity` | float [0, 1] | Normalised by Dev A. *v1.1 change, pending Dev A:* impact and insurance use `value` for physical thresholds (surge in m, wind in m/s); flood uses `severity`. |
+
+*v1.1 change, pending Dev A:* flood `severity` is treated as susceptibility (static, repeated at
+every timestep), not as an event, so flood never cuts roads and never makes a feature `isolated`;
+it only marks roads, substations, hospitals and shelters `at_risk` (severity >= 0.7).
 
 ### 4.2 InfraFeature (Dev B)
 Geometry: `Point` (substation, hospital, shelter) or `LineString | MultiLineString` (power_line, road).
@@ -85,23 +89,29 @@ Polygons from OSM are reduced to their centroid.
 
 | Property | Type | Notes |
 |---|---|---|
-| `id` | string | Stable id: `<infra_type>-<osm_type>-<osm_number>`, e.g. `substation-way-123456`. `_` in `infra_type` is written `-` (`power-line-way-123`); must match `^(substation\|power-line\|road\|hospital\|shelter)-(node\|way\|relation)-\d+$`. *v0.9 addition, pending Dev A review.* |
+| `id` | string | Stable id: `<infra_type>-<osm_type>-<osm_number>`, e.g. `substation-way-123456`. `_` in `infra_type` is written `-` (`power-line-way-123`); must match `^(substation\|power-line\|road\|hospital\|shelter)-(node\|way\|relation)-\d+$`. *Added in v0.9.* |
 | `infra_type` | InfraType | |
 | `name` | string \| null | OSM `name`, null if missing. |
 | `osm_id` | string \| null | `"<node\|way\|relation>/<number>"`, e.g. `"way/123456"`. Null for non-OSM sources. |
 | `attributes` | object | Free-form extras (OSM tags, voltage, beds, capacity…). Keys set by the OSM ingest are listed below. |
 
-OSM ingest attributes and scope *(v0.9 addition, pending Dev A review)*:
+OSM ingest attributes and scope *(added in v0.9)*:
 
 | infra_type | OSM source | `attributes` keys |
 |---|---|---|
 | `substation` | `power=substation` | `voltage`, `operator` (when tagged) |
 | `power_line` | `power=line` (+ `minor_line` if ≤ 10,000 ways) | `voltage`, `operator` (when tagged) |
 | `road` | `highway` motorway…tertiary (+ `_link`), unclassified; `route=ferry` | `highway`, `ref`, `bridge` (when tagged); `ferry`: boolean; `baseline_component`: int \| null; `baseline_reachable_from_main`: boolean (see §4.3) |
-| `hospital` | `amenity=hospital\|clinic`, `healthcare=hospital\|clinic\|centre` | `facility_level`: `"hospital"` \| `"health_centre"` |
-| `shelter` | cyclone/flood shelters, assembly points and stand-in buildings (see below) | `shelter_kind` (see below) |
+| `hospital` | `amenity=hospital\|clinic`, `healthcare=hospital\|clinic\|centre` | `facility_level`: `"hospital"` \| `"health_centre"`; plus the access keys below |
+| `shelter` | cyclone/flood shelters, assembly points and stand-in buildings (see below) | `shelter_kind` (see below); plus the access keys below |
 
-`shelter_kind` values *(v0.9 addition, pending Dev A review)*, highest priority first. An OSM element
+Access keys on hospitals and shelters *(v1.1 change, pending Dev A)*, from the impact engine's
+road network: `snap_distance_m` (float, to the nearest graph node), `snap_too_far` (boolean,
+more than 2 km: such a facility is never marked `isolated`) and `baseline_travel_time_s`
+(number \| null: network travel time from the Diamond Harbour anchor; null when too far or not
+in the anchor's component).
+
+`shelter_kind` values *(added in v0.9)*, highest priority first. An OSM element
 matching several gets the first. The `*_proxy` kinds are **stand-ins**: buildings that could shelter
 people but are not designated shelters.
 
@@ -140,7 +150,7 @@ One feature per (infra, hazard, timestep). Geometry: same as the referenced Infr
 
 Example: surge → substation flooded → power line de-energised → hospital loses power (`isolated`).
 
-**`isolated` vs baseline connectivity** *(v0.9 addition, pending Dev A review)*. `isolated` means
+**`isolated` vs baseline connectivity** *(added in v0.9)*. `isolated` means
 reachable at baseline and unreachable under the hazard. The road graph (OSM, with ferries) is not
 fully connected even without a hazard: some islands have no mapped ferry, and some road
 fragments join the network only through minor roads outside the ingest's road classes. So:
@@ -170,7 +180,7 @@ Geometry: **null** (join to the block via `block_id`).
 
 | Property | Type | Notes |
 |---|---|---|
-| `id` | AdvisoryId | UUID4, lowercase. Must match `^[a-z0-9-]+$` (fixture-safe). *v0.9 addition, pending Dev A review.* |
+| `id` | AdvisoryId | UUID4, lowercase. Must match `^[a-z0-9-]+$` (fixture-safe). *Added in v0.9.* |
 | `block_id` | string | |
 | `timestep` | Timestep | The timestep whose figures it cites. |
 | `language` | Language | |
@@ -207,7 +217,7 @@ One feature per insurance zone per timestep. Geometry: zone `Polygon | MultiPoly
 ## 5. Routes
 
 All under `/api`. `timestep` is always a query param of type `TimestepParam`, required unless
-stated; `timestep=live` returns `501` in v0.9. FC = FeatureCollection.
+stated; `timestep=live` returns `501` in v1.0. FC = FeatureCollection.
 
 | Owner | Method | Path | Params / body | Response |
 |---|---|---|---|---|
@@ -240,7 +250,7 @@ def get_hazard_layer(hazard_type: HazardType, timestep: str) -> HazardLayerColle
 | Aspect | Rule |
 |---|---|
 | `hazard_type` | `"wind" \| "surge" \| "flood"` |
-| `timestep` | A `TimestepParam`. `"live"` raises `NotImplementedError` in v0.9; any other value not in the replay list raises `ValueError`. |
+| `timestep` | A `TimestepParam`. `"live"` raises `NotImplementedError` in v1.0; any other value not in the replay list raises `ValueError`. |
 | Returns | `HazardLayerCollection` = FeatureCollection&lt;HazardLayer&gt; (Pydantic model from `app.schemas`), same content as `GET /api/hazard/layers`. |
 | DEMO_MODE | Served from Dev A's `hazard__layers-<hazard_type>__<ts>` fixture. |
 | Calling | Synchronous. Callers may cache results per (hazard_type, timestep). |
@@ -261,7 +271,7 @@ computed route response is served from a fixture. Load with `app.core.demo.load_
 | Separator | Double underscore `__` between parts. Single `_` never appears. |
 | Allowed chars | `load_fixture` accepts keys matching `^[A-Za-z0-9_-]+$` only: no dots, no slashes. |
 
-**Route fixture resources** *(v0.9 addition, pending Dev A review)*. Every route response
+**Route fixture resources** *(added in v0.9)*. Every route response
 fixture uses one of these resources. `tests/test_demo_fixtures.py` validates each file against
 the schema listed here, and fails on any route resource not in this table.
 
@@ -269,7 +279,7 @@ the schema listed here, and fails on any route resource not in this table.
 |---|---|---|---|
 | `GET /api/hazard/timesteps` | `timesteps` | no | ReplayTimeline |
 | `GET /api/hazard/layers` | `layers-<hazard_type>` | yes | FC&lt;HazardLayer&gt; |
-| `GET /api/exposure/infra` | `infra-<infra_type>`, one per type. Unfiltered: no fixture of its own; composed from the per-type files *(v0.9 addition, pending Dev A review)* | no | FC&lt;InfraFeature&gt; |
+| `GET /api/exposure/infra` | `infra-<infra_type>`, one per type. Unfiltered: no fixture of its own; composed from the per-type files *(added in v0.9)* | no | FC&lt;InfraFeature&gt; |
 | `GET /api/impact/results` | `results`, or `results-<filter>` with `[a-z0-9-]` filter values | yes | FC&lt;ImpactResult&gt; |
 | `GET /api/risk/scores` | `scores` | yes | FC&lt;RiskScore&gt; |
 | `GET /api/advisory/` | `list` | no | FC&lt;Advisory&gt; |
@@ -297,5 +307,7 @@ insurance__triggers__20200520T1200Z.json
 ```
 
 Fixture content is exactly the route response (or the raw upstream body) as JSON, UTF-8, LF.
-Keep each file under ~2 MB, roads up to 5 MB (`exposure__infra-road`) *(v0.9 addition, pending Dev A
-review)*. Anything larger or regenerable goes in `api/data/cache/` (ignored).
+*Exception (v1.1 change, pending Dev A):* `impact__results__<ts>` stores only the non-`ok` rows.
+When loading it, the route adds an `ok` row (empty `pathway`) for every InfraFeature and hazard
+type not present, so the response is exactly the full contract collection.
+Keep each file under ~2 MB, roads up to 5 MB (`exposure__infra-road`) *(added in v0.9)*. Anything larger or regenerable goes in `api/data/cache/` (ignored).

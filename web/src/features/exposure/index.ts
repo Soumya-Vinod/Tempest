@@ -9,6 +9,7 @@ import { useInfra, type InfraByType } from './useInfra'
 
 export { default as InfraPanel } from './InfraPanel'
 export { infraTooltip } from './tooltip'
+export type { InfraByType } from './useInfra'
 
 const ALL_VISIBLE = Object.fromEntries(INFRA_TYPES.map((t) => [t, true])) as Record<
   InfraType,
@@ -16,13 +17,12 @@ const ALL_VISIBLE = Object.fromEntries(INFRA_TYPES.map((t) => [t, true])) as Rec
 >
 
 export interface InfraMap {
-  layers: Layer[]
   state: InfraByType
   visible: Record<InfraType, boolean>
   toggle: (infraType: InfraType) => void
 }
 
-/** Infra data, per-type visibility and the deck.gl layers for MapView's overlay. */
+/** Infra data and per-type visibility. Layers come from useInfraLayers. */
 export function useInfraMap(): InfraMap {
   const state = useInfra()
   const [visible, setVisible] = useState(ALL_VISIBLE)
@@ -30,6 +30,14 @@ export function useInfraMap(): InfraMap {
     (infraType: InfraType) => setVisible((v) => ({ ...v, [infraType]: !v[infraType] })),
     [],
   )
-  const layers = useMemo(() => buildInfraLayers(state, visible), [state, visible])
-  return { layers, state, visible, toggle }
+  return { state, visible, toggle }
+}
+
+/**
+ * The deck.gl layers for MapView's overlay. `muted` (impact results showing) switches exposure to
+ * greys and pale tints so red and orange mean impact only.
+ */
+export function useInfraLayers(infra: InfraMap, muted: boolean): Layer[] {
+  const { state, visible } = infra
+  return useMemo(() => buildInfraLayers(state, visible, muted), [state, visible, muted])
 }
