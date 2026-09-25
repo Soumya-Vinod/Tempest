@@ -1,12 +1,14 @@
 """OSM infrastructure ingest and road graph for the exposure module.
 
 Everything here is network-free: it turns cached Overpass JSON into contract InfraFeatures and
-post-processes an osmnx road graph. Downloading lives in scripts/ingest_osm.py.
+builds the road graph from the cached road response. Downloading lives in scripts/ingest_osm.py.
 """
 
 import json
 import re
+import tempfile
 import unicodedata
+import xml.etree.ElementTree as ET
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -27,7 +29,6 @@ from app.schemas import InfraFeature, InfraType
 
 RAW_DIR = API_DIR / "data" / "raw"
 PROCESSED_DIR = API_DIR / "data" / "processed"
-OSMNX_CACHE_DIR = API_DIR / "data" / "cache" / "osmnx"
 INFRA_PARQUET = PROCESSED_DIR / "infra.parquet"
 ROADS_GRAPHML = PROCESSED_DIR / "roads.graphml"
 
@@ -42,6 +43,17 @@ _GEOD = Geod(ellps="WGS84")
 CLIP_RELATIONS: dict[int, str] = {9513027: "South 24 Parganas", 10371838: "Kolkata"}
 # Khulna Division (Bangladesh), the only foreign unit in the AOI bbox; used to verify the clip.
 BORDER_CHECK_RELATIONS: dict[int, str] = {3825003: "Khulna Division (BD)"}
+# Every admin unit touching the clip districts. Water gaps are filled only where no neighbour is.
+NEIGHBOUR_RELATIONS: dict[int, str] = {
+    9381362: "Howrah",
+    9513028: "North 24 Parganas",
+    3390340: "Purba Medinipur",
+    1970297: "Hooghly",
+    **BORDER_CHECK_RELATIONS,
+}
+# The district polygons leave out wide river channels (e.g. the Muriganga between Sagar Island
+# and the mainland), which would cut ferries and bridges. Channels up to 2 x this are filled.
+WATER_GAP_M = 2000.0
 
 # --- Tag mapping --------------------------------------------------------------------------------
 
@@ -160,8 +172,9 @@ def _query(bbox: tuple[float, float, float, float], statements: Iterable[str], o
 
 
 def infra_query(infra_type: str, bbox, *, include_minor_line: bool = False) -> str:
+    """One `out geom` query per infra type. For shelters this is the cheap tag query only; the
+    name regex runs locally in classify() and, for untagged elements, in shelter_name_queries()."""
     road_re = ROAD_HIGHWAY_RE.pattern
-    names = _alternation(SHELTER_NAME_PATTERNS)
     statements = {
         "substation": ['nwr["power"="substation"];'],
         "power_line": ['way["power"="line"];']
@@ -175,13 +188,35 @@ def infra_query(infra_type: str, bbox, *, include_minor_line: bool = False) -> s
             'nwr["emergency"="assembly_point"];',
             'nwr["amenity"="shelter"];',
             'nwr["amenity"="school"];',
-            *(f'nwr["{k}"~"cyclone|flood",i];' for k in SHELTER_INDICATOR_KEYS),
-            *(f'nwr["{k}"="yes"];' for k in SHELTER_FLAG_KEYS),
-            f'nwr["name"~"{names}",i];',
-            f'nwr["name:en"~"{names}",i];',
+            'nwr["shelter_type"~"cyclone|flood",i];',
+            'nwr["building"~"^(public|civic)$"]["name"];',
         ],
     }[infra_type]
     return _query(bbox, statements, "out geom")
+
+
+def bbox_tiles(bbox: tuple[float, float, float, float]) -> list[tuple[float, float, float, float]]:
+    """2 x 2 tiles, numbered 1..4 row by row from the south-west: SW, SE, NW, NE."""
+    min_lon, min_lat, max_lon, max_lat = bbox
+    mid_lon, mid_lat = (min_lon + max_lon) / 2, (min_lat + max_lat) / 2
+    return [
+        (min_lon, min_lat, mid_lon, mid_lat),
+        (mid_lon, min_lat, max_lon, mid_lat),
+        (min_lon, mid_lat, mid_lon, max_lat),
+        (mid_lon, mid_lat, max_lon, max_lat),
+    ]
+
+
+def shelter_name_queries(bbox) -> list[str]:
+    """Cyclone / flood shelter name search on `name` and `name:en`, one query per tile."""
+    names = _alternation(SHELTER_NAME_PATTERNS)
+    statements = [f'nwr["name"~"{names}",i];', f'nwr["name:en"~"{names}",i];']
+    return [_query(tile, statements, "out geom") for tile in bbox_tiles(bbox)]
+
+
+def merge_responses(responses: Iterable[dict]) -> dict:
+    """Concatenate Overpass `elements`; normalise() dedupes elements seen in several responses."""
+    return {"elements": [e for r in responses for e in r["elements"]]}
 
 
 def power_count_query(bbox) -> str:
@@ -193,7 +228,7 @@ def power_count_query(bbox) -> str:
 
 
 def boundary_query() -> str:
-    ids = ",".join(str(i) for i in [*CLIP_RELATIONS, *BORDER_CHECK_RELATIONS])
+    ids = ",".join(str(i) for i in [*CLIP_RELATIONS, *NEIGHBOUR_RELATIONS])
     return f"[out:json][timeout:180];\nrel(id:{ids});\nout geom;"
 
 
@@ -259,7 +294,23 @@ def clip_polygon(boundary: dict, relation_ids: Iterable[int] = CLIP_RELATIONS) -
     found = [p for p in parts if p is not None]
     if len(found) != len(wanted):
         raise ValueError(f"expected {len(wanted)} boundary relations, assembled {len(found)}")
-    return shapely.make_valid(unary_union(found))
+    valid = shapely.make_valid(unary_union(found))
+    # make_valid may return a GeometryCollection; keep only its polygonal parts.
+    return unary_union([g for g in getattr(valid, "geoms", [valid]) if g.area > 0])
+
+
+def fill_water_gaps(
+    land: BaseGeometry, neighbours: BaseGeometry, gap_m: float = WATER_GAP_M
+) -> BaseGeometry:
+    """Close channels narrower than 2 * gap_m between the land parts, minus every neighbour.
+
+    A morphological closing (buffer out, then in) in metres. Subtracting the neighbouring admin
+    units means the added area can only be water, never another district or Bangladesh.
+    """
+    series = gpd.GeoSeries([land, neighbours], crs="EPSG:4326").to_crs(METRIC_CRS)
+    land_m, neighbours_m = series.iloc[0], series.iloc[1]
+    closed = land_m.buffer(gap_m).buffer(-gap_m).union(land_m).difference(neighbours_m)
+    return shapely.make_valid(gpd.GeoSeries([closed], crs=METRIC_CRS).to_crs("EPSG:4326").iloc[0])
 
 
 def area_km2(geom: BaseGeometry) -> float:
@@ -461,8 +512,7 @@ def read_infra(path: Path = INFRA_PARQUET, infra_type: InfraType | None = None) 
 
 # --- Road graph ---------------------------------------------------------------------------------
 
-ROAD_GRAPH_FILTERS = [f'["highway"~"{ROAD_HIGHWAY_RE.pattern}"]', '["route"="ferry"]']
-GRAPH_WAY_TAGS = ("route", "ferry")  # added to osmnx useful_tags_way
+GRAPH_WAY_TAGS = ("route", "ferry")  # kept as edge attributes, beyond osmnx useful_tags_way
 
 # km/h for edges without a usable maxspeed tag (rarely tagged here).
 HWY_SPEEDS_KPH: dict[str, float] = {
@@ -476,6 +526,107 @@ HWY_SPEEDS_KPH: dict[str, float] = {
 FALLBACK_SPEED_KPH = 20.0
 FERRY_SPEED_KPH = 12.0
 FERRY_BOARDING_S = 15 * 60  # added once per ferry edge
+MAX_FERRY_KM = 50.0  # longer route=ferry ways are ships (e.g. Kolkata - Port Blair), not ferries
+# A ferry end with no road edge is joined to the nearest road node within this distance.
+CONNECTOR_MAX_M = 500.0
+CONNECTOR_SPEED_KPH = 5.0  # walking the ghat / jetty
+
+
+def drop_long_ferries(road_data: dict, max_km: float = MAX_FERRY_KM) -> dict:
+    """Road response without route=ferry ways longer than max_km (long-distance ships)."""
+
+    def keep(e: dict) -> bool:
+        if e.get("tags", {}).get("route") != "ferry":
+            return True
+        coords = _coords(e.get("geometry"))
+        return len(coords) < 2 or _GEOD.geometry_length(LineString(coords)) / 1000 <= max_km
+
+    return {**road_data, "elements": [e for e in road_data["elements"] if keep(e)]}
+
+
+def write_osm_xml(data: dict, path: Path) -> None:
+    """Overpass `out geom` ways -> minimal OSM XML for ox.graph_from_xml.
+
+    Topology comes from the ways' `nodes` id lists (shared ids join ways); coordinates come from
+    the aligned `geometry` list. A way without an aligned id list is an error, not skipped.
+    """
+    root = ET.Element("osm", version="0.6", generator="tempest-ingest")
+    ways = [e for e in data["elements"] if e["type"] == "way"]
+    coords: dict[int, tuple[float, float]] = {}
+    for w in ways:
+        nodes, geometry = w.get("nodes") or [], w.get("geometry") or []
+        if len(nodes) < 2 or len(nodes) != len(geometry):
+            raise ValueError(f"way {w['id']}: node ids missing or not aligned with geometry")
+        for n, p in zip(nodes, geometry, strict=True):
+            coords.setdefault(n, (p["lat"], p["lon"]))
+    for n, (lat, lon) in coords.items():
+        ET.SubElement(root, "node", id=str(n), lat=f"{lat:.7f}", lon=f"{lon:.7f}")
+    for w in ways:
+        way = ET.SubElement(root, "way", id=str(w["id"]))
+        for n in w["nodes"]:
+            ET.SubElement(way, "nd", ref=str(n))
+        for k, v in w.get("tags", {}).items():
+            ET.SubElement(way, "tag", k=k, v=v)
+    ET.ElementTree(root).write(path, encoding="utf-8", xml_declaration=True)
+
+
+def build_road_graph(road_data: dict, polygon: BaseGeometry) -> nx.MultiDiGraph:
+    """Road graph from the cached Overpass road response (road classes + ferries).
+
+    Every connected component is kept (retain_all), edges crossing the polygon boundary are
+    kept whole (truncate_by_edge), and simplification never merges across OSM ways, so each
+    edge carries exactly one way id.
+    """
+    default_tags = ox.settings.useful_tags_way
+    ox.settings.useful_tags_way = list(dict.fromkeys([*default_tags, *GRAPH_WAY_TAGS]))
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            xml = Path(tmp) / "roads.osm"
+            write_osm_xml(road_data, xml)
+            G = ox.graph_from_xml(xml, simplify=False, retain_all=True)
+    finally:
+        ox.settings.useful_tags_way = default_tags
+    G = ox.truncate.truncate_graph_polygon(G, polygon, truncate_by_edge=True)
+    for _, _, d in G.edges(data=True):
+        d["ferry"] = d.get("route") == "ferry"
+        d["connector"] = False
+    # Before simplifying, so ferry ends can snap to any road vertex, not only intersections.
+    connect_ferry_ends(G)
+    # A connector shares its ferry's osmid; "connector" keeps the two from being merged.
+    G = ox.simplify_graph(G, edge_attrs_differ=["osmid", "connector"])
+    return finish_road_graph(G)
+
+
+def _road_nodes(G: nx.MultiDiGraph) -> list[Any]:
+    return sorted({n for u, v, d in G.edges(data=True) if not d.get("ferry") for n in (u, v)})
+
+
+def connect_ferry_ends(G: nx.MultiDiGraph, max_m: float = CONNECTOR_MAX_M) -> int:
+    """Join each ferry end that touches no road to the nearest road node within max_m.
+
+    The ghat approach is often a path or service road outside the road classes, so the ferry
+    stops short. Connector edges (both directions) carry the ferry's OSM way id, so they map back
+    to the ferry's road feature, and are marked connector=True. Returns the number joined.
+    """
+    road = _road_nodes(G)
+    if not road:
+        return 0
+    xs = np.array([G.nodes[n]["x"] for n in road])
+    ys = np.array([G.nodes[n]["y"] for n in road])
+    joined = 0
+    for end in ferry_endpoints_off_network(G):
+        x, y = G.nodes[end]["x"], G.nodes[end]["y"]
+        _, _, dist = _GEOD.inv(np.full_like(xs, x), np.full_like(ys, y), xs, ys)
+        i = int(np.argmin(np.abs(dist)))
+        if abs(dist[i]) > max_m:
+            continue
+        osmid = next(
+            d["osmid"] for *_, d in [*G.edges(end, data=True), *G.in_edges(end, data=True)]
+        )
+        for u, v in ((end, road[i]), (road[i], end)):
+            G.add_edge(u, v, osmid=osmid, length=float(abs(dist[i])), ferry=False, connector=True)
+        joined += 1
+    return joined
 
 
 def _edge_osmid(value: Any) -> int:
@@ -485,14 +636,17 @@ def _edge_osmid(value: Any) -> int:
 
 
 def finish_road_graph(G: nx.MultiDiGraph) -> nx.MultiDiGraph:
-    """Mark ferries, check one way id per edge, add speed_kph and travel_time (s)."""
+    """Mark ferries and connectors, check one way id per edge, add speed_kph and travel_time."""
     for _, _, d in G.edges(data=True):
         d["osmid"] = _edge_osmid(d["osmid"])
         d["ferry"] = d.get("route") == "ferry"
+        d.setdefault("connector", False)
     ox.add_edge_speeds(G, hwy_speeds=HWY_SPEEDS_KPH, fallback=FALLBACK_SPEED_KPH)
     for _, _, d in G.edges(data=True):
         if d["ferry"]:
             d["speed_kph"] = FERRY_SPEED_KPH
+        elif d["connector"]:
+            d["speed_kph"] = CONNECTOR_SPEED_KPH
     ox.add_edge_travel_times(G)
     for _, _, d in G.edges(data=True):
         if d["ferry"]:
@@ -510,8 +664,67 @@ def save_road_graph(G: nx.MultiDiGraph, path: Path = ROADS_GRAPHML) -> None:
 
 
 def load_road_graph(path: Path = ROADS_GRAPHML) -> nx.MultiDiGraph:
-    """Load roads.graphml with `ferry` (and `connector`, if present) restored to bool."""
-    return ox.load_graphml(path, edge_dtypes={"ferry": _bool, "connector": _bool})
+    """Load roads.graphml with bool / int attributes restored (GraphML stores strings)."""
+    return ox.load_graphml(
+        path,
+        node_dtypes={"baseline_component": int, "baseline_reachable_from_main": _bool},
+        edge_dtypes={"ferry": _bool, "connector": _bool},
+    )
+
+
+# --- Baseline connectivity ----------------------------------------------------------------------
+# Impact status "isolated" means reachable at baseline and unreachable under hazard, so features
+# already cut off from the main component at baseline carry a flag instead (contracts.md §4.3).
+
+
+def annotate_components(G: nx.MultiDiGraph) -> list[int]:
+    """Set baseline_component (0 = largest) and baseline_reachable_from_main on every node.
+
+    Components are weakly connected, ordered by size, then by lowest node id so the numbering
+    is stable across runs. Returns the component sizes in that order.
+    """
+    comps = sorted(nx.connected_components(undirected(G)), key=lambda c: (-len(c), min(c)))
+    for i, comp in enumerate(comps):
+        for n in comp:
+            G.nodes[n]["baseline_component"] = i
+            G.nodes[n]["baseline_reachable_from_main"] = i == 0
+    return [len(c) for c in comps]
+
+
+def way_components(G: nx.MultiDiGraph) -> dict[int, int]:
+    """OSM way id -> baseline_component of its edges; a way split across components (e.g. by
+    the polygon boundary) takes the lowest index, i.e. its best-connected part."""
+    out: dict[int, int] = {}
+    for u, _, d in G.edges(data=True):
+        comp = G.nodes[u]["baseline_component"]
+        out[d["osmid"]] = min(comp, out.get(d["osmid"], comp))
+    return out
+
+
+def annotate_roads(records: list[InfraRecord], components: dict[int, int]) -> int:
+    """Copy baseline connectivity onto road features via their way id. A road with no edge in
+    the graph gets baseline_component None and is not reachable. Returns how many had none."""
+    missing = 0
+    for r in records:
+        if r.infra_type != "road":
+            continue
+        comp = components.get(int(r.osm_id.split("/")[1]))
+        missing += comp is None
+        r.attributes["baseline_component"] = comp
+        r.attributes["baseline_reachable_from_main"] = comp == 0
+    return missing
+
+
+def road_index(infra: gpd.GeoDataFrame) -> dict[int, str]:
+    """OSM way id -> road feature id, from infra.parquet (read_infra)."""
+    roads = infra[infra["infra_type"] == "road"]
+    return {int(o.split("/")[1]): fid for o, fid in zip(roads["osm_id"], roads["id"], strict=True)}
+
+
+def road_feature_for_way(index: dict[int, str], way_id: int) -> str | None:
+    """Road feature id for a graph edge's way id, or None if the way has no road feature (an
+    edge kept across the clip boundary whose clipped feature came out empty)."""
+    return index.get(int(way_id))
 
 
 # --- Graph analysis -----------------------------------------------------------------------------
@@ -572,12 +785,24 @@ def island_links(
     return out
 
 
+def ferry_way_ends(G: nx.MultiDiGraph) -> set[Any]:
+    """First and last node of every ferry way (not its interior vertices), in any graph state.
+
+    Within one OSM way, an end has a single neighbour; an interior vertex has two.
+    """
+    neighbours: dict[tuple[int, Any], set[Any]] = {}
+    for u, v, d in G.edges(data=True):
+        if d.get("ferry"):
+            neighbours.setdefault((d["osmid"], u), set()).add(v)
+            neighbours.setdefault((d["osmid"], v), set()).add(u)
+    return {n for (_, n), nbrs in neighbours.items() if len(nbrs) == 1}
+
+
 def ferry_endpoints_off_network(G: nx.MultiDiGraph) -> list[Any]:
-    """Ferry edge endpoints with no road (non-ferry) edge: the ferry doesn't touch a road."""
-    ends = {n for u, v, d in G.edges(data=True) if d.get("ferry") for n in (u, v)}
-    return [
+    """Ferry way ends with no road (non-ferry) edge: the ferry doesn't touch a road."""
+    return sorted(
         n
-        for n in ends
+        for n in ferry_way_ends(G)
         if all(d.get("ferry") for *_, d in G.edges(n, data=True))
         and all(d.get("ferry") for *_, d in G.in_edges(n, data=True))
-    ]
+    )

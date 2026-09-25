@@ -21,6 +21,10 @@
     {"type": "node", "id": 8, "lat": 22.2, "lon": 88.4,
      "tags": {"shelter_type": "cyclone_shelter", "emergency": "assembly_point"}},
     {"type": "node", "id": 9, "lat": 22.2, "lon": 88.5,
-     "tags": {"amenity": "restaurant", "name": "Cafe"}}
+     "tags": {"amenity": "restaurant", "name": "Cafe"}},
+    {"type": "node", "id": 10, "lat": 22.3, "lon": 88.1,
+     "tags": {"building": "civic", "name": "Mathurapur Panchayat Office"}},
+    {"type": "node", "id": 11, "lat": 22.3, "lon": 88.2,
+     "tags": {"building": "public", "name": "Mathurapur Flood Centre"}}
   ]
 }

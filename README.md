@@ -68,9 +68,12 @@ api\.venv\Scripts\python api\scripts\ingest_osm.py            # reuses cached do
 api\.venv\Scripts\python api\scripts\ingest_osm.py --refresh  # re-downloads from Overpass
 ```
 
-This writes `infra.parquet` (InfraFeatures, clipped to South 24 Parganas + Kolkata) and
-`roads.graphml` (road graph with ferries and travel times). Raw Overpass responses are cached in
-`api\data\raw\` and the osmnx cache in `api\data\cache\osmnx\`, both git-ignored.
+This writes `infra.parquet` (InfraFeatures, clipped to South 24 Parganas + Kolkata, with river
+channels up to 4 km wide filled in) and `roads.graphml` (road graph with ferries and travel
+times). Raw Overpass responses are cached in `api\data\raw\` (git-ignored). The road graph is
+built from the cached road response with osmnx, so it needs no download of its own. After
+changing a query in `api\app\exposure\ingest.py`, delete its `overpass-*.json` file or pass
+`--refresh`, since the cache is keyed by file name only.
 
 ### 3. Frontend (`web/`)
 

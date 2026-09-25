@@ -1,0 +1,25 @@
+{
+  "elements": [
+    {"type": "way", "id": 1, "tags": {"highway": "primary", "name": "Mainland Road"},
+     "nodes": [1, 2, 3],
+     "geometry": [{"lat": 22.5, "lon": 88.1}, {"lat": 22.5, "lon": 88.2}, {"lat": 22.5, "lon": 88.3}]},
+    {"type": "way", "id": 2, "tags": {"highway": "tertiary"},
+     "nodes": [3, 4],
+     "geometry": [{"lat": 22.5, "lon": 88.3}, {"lat": 22.5, "lon": 88.7}]},
+    {"type": "way", "id": 3, "tags": {"highway": "unclassified"},
+     "nodes": [10, 11],
+     "geometry": [{"lat": 22.2, "lon": 88.3}, {"lat": 22.2, "lon": 88.4}]},
+    {"type": "way", "id": 4, "tags": {"route": "ferry"},
+     "nodes": [12, 13],
+     "geometry": [{"lat": 22.4990, "lon": 88.2}, {"lat": 22.2010, "lon": 88.3}]},
+    {"type": "way", "id": 5, "tags": {"highway": "unclassified"},
+     "nodes": [20, 21],
+     "geometry": [{"lat": 22.1, "lon": 88.5}, {"lat": 22.1, "lon": 88.55}]},
+    {"type": "way", "id": 6, "tags": {"highway": "tertiary"},
+     "nodes": [30, 31],
+     "geometry": [{"lat": 22.3, "lon": 88.8}, {"lat": 22.3, "lon": 88.9}]},
+    {"type": "way", "id": 7, "tags": {"route": "ferry", "name": "Long-distance ship"},
+     "nodes": [40, 41],
+     "geometry": [{"lat": 22.5, "lon": 88.3}, {"lat": 11.7, "lon": 92.7}]}
+  ]
+}

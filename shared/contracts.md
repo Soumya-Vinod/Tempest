@@ -97,12 +97,13 @@ OSM ingest attributes and scope *(v0.9 addition, pending Dev A review)*:
 |---|---|---|
 | `substation` | `power=substation` | `voltage`, `operator` (when tagged) |
 | `power_line` | `power=line` (+ `minor_line` if ≤ 10,000 ways) | `voltage`, `operator` (when tagged) |
-| `road` | `highway` motorway…tertiary (+ `_link`), unclassified; `route=ferry` | `highway`, `ref`, `bridge` (when tagged); `ferry`: boolean |
+| `road` | `highway` motorway…tertiary (+ `_link`), unclassified; `route=ferry` | `highway`, `ref`, `bridge` (when tagged); `ferry`: boolean; `baseline_component`: int \| null; `baseline_reachable_from_main`: boolean (see §4.3) |
 | `hospital` | `amenity=hospital\|clinic`, `healthcare=hospital\|clinic\|centre` | `facility_level`: `"hospital"` \| `"health_centre"` |
 | `shelter` | cyclone/flood shelters, `emergency=assembly_point`, `amenity=school` | `shelter_kind`: `"cyclone_shelter"` \| `"assembly_point"` \| `"school_proxy"` |
 
 `infra_type = "hospital"` therefore covers all health facilities; filter on `facility_level`.
-Features are clipped to the South 24 Parganas + Kolkata district boundaries (inside the AOI bbox).
+Features are clipped to the South 24 Parganas + Kolkata district boundaries, with river channels up
+to 4 km wide between them filled in (never across a neighbouring district or Bangladesh).
 `name` stays null when OSM has neither `name` nor `name:en`; clients display "Unnamed …".
 
 ### 4.3 ImpactResult (Dev B)
@@ -123,6 +124,17 @@ One feature per (infra, hazard, timestep). Geometry: same as the referenced Infr
 - `service` step: `id = "service:<slug>"`, e.g. `service:hospital-power`
 
 Example: surge → substation flooded → power line de-energised → hospital loses power (`isolated`).
+
+**`isolated` vs baseline connectivity** *(v0.9 addition, pending Dev A review)*. `isolated` means
+reachable at baseline and unreachable under the hazard. The road graph (OSM, with ferries) is not
+fully connected even without a hazard: some islands have no mapped ferry, and some road
+fragments join the network only through minor roads outside the ingest's road classes. So:
+
+- Every road graph node and every `road` InfraFeature carries `baseline_component` (int; `0` is the
+  largest, i.e. main, component; `null` for a road feature with no edge in the graph) and
+  `baseline_reachable_from_main` (boolean, `baseline_component == 0`).
+- A feature not reachable from the main component at baseline is **never** marked `isolated`; the
+  impact engine leaves it to the baseline flag instead, so hazard isolation is not overstated.
 
 ### 4.4 RiskScore (Dev B)
 One feature per block per timestep. A block is a Census 2011 CD block or, if block boundaries
