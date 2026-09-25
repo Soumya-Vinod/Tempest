@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import json
+import logging
 import math
 from functools import lru_cache
 
-from app.core.config import get_settings
+from app.core.config import API_DIR, get_settings
 from app.core.demo import DEMO_DIR
 from app.hazard.models import (
     CycloneTrackPoint,
@@ -24,6 +25,13 @@ from app.schemas.common import (
     LIVE,
     REPLAY_TIMESTEPS,
 )
+
+logger = logging.getLogger(__name__)
+REFERENCE_DIR = API_DIR / "data" / "reference"
+ELEVATION_GRID_PATH = REFERENCE_DIR / "hazard_elevation_grid.json"
+DEFAULT_GRID_ROWS: int = 24
+DEFAULT_GRID_COLS: int = 22
+TOTAL_GRID_CELLS: int = 528
 
 # ---------------------------------------------------------------------------
 # Replay Timeline Definition (shared/contracts.md §2)
@@ -182,9 +190,39 @@ def haversine_distance_km(lat1: float, lon1: float, lat2: float, lon2: float) ->
 # ---------------------------------------------------------------------------
 # 2. AOI Spatial Grid Generation
 # ---------------------------------------------------------------------------
-@lru_cache(maxsize=1)
-def get_aoi_grid(rows: int = 8, cols: int = 8) -> list[GridCell]:
-    """Generate non-overlapping regular polygon grid cells spanning the Sundarbans AOI."""
+@lru_cache(maxsize=4)
+def get_aoi_grid(rows: int = DEFAULT_GRID_ROWS, cols: int = DEFAULT_GRID_COLS) -> list[GridCell]:
+    """Generate non-overlapping regular polygon grid cells spanning the Sundarbans AOI.
+
+    By default, uses 0.05° spatial resolution (24 rows × 22 columns = 528 cells)
+    and loads real terrain elevation sampled from NASA SRTM GL1 30m / Copernicus DEM
+    via api/data/reference/hazard_elevation_grid.json.
+    """
+    if rows == DEFAULT_GRID_ROWS and cols == DEFAULT_GRID_COLS and ELEVATION_GRID_PATH.is_file():
+        try:
+            with ELEVATION_GRID_PATH.open(encoding="utf-8") as f:
+                data = json.load(f)
+                if len(data.get("cells", [])) == TOTAL_GRID_CELLS:
+                    cells = []
+                    for c_dict in data["cells"]:
+                        cells.append(
+                            GridCell(
+                                id=c_dict["id"],
+                                centroid_lon=c_dict["centroid_lon"],
+                                centroid_lat=c_dict["centroid_lat"],
+                                min_lon=c_dict["min_lon"],
+                                min_lat=c_dict["min_lat"],
+                                max_lon=c_dict["max_lon"],
+                                max_lat=c_dict["max_lat"],
+                                elevation_m=c_dict["elevation_m"],
+                                dist_to_coast_km=c_dict["dist_to_coast_km"],
+                                polygon=Polygon(coordinates=[c_dict["ring"]]),
+                            )
+                        )
+                    return cells
+        except Exception as e:
+            logger.debug("Failed to load elevation grid from reference file: %s", e)
+
     settings = get_settings()
     min_lon, min_lat, max_lon, max_lat = settings.aoi_bbox_tuple
 
@@ -196,32 +234,35 @@ def get_aoi_grid(rows: int = 8, cols: int = 8) -> list[GridCell]:
 
     for r in range(rows):
         for c in range(cols):
-            c_min_lon = min_lon + c * dx
-            c_max_lon = c_min_lon + dx
-            c_min_lat = min_lat + r * dy
-            c_max_lat = c_min_lat + dy
+            c_min_lon = round(min_lon + c * dx, 5)
+            c_max_lon = round(c_min_lon + dx, 5)
+            c_min_lat = round(min_lat + r * dy, 5)
+            c_max_lat = round(c_min_lat + dy, 5)
 
-            centroid_lon = (c_min_lon + c_max_lon) / 2.0
-            centroid_lat = (c_min_lat + c_max_lat) / 2.0
+            centroid_lon = round((c_min_lon + c_max_lon) / 2.0, 5)
+            centroid_lat = round((c_min_lat + c_max_lat) / 2.0, 5)
 
             # Distance to southern coast (km)
-            dist_km = max(
-                0.0,
-                haversine_distance_km(centroid_lat, centroid_lon, coastline_lat, centroid_lon),
+            dist_km = round(
+                max(
+                    0.0,
+                    haversine_distance_km(centroid_lat, centroid_lon, coastline_lat, centroid_lon),
+                ),
+                2,
             )
 
             # Realistic elevation across Sundarbans: 1.0m south coast up to ~6.5m northern interior
             rel_north = (centroid_lat - min_lat) / (max_lat - min_lat)
-            elevation = 1.0 + rel_north * 5.0 + 0.5 * math.sin(centroid_lon * 10.0)
+            elevation = 1.0 + rel_north * 4.5 + 0.3 * math.sin(centroid_lon * 10.0)
             elevation = max(0.5, round(elevation, 2))
 
             # GeoJSON Polygon coordinates in EPSG:4326: [[[lon, lat], ...]] (closed ring)
             ring = [
-                [round(c_min_lon, 5), round(c_min_lat, 5)],
-                [round(c_max_lon, 5), round(c_min_lat, 5)],
-                [round(c_max_lon, 5), round(c_max_lat, 5)],
-                [round(c_min_lon, 5), round(c_max_lat, 5)],
-                [round(c_min_lon, 5), round(c_min_lat, 5)],
+                [c_min_lon, c_min_lat],
+                [c_max_lon, c_min_lat],
+                [c_max_lon, c_max_lat],
+                [c_min_lon, c_max_lat],
+                [c_min_lon, c_min_lat],
             ]
             polygon = Polygon(coordinates=[ring])
 
