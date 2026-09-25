@@ -34,6 +34,9 @@ api/data/raw/*
 !api/data/raw/.gitkeep
 api/data/cache/*
 !api/data/cache/.gitkeep
+# Regenerate with api\.venv\Scripts\python api\scripts\ingest_osm.py (see README)
+api/data/processed/*
+!api/data/processed/.gitkeep
 
 # --- Claude Code (local only) ---
 CLAUDE.md

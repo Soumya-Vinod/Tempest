@@ -1,0 +1,17 @@
+{
+  "elements": [
+    {"type": "way", "id": 200, "tags": {"power": "line", "voltage": "132000", "operator": "WBSETCL", "cables": "3"},
+     "geometry": [{"lat": 22.2, "lon": 88.2}, {"lat": 22.3, "lon": 88.3}]},
+    {"type": "way", "id": 201, "tags": {"power": "minor_line", "voltage": "11000"},
+     "geometry": [{"lat": 22.2, "lon": 88.3}, {"lat": 22.3, "lon": 88.4}]},
+    {"type": "node", "id": 202, "lat": 22.4, "lon": 88.4,
+     "tags": {"power": "substation", "voltage": "33000", "name": "Canning Substation"}},
+    {"type": "way", "id": 203, "tags": {"power": "substation"},
+     "geometry": [
+       {"lat": 22.40, "lon": 88.50}, {"lat": 22.40, "lon": 88.52}, {"lat": 22.42, "lon": 88.52},
+       {"lat": 22.42, "lon": 88.50}, {"lat": 22.40, "lon": 88.50}
+     ]},
+    {"type": "count", "id": 0, "tags": {"nodes": "0", "ways": "4210", "relations": "0", "total": "4210"}},
+    {"type": "count", "id": 0, "tags": {"nodes": "0", "ways": "1234", "relations": "0", "total": "1234"}}
+  ]
+}

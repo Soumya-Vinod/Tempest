@@ -1,0 +1,26 @@
+{
+  "elements": [
+    {"type": "node", "id": 1, "lat": 22.1, "lon": 88.1,
+     "tags": {"amenity": "shelter", "shelter_type": "public_transport", "name": "Bus stop"}},
+    {"type": "node", "id": 2, "lat": 22.1, "lon": 88.2,
+     "tags": {"amenity": "shelter"}},
+    {"type": "node", "id": 3, "lat": 22.1, "lon": 88.3,
+     "tags": {"amenity": "shelter", "name": "Kultali Cyclone Shelter"}},
+    {"type": "node", "id": 4, "lat": 22.2, "lon": 88.1,
+     "tags": {"emergency": "assembly_point"}},
+    {"type": "way", "id": 5,
+     "tags": {"amenity": "school", "name": "Patharpratima Flood Shelter cum School"},
+     "geometry": [
+       {"lat": 22.30, "lon": 88.30}, {"lat": 22.30, "lon": 88.31}, {"lat": 22.31, "lon": 88.31},
+       {"lat": 22.31, "lon": 88.30}, {"lat": 22.30, "lon": 88.30}
+     ]},
+    {"type": "node", "id": 6, "lat": 22.2, "lon": 88.2,
+     "tags": {"amenity": "school", "name": "Gosaba High School"}},
+    {"type": "node", "id": 7, "lat": 22.2, "lon": 88.3,
+     "tags": {"building": "yes", "name": "ঘূর্ণিঝড় আশ্রয়কেন্দ্র"}},
+    {"type": "node", "id": 8, "lat": 22.2, "lon": 88.4,
+     "tags": {"shelter_type": "cyclone_shelter", "emergency": "assembly_point"}},
+    {"type": "node", "id": 9, "lat": 22.2, "lon": 88.5,
+     "tags": {"amenity": "restaurant", "name": "Cafe"}}
+  ]
+}

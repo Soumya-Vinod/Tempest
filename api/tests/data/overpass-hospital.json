@@ -1,0 +1,62 @@
+{
+  "elements": [
+    {
+      "type": "way", "id": 10,
+      "tags": {"amenity": "hospital", "name": "Diamond Harbour District Hospital"},
+      "geometry": [
+        {"lat": 22.20, "lon": 88.20}, {"lat": 22.20, "lon": 88.21}, {"lat": 22.21, "lon": 88.21},
+        {"lat": 22.21, "lon": 88.20}, {"lat": 22.20, "lon": 88.20}
+      ]
+    },
+    {
+      "type": "node", "id": 2, "lat": 22.205, "lon": 88.205,
+      "tags": {"healthcare": "hospital", "name": "DH Hospital Emergency"}
+    },
+    {
+      "type": "node", "id": 3, "lat": 22.30, "lon": 88.40,
+      "tags": {"amenity": "clinic", "healthcare": "clinic", "name": "Basanti BPHC"}
+    },
+    {
+      "type": "node", "id": 4, "lat": 22.40, "lon": 88.30,
+      "tags": {"amenity": "clinic", "name": "Canning Health Centre"}
+    },
+    {
+      "type": "node", "id": 5, "lat": 22.4005, "lon": 88.3003,
+      "tags": {"amenity": "hospital", "name": "Canning  health-centre"}
+    },
+    {
+      "type": "node", "id": 6, "lat": 22.4014, "lon": 88.30,
+      "tags": {"amenity": "clinic", "name": "Canning Health Centre"}
+    },
+    {
+      "type": "node", "id": 7, "lat": 22.45, "lon": 88.45,
+      "tags": {"healthcare": "centre"}
+    },
+    {
+      "type": "node", "id": 8, "lat": 22.46, "lon": 88.46,
+      "tags": {"amenity": "pharmacy", "name": "Not A Facility"}
+    },
+    {
+      "type": "node", "id": 9, "lat": 22.47, "lon": 88.47,
+      "tags": {"amenity": "clinic", "name:en": "Kakdwip Sub-Divisional Hospital"}
+    },
+    {
+      "type": "relation", "id": 20,
+      "tags": {"type": "multipolygon", "amenity": "hospital", "name": "Campus Hospital"},
+      "members": [
+        {
+          "type": "way", "ref": 21, "role": "outer",
+          "geometry": [{"lat": 22.10, "lon": 88.10}, {"lat": 22.10, "lon": 88.12}, {"lat": 22.12, "lon": 88.12}]
+        },
+        {
+          "type": "way", "ref": 22, "role": "outer",
+          "geometry": [{"lat": 22.12, "lon": 88.12}, {"lat": 22.12, "lon": 88.10}, {"lat": 22.10, "lon": 88.10}]
+        }
+      ]
+    },
+    {
+      "type": "node", "id": 30, "lat": 22.30, "lon": 88.80,
+      "tags": {"amenity": "hospital", "name": "Across The Border Hospital"}
+    }
+  ]
+}

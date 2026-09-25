@@ -85,11 +85,25 @@ Polygons from OSM are reduced to their centroid.
 
 | Property | Type | Notes |
 |---|---|---|
-| `id` | string | Stable id: `<infra_type>-<osm_type>-<osm_number>`, e.g. `substation-way-123456`. |
+| `id` | string | Stable id: `<infra_type>-<osm_type>-<osm_number>`, e.g. `substation-way-123456`. `_` in `infra_type` is written `-` (`power-line-way-123`); must match `^(substation\|power-line\|road\|hospital\|shelter)-(node\|way\|relation)-\d+$`. *v0.9 addition, pending Dev A review.* |
 | `infra_type` | InfraType | |
 | `name` | string \| null | OSM `name`, null if missing. |
 | `osm_id` | string \| null | `"<node\|way\|relation>/<number>"`, e.g. `"way/123456"`. Null for non-OSM sources. |
-| `attributes` | object | Free-form extras (OSM tags, voltage, beds, capacity…). |
+| `attributes` | object | Free-form extras (OSM tags, voltage, beds, capacity…). Keys set by the OSM ingest are listed below. |
+
+OSM ingest attributes and scope *(v0.9 addition, pending Dev A review)*:
+
+| infra_type | OSM source | `attributes` keys |
+|---|---|---|
+| `substation` | `power=substation` | `voltage`, `operator` (when tagged) |
+| `power_line` | `power=line` (+ `minor_line` if ≤ 10,000 ways) | `voltage`, `operator` (when tagged) |
+| `road` | `highway` motorway…tertiary (+ `_link`), unclassified; `route=ferry` | `highway`, `ref`, `bridge` (when tagged); `ferry`: boolean |
+| `hospital` | `amenity=hospital\|clinic`, `healthcare=hospital\|clinic\|centre` | `facility_level`: `"hospital"` \| `"health_centre"` |
+| `shelter` | cyclone/flood shelters, `emergency=assembly_point`, `amenity=school` | `shelter_kind`: `"cyclone_shelter"` \| `"assembly_point"` \| `"school_proxy"` |
+
+`infra_type = "hospital"` therefore covers all health facilities; filter on `facility_level`.
+Features are clipped to the South 24 Parganas + Kolkata district boundaries (inside the AOI bbox).
+`name` stays null when OSM has neither `name` nor `name:en`; clients display "Unnamed …".
 
 ### 4.3 ImpactResult (Dev B)
 One feature per (infra, hazard, timestep). Geometry: same as the referenced InfraFeature.

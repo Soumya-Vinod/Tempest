@@ -60,6 +60,18 @@ cd api
 cd ..
 ```
 
+OSM infrastructure and road graph (exposure module). Outputs in `api\data\processed\` are
+git-ignored; regenerate them with:
+
+```powershell
+api\.venv\Scripts\python api\scripts\ingest_osm.py            # reuses cached downloads
+api\.venv\Scripts\python api\scripts\ingest_osm.py --refresh  # re-downloads from Overpass
+```
+
+This writes `infra.parquet` (InfraFeatures, clipped to South 24 Parganas + Kolkata) and
+`roads.graphml` (road graph with ferries and travel times). Raw Overpass responses are cached in
+`api\data\raw\` and the osmnx cache in `api\data\cache\osmnx\`, both git-ignored.
+
 ### 3. Frontend (`web/`)
 
 React + Vite + TypeScript, Tailwind v4, MapLibre with the keyless OpenFreeMap Positron basemap, and

@@ -80,7 +80,7 @@ export type HazardLayerCollection = FeatureCollection<HazardLayer>;
 // ---------- §4.2 InfraFeature (Dev B) ----------
 
 export interface InfraFeatureProperties {
-  id: string;
+  id: string; // ^(substation|power-line|road|hospital|shelter)-(node|way|relation)-\d+$
   infra_type: InfraType;
   name: string | null;
   osm_id: string | null; // "node/123" | "way/123" | "relation/123"
