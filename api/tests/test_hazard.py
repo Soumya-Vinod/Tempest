@@ -29,11 +29,14 @@ from app.hazard.replay import (
     TIMESTEP_INTERVAL_HOURS,
     TOTAL_TIMESTEPS,
     compute_flood_susceptibility_metric,
+    compute_holland_b,
     compute_surge_metric,
     compute_wind_metric,
     create_replay_timeline,
+    generate_wind_layer,
     get_aoi_grid,
     iso_to_compact_ts,
+    normalize_wind_severity,
     validate_timestep,
 )
 from app.hazard.replay import (
@@ -615,3 +618,235 @@ def test_service_get_replay_track_integration(monkeypatch):
     assert isinstance(demo_service_track, tuple)
     assert len(demo_service_track) == 25
     assert demo_service_track == canonical_track
+
+
+# ===========================================================================
+# 6. Phase 4 — Holland Wind Model & Wind Hazard Layer Tests
+# ===========================================================================
+
+
+def test_holland_shape_parameter_calculation():
+    """Verify Holland shape parameter B formulation, physics, and bounds [1.0, 2.5]."""
+    # 1. Normal storm conditions
+    # Pc = 957.0 hPa, Vmax = 43.73 m/s, Penv = 1010.0 hPa
+    b_landfall = compute_holland_b(957.0, 43.73)
+    assert 1.0 <= b_landfall <= 2.5
+    assert round(b_landfall, 2) == 1.13
+
+    # 2. Peak super cyclonic intensity
+    # Pc = 920.0 hPa, Vmax = 66.88 m/s
+    b_peak = compute_holland_b(920.0, 66.88)
+    assert 1.0 <= b_peak <= 2.5
+    assert round(b_peak, 2) == 1.55
+
+    # 3. Minimum bound enforcement: Delta P huge, Vmax small
+    b_min = compute_holland_b(central_pressure_hpa=850.0, max_wind_mps=10.0)
+    assert b_min == 1.0
+
+    # 4. Maximum bound enforcement: Delta P small, Vmax extreme
+    b_max = compute_holland_b(central_pressure_hpa=1009.0, max_wind_mps=80.0)
+    assert b_max == 2.5
+
+
+def test_holland_wind_metric_physics_and_determinism():
+    """Verify Holland parametric wind metric produces physical and deterministic results."""
+    cell = get_aoi_grid()[0]
+    track_pt = AMPHAN_TRACK[TS_LANDFALL]
+
+    # Determinism: 50 successive executions must return bitwise identical values
+    baseline = compute_wind_metric(cell, track_pt)
+    for _ in range(50):
+        res = compute_wind_metric(cell, track_pt)
+        assert res.value == baseline.value
+        assert res.severity == baseline.severity
+        assert res.unit == "m/s"
+
+    # Physics: non-negative and physically reasonable
+    assert baseline.value > 0.0
+    assert baseline.value <= 65.0
+    assert 0.0 <= baseline.severity <= 1.0
+    assert baseline.unit == "m/s"
+
+
+def test_wind_severity_monotonic_and_bounded():
+    """Verify normalize_wind_severity is strictly monotonic non-decreasing and bounded in [0, 1]."""
+    speeds = [0.0, 2.0, 5.0, 10.0, 12.0, 17.0, 20.0, 24.0, 28.0, 33.0, 40.0, 48.0, 60.0, 100.0]
+    severities = [normalize_wind_severity(s) for s in speeds]
+
+    # 1. Bounds
+    assert severities[0] == 0.0
+    assert severities[-1] == 1.0
+    for sev in severities:
+        assert 0.0 <= sev <= 1.0
+
+    # 2. Strict monotonicity (non-decreasing)
+    for i in range(len(severities) - 1):
+        assert (
+            severities[i + 1] >= severities[i]
+        ), f"Severity decreased from {speeds[i]} m/s to {speeds[i + 1]} m/s"
+
+    # 3. Negative speed edge case
+    assert normalize_wind_severity(-5.0) == 0.0
+
+
+def test_generate_wind_layer_contract():
+    """Verify generate_wind_layer returns a contract-compliant HazardLayerCollection."""
+    col = generate_wind_layer(TS_LANDFALL)
+    assert isinstance(col, HazardLayerCollection)
+    assert len(col.features) == 64
+    assert col.type == "FeatureCollection"
+
+    compact_ts = iso_to_compact_ts(TS_LANDFALL)
+
+    for feat in col.features:
+        assert feat.type == "Feature"
+        assert feat.id == feat.properties.id
+        assert feat.id.startswith("wind__c")
+        assert feat.id.endswith(f"__{compact_ts}")
+        assert feat.properties.hazard_type == "wind"
+        assert feat.properties.timestep == TS_LANDFALL
+        assert feat.properties.unit == "m/s"
+        assert feat.properties.value >= 0.0
+        assert 0.0 <= feat.properties.severity <= 1.0
+        assert feat.geometry.type == "Polygon"
+        ring = feat.geometry.coordinates[0]
+        assert len(ring) == 5
+        assert ring[0] == ring[-1]  # Closed ring
+
+
+def test_generate_wind_layer_validations():
+    """Verify generate_wind_layer validates timesteps against replay timeline."""
+    with pytest.raises(NotImplementedError, match="live mode is reserved"):
+        generate_wind_layer("live")
+
+    with pytest.raises(ValueError, match="must be one of the 25 Amphan replay timesteps"):
+        generate_wind_layer("2020-05-20T13:00:00Z")
+
+    with pytest.raises(ValueError, match="must be one of the 25 Amphan replay timesteps"):
+        generate_wind_layer("invalid")
+
+
+def test_wind_fixtures_exist_and_match_generation():
+    """Verify all 25 DEMO_MODE wind fixtures exist and match generate_wind_layer bit-for-bit."""
+    for ts in REPLAY_TIMESTEPS:
+        compact_ts = iso_to_compact_ts(ts)
+        fixture_path = DEMO_DIR / f"hazard__layers-wind__{compact_ts}.json"
+        assert fixture_path.is_file(), f"Missing fixture {fixture_path.name}"
+
+        # Raw LF check
+        raw_bytes = fixture_path.read_bytes()
+        assert b"\r\n" not in raw_bytes, f"{fixture_path.name} contains CRLF"
+
+        fixture_model = HazardLayerCollection.model_validate_json(raw_bytes)
+        generated_model = generate_wind_layer(ts)
+
+        assert len(fixture_model.features) == len(generated_model.features) == 64
+        for f_fix, f_gen in zip(fixture_model.features, generated_model.features, strict=True):
+            assert f_fix.id == f_gen.id
+            assert f_fix.properties.hazard_type == "wind"
+            assert f_fix.properties.unit == "m/s"
+            assert f_fix.properties.value == f_gen.properties.value
+            assert f_fix.properties.severity == f_gen.properties.severity
+            assert f_fix.geometry.coordinates == f_gen.geometry.coordinates
+
+
+def test_service_get_hazard_layer_wind_demo_and_computed(monkeypatch):
+    """Verify service.get_hazard_layer with wind in both DEMO_MODE and computed mode."""
+    import app.hazard.service as hazard_service
+
+    # Clear in-memory cache to guarantee testing fresh retrieval
+    hazard_service._LAYER_CACHE.clear()
+
+    # 1. In DEMO_MODE=True: loads from fixture
+    monkeypatch.setattr(demo_mod, "get_settings", lambda: Settings(_env_file=None, DEMO_MODE=True))
+    monkeypatch.setattr(
+        hazard_service, "get_settings", lambda: Settings(_env_file=None, DEMO_MODE=True)
+    )
+    col_demo = get_hazard_layer("wind", TS_LANDFALL)
+    assert isinstance(col_demo, HazardLayerCollection)
+    assert len(col_demo.features) == 64
+
+    # 2. In DEMO_MODE=False: computes directly via generate_wind_layer
+    hazard_service._LAYER_CACHE.clear()
+    monkeypatch.setattr(demo_mod, "get_settings", lambda: Settings(_env_file=None, DEMO_MODE=False))
+    monkeypatch.setattr(
+        hazard_service, "get_settings", lambda: Settings(_env_file=None, DEMO_MODE=False)
+    )
+    col_computed = get_hazard_layer("wind", TS_LANDFALL)
+    assert isinstance(col_computed, HazardLayerCollection)
+    assert len(col_computed.features) == 64
+
+    # Both modes must produce identical hazard layers
+    for f_d, f_c in zip(col_demo.features, col_computed.features, strict=True):
+        assert f_d.id == f_c.id
+        assert f_d.properties.value == f_c.properties.value
+        assert f_d.properties.severity == f_c.properties.severity
+
+
+def test_hazard_routes_wind_endpoint():
+    """Verify GET /api/hazard/layers endpoint for hazard_type=wind."""
+    # 1. Valid replay timestep
+    resp = client.get(f"/api/hazard/layers?hazard_type=wind&timestep={TS_LANDFALL}")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["type"] == "FeatureCollection"
+    assert len(data["features"]) == 64
+    for feat in data["features"]:
+        assert feat["properties"]["hazard_type"] == "wind"
+        assert feat["properties"]["unit"] == "m/s"
+        assert 0.0 <= feat["properties"]["severity"] <= 1.0
+        assert feat["properties"]["value"] > 0.0
+
+    # 2. Live mode returns 501
+    resp_live = client.get("/api/hazard/layers?hazard_type=wind&timestep=live")
+    assert resp_live.status_code == 501
+
+    # 3. Invalid timestep returns 422
+    resp_bad = client.get("/api/hazard/layers?hazard_type=wind&timestep=2020-05-20T13:00:00Z")
+    assert resp_bad.status_code == 422
+
+
+def test_replay_consistency_across_all_25_timesteps():
+    """Verify wind hazard layers across all 25 timesteps demonstrate continuity and bounds."""
+    peak_winds_over_time: list[float] = []
+
+    for ts in REPLAY_TIMESTEPS:
+        col = generate_wind_layer(ts)
+        assert len(col.features) == 64
+        speeds = [f.properties.value for f in col.features]
+        severities = [f.properties.severity for f in col.features]
+
+        # Non-negative, physical bounds
+        assert all(s >= 0.0 for s in speeds)
+        assert all(s <= 65.0 for s in speeds)
+        assert all(0.0 <= sev <= 1.0 for sev in severities)
+
+        peak_winds_over_time.append(max(speeds))
+
+    # At T-72h (far south in Bay of Bengal), peak AOI wind should be ambient (~6 m/s)
+    assert peak_winds_over_time[0] == 6.0
+
+    # At landfall T-0h (passing through Sundarbans AOI), peak wind should be severe (> 35 m/s)
+    assert peak_winds_over_time[-1] > 35.0
+
+    # Wind increases as storm approaches landfall
+    assert peak_winds_over_time[-1] > peak_winds_over_time[0]
+
+
+def test_build_wind_fixtures_script(tmp_path):
+    """Verify scripts.build_wind_fixtures generates all 25 fixtures cleanly."""
+    from scripts.build_wind_fixtures import build_wind_fixtures
+
+    written = build_wind_fixtures(out_dir=tmp_path)
+    assert len(written) == 25
+    for ts in REPLAY_TIMESTEPS:
+        compact_ts = iso_to_compact_ts(ts)
+        key = f"hazard__layers-wind__{compact_ts}"
+        assert key in written
+        path = written[key]
+        assert path.is_file()
+        raw = path.read_bytes()
+        assert b"\r\n" not in raw
+        parsed = HazardLayerCollection.model_validate_json(raw)
+        assert len(parsed.features) == 64
+
