@@ -1,0 +1,158 @@
+import pytest
+from pydantic import ValidationError
+
+from app.core import demo
+from app.core.config import Settings
+from app.hazard.service import get_hazard_layer
+from app.schemas import (
+    LANDFALL_TIMESTEP,
+    REPLAY_TIMESTEPS,
+    AdvisoryProperties,
+    HazardLayer,
+    ImpactResultProperties,
+    RiskScoreProperties,
+    TriggerEventProperties,
+)
+
+TS = LANDFALL_TIMESTEP
+SQUARE = [[[88.0, 21.5], [88.1, 21.5], [88.1, 21.6], [88.0, 21.5]]]
+
+
+def test_replay_timeline():
+    assert len(REPLAY_TIMESTEPS) == 25
+    assert REPLAY_TIMESTEPS[0] == "2020-05-17T12:00:00Z"
+    assert REPLAY_TIMESTEPS[-1] == TS == "2020-05-20T12:00:00Z"
+
+
+def test_hazard_layer_valid_and_unit_checked():
+    feature = {
+        "type": "Feature",
+        "id": "c1",
+        "geometry": {"type": "Polygon", "coordinates": SQUARE},
+        "properties": {
+            "id": "c1",
+            "hazard_type": "surge",
+            "timestep": TS,
+            "value": 2.4,
+            "unit": "m",
+            "severity": 0.7,
+        },
+    }
+    HazardLayer.model_validate(feature)
+    feature["properties"]["unit"] = "m/s"
+    with pytest.raises(ValidationError):
+        HazardLayer.model_validate(feature)
+
+
+def test_feature_id_must_match_properties_id():
+    feature = {
+        "id": "other",
+        "geometry": {"type": "Polygon", "coordinates": SQUARE},
+        "properties": {
+            "id": "c1",
+            "hazard_type": "wind",
+            "timestep": TS,
+            "value": 40,
+            "unit": "m/s",
+            "severity": 0.5,
+        },
+    }
+    with pytest.raises(ValidationError):
+        HazardLayer.model_validate(feature)
+
+
+def test_live_is_not_a_response_timestep():
+    with pytest.raises(ValidationError):
+        ImpactResultProperties(
+            id="x", infra_id="i", hazard_type="wind", status="ok", timestep="live", pathway=[]
+        )
+
+
+def test_ok_impact_has_empty_pathway():
+    with pytest.raises(ValidationError):
+        ImpactResultProperties(
+            id="x",
+            infra_id="i",
+            hazard_type="surge",
+            status="ok",
+            timestep=TS,
+            pathway=[{"id": "hazard:surge", "label": "Surge", "type": "hazard"}],
+        )
+
+
+@pytest.mark.parametrize("block_id", ["1234", "872a1070fffffff", "b-12"])
+def test_block_id_accepts_fixture_safe(block_id):
+    RiskScoreProperties(
+        id=f"{block_id}__{TS}",
+        block_id=block_id,
+        block_source="h3_r7",
+        block_name="x",
+        timestep=TS,
+        score=0.5,
+        components={"hazard": 0.5, "exposure": 0.5, "vulnerability": 0.5},
+    )
+
+
+@pytest.mark.parametrize("block_id", ["Block1", "b_1", "a.b", "a/b", ""])
+def test_block_id_rejects_unsafe(block_id):
+    with pytest.raises(ValidationError):
+        RiskScoreProperties(
+            id="x",
+            block_id=block_id,
+            block_source="census2011_cd",
+            block_name="x",
+            timestep=TS,
+            score=0.5,
+            components={"hazard": 0.5, "exposure": 0.5, "vulnerability": 0.5},
+        )
+
+
+def test_approved_advisory_needs_approver():
+    with pytest.raises(ValidationError):
+        AdvisoryProperties(
+            id="a",
+            block_id="b-1",
+            timestep=TS,
+            language="en",
+            body="text",
+            citations=[],
+            status="approved",
+            created_at="2020-05-20T12:00:00Z",
+        )
+
+
+def test_trigger_consistency():
+    base = {
+        "id": "z__t",
+        "zone_id": "z",
+        "zone_name": "Zone",
+        "timestep": TS,
+        "metric": "wind_speed",
+        "unit": "m/s",
+        "threshold": 40.0,
+        "observed": 45.0,
+    }
+    TriggerEventProperties(**base, triggered=True, payout_estimate_inr=1e6)
+    with pytest.raises(ValidationError):
+        TriggerEventProperties(**base, triggered=False, payout_estimate_inr=0)
+
+
+def test_get_hazard_layer_is_a_stub():
+    with pytest.raises(NotImplementedError):
+        get_hazard_layer("surge", TS)
+
+
+@pytest.fixture
+def demo_on(monkeypatch):
+    monkeypatch.setattr(demo, "get_settings", lambda: Settings(_env_file=None, DEMO_MODE=True))
+
+
+@pytest.mark.parametrize("key", ["../secrets", "a.b", "a/b", "a\\b", "", "x y"])
+def test_fixture_key_rejects_unsafe(demo_on, key):
+    with pytest.raises(ValueError):
+        demo.load_fixture(key)
+
+
+def test_fixture_key_accepts_contract_names(demo_on):
+    with pytest.raises(FileNotFoundError):
+        demo.load_fixture("hazard__layers-surge__20200520T1200Z")

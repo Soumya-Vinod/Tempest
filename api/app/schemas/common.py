@@ -1,0 +1,51 @@
+"""Shared enums, ids and the Amphan replay timeline (contracts.md §2–3)."""
+
+from datetime import UTC, datetime, timedelta
+from typing import Annotated, Literal
+
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field
+
+HazardType = Literal["wind", "surge", "flood"]
+InfraType = Literal["substation", "power_line", "road", "hospital", "shelter"]
+ImpactStatus = Literal["ok", "at_risk", "cut", "isolated"]
+StepType = Literal["hazard", "infra", "service"]
+Language = Literal["en", "bn", "hi"]
+AdvisoryStatus = Literal["draft", "approved", "sent"]
+TriggerMetric = Literal["wind_speed", "surge_depth"]
+BlockSource = Literal["census2011_cd", "h3_r7"]
+Channel = Literal["telegram", "email"]
+
+TIMESTEP_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
+LANDFALL = datetime(2020, 5, 20, 12, tzinfo=UTC)
+REPLAY_START = LANDFALL - timedelta(hours=72)
+REPLAY_STEP = timedelta(hours=3)
+REPLAY_TIMESTEPS: tuple[str, ...] = tuple(
+    (REPLAY_START + i * REPLAY_STEP).strftime(TIMESTEP_FORMAT) for i in range(25)
+)
+LANDFALL_TIMESTEP = LANDFALL.strftime(TIMESTEP_FORMAT)
+LIVE = "live"
+
+_REPLAY_SET = frozenset(REPLAY_TIMESTEPS)
+
+
+def _check_timestep(value: str) -> str:
+    if value not in _REPLAY_SET:
+        raise ValueError("timestep must be one of the 25 Amphan replay keys")
+    return value
+
+
+def _check_timestep_param(value: str) -> str:
+    return value if value == LIVE else _check_timestep(value)
+
+
+# In responses: a replay key only.
+Timestep = Annotated[str, AfterValidator(_check_timestep)]
+# In parameters: a replay key or "live" (501 / NotImplementedError in v0.9).
+TimestepParam = Annotated[str, AfterValidator(_check_timestep_param)]
+
+BlockId = Annotated[str, Field(pattern=r"^[a-z0-9-]+$")]
+UnitFraction = Annotated[float, Field(ge=0, le=1)]
+
+
+class ContractModel(BaseModel):
+    model_config = ConfigDict(extra="forbid")

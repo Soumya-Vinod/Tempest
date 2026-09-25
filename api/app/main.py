@@ -10,7 +10,7 @@ from app.impact.router import router as impact_router
 from app.insurance.router import router as insurance_router
 from app.risk.router import router as risk_router
 
-app = FastAPI(title="SurgeWatch API")
+app = FastAPI(title="Tempest API")
 
 app.add_middleware(
     CORSMiddleware,

@@ -5,7 +5,8 @@ from typing import Any
 from app.core.config import API_DIR, get_settings
 
 DEMO_DIR = API_DIR / "data" / "demo"
-_KEY_RE = re.compile(r"^[a-z0-9_\-]+$")
+# No dots or slashes: keys can never escape data/demo/ (contracts.md §7).
+_KEY_RE = re.compile(r"^[A-Za-z0-9_-]+$")
 
 
 def load_fixture(key: str) -> Any | None:

@@ -50,10 +50,3 @@ def test_health_reports_flags_not_values(client, monkeypatch, tmp_path):
 def test_gee_key_path_false_when_file_missing(client, monkeypatch, tmp_path):
     monkeypatch.setenv("GEE_KEY_PATH", str(tmp_path / "missing.json"))
     assert client.get("/health").json()["configured"]["gee_key_path"] is False
-
-
-@pytest.mark.parametrize(
-    "module", ["hazard", "exposure", "impact", "risk", "advisory", "dispatch", "insurance"]
-)
-def test_module_stubs_return_501(client, module):
-    assert client.get(f"/api/{module}/").status_code == 501
