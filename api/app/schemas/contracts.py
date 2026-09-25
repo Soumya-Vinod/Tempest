@@ -34,6 +34,17 @@ INFRA_ID_PATTERN = r"^(substation|power-line|road|hospital|shelter)-(node|way|re
 
 
 class HazardLayerProperties(ContractModel):
+    """Properties for a single hazard cell feature (shared/contracts.md §4.1).
+
+    Attributes:
+        id: Unique identifier within a (hazard_type, timestep) collection.
+        hazard_type: Physical hazard category ('wind', 'surge', or 'flood').
+        timestep: ISO 8601 UTC timestamp of one of the 25 Amphan replay timesteps.
+        value: Physical magnitude in unit (m/s for wind, m for surge, 0-1 for flood).
+        unit: Required unit of measurement ('m/s' for wind, 'm' for surge, 'index' for flood).
+        severity: Normalized severity score in [0, 1].
+    """
+
     id: str
     hazard_type: HazardType
     timestep: Timestep
@@ -49,11 +60,60 @@ class HazardLayerProperties(ContractModel):
 
 
 class HazardLayer(Feature):
+    """GeoJSON Feature representing a single hazard cell or polygon (shared/contracts.md §4.1).
+
+    Geometry must be an AreaGeometry (Polygon or MultiPolygon) in EPSG:4326.
+    Feature.id must strictly equal properties.id.
+    """
+
     geometry: AreaGeometry
     properties: HazardLayerProperties
 
+    @model_validator(mode="before")
+    @classmethod
+    def _nest_properties_if_flat(cls, data: Any) -> Any:
+        """Allow convenience flat construction by packaging hazard fields into properties."""
+        if isinstance(data, dict) and "properties" not in data:
+            prop_keys = {"hazard_type", "timestep", "value", "unit", "severity"}
+            if prop_keys.issubset(data.keys()):
+                data = dict(data)
+                props = {k: data.pop(k) for k in prop_keys}
+                props["id"] = data.get("id")
+                data["properties"] = props
+        return data
+
+    @property
+    def hazard_type(self) -> HazardType:
+        """Hazard type from properties ('wind', 'surge', or 'flood')."""
+        return self.properties.hazard_type
+
+    @property
+    def timestep(self) -> Timestep:
+        """Replay timestep from properties (ISO 8601 UTC)."""
+        return self.properties.timestep
+
+    @property
+    def value(self) -> float:
+        """Physical magnitude value from properties in unit."""
+        return self.properties.value
+
+    @property
+    def unit(self) -> Literal["m/s", "m", "index"]:
+        """Unit of measurement from properties ('m/s', 'm', or 'index')."""
+        return self.properties.unit
+
+    @property
+    def severity(self) -> UnitFraction:
+        """Normalized hazard severity score from properties in [0, 1]."""
+        return self.properties.severity
+
 
 class HazardLayerCollection(FeatureCollection[HazardLayer]):
+    """GeoJSON FeatureCollection containing HazardLayer features (shared/contracts.md §4.1).
+
+    Root object returned by GET /api/hazard/layers and get_hazard_layer().
+    """
+
     pass
 
 

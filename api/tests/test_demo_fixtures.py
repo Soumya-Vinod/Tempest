@@ -7,6 +7,7 @@ from typing import get_args
 import pytest
 
 from app.core.demo import DEMO_DIR
+from app.hazard.models import CycloneTrack
 from app.schemas import (
     REPLAY_TIMESTEPS,
     Advisory,
@@ -37,6 +38,7 @@ ADVISORY_ID = r"(?P<id>[a-z0-9-]+)"
 ROUTE_SCHEMAS = {
     "hazard": [
         (r"timesteps", ReplayTimeline, False, None),
+        (r"track", CycloneTrack, False, None),
         (rf"layers-({_alternatives(HazardType)})", HazardLayerCollection, True, None),
     ],
     # Per type only: the unfiltered route is composed from these (contracts.md §7).

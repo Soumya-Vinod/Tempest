@@ -32,6 +32,7 @@ pnpm-debug.log*
 api/secrets/
 api/data/raw/*
 !api/data/raw/.gitkeep
+!api/data/raw/ibtracs_amphan.csv
 api/data/cache/*
 !api/data/cache/.gitkeep
 # Regenerate with api\.venv\Scripts\python api\scripts\ingest_osm.py (see README)
