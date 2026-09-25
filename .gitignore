@@ -37,6 +37,7 @@ api/data/cache/*
 
 # --- Claude Code (local only) ---
 CLAUDE.md
+.claude/
 
 
 # --- OS ---

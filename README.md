@@ -9,7 +9,7 @@ satellite feeds, real-time meteorological data, and Gemini 3.7 Flash's multimoda
 |-----------|----------------------------------------------------|
 | `api/`    | FastAPI backend (Python 3.12)                      |
 | `web/`    | React + Vite + TypeScript frontend                 |
-| `shared/` | Contract docs and JSON schemas shared by both devs |
+| `shared/` | `contracts.md`, the API contract for both devs     |
 | `docs/`   | Architecture and demo notes                        |
 
 ## Setup (Windows PowerShell)
@@ -17,7 +17,7 @@ satellite feeds, real-time meteorological data, and Gemini 3.7 Flash's multimoda
 ### Prerequisites
 
 - Python 3.12 (`py -3.12 --version`)
-- Node.js 20+ (`node --version`)
+- Node.js 20.19+ or 22.13+ (`node --version`; matches `engines` in `web/package.json`)
 - Git
 
 ### 1. Clone

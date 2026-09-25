@@ -1,7 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from app.core.config import Settings
+from app.core.config import API_DIR, PLACEHOLDERS, Settings
 from app.main import app
 
 ENV_VARS = (
@@ -50,3 +50,18 @@ def test_health_reports_flags_not_values(client, monkeypatch, tmp_path):
 def test_gee_key_path_false_when_file_missing(client, monkeypatch, tmp_path):
     monkeypatch.setenv("GEE_KEY_PATH", str(tmp_path / "missing.json"))
     assert client.get("/health").json()["configured"]["gee_key_path"] is False
+
+
+def test_placeholders_are_not_configured(client, monkeypatch):
+    for var, placeholder in PLACEHOLDERS.items():
+        monkeypatch.setenv(var, placeholder)
+    configured = client.get("/health").json()["configured"]
+    assert not any(configured[var.lower()] for var in PLACEHOLDERS)
+
+
+def test_env_example_matches_placeholders():
+    lines = (API_DIR / ".env.example").read_text(encoding="utf-8").splitlines()
+    example = dict(
+        line.split("=", 1) for line in lines if line.strip() and not line.startswith("#")
+    )
+    assert {var: example.get(var) for var in PLACEHOLDERS} == PLACEHOLDERS

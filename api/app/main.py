@@ -41,12 +41,13 @@ def health() -> dict:
         "status": "ok",
         "demo_mode": s.DEMO_MODE,
         "configured": {
-            "gemini_api_key": bool(s.GEMINI_API_KEY),
-            "gee_service_account": bool(s.GEE_SERVICE_ACCOUNT),
+            # Set and not left at the .env.example placeholder.
+            "gemini_api_key": s.is_configured("GEMINI_API_KEY"),
+            "gee_service_account": s.is_configured("GEE_SERVICE_ACCOUNT"),
             # Existence check only; the key file is never read.
             "gee_key_path": s.gee_key_file is not None and s.gee_key_file.is_file(),
-            "telegram_bot_token": bool(s.TELEGRAM_BOT_TOKEN),
-            "telegram_chat_id": bool(s.TELEGRAM_CHAT_ID),
-            "resend_api_key": bool(s.RESEND_API_KEY),
+            "telegram_bot_token": s.is_configured("TELEGRAM_BOT_TOKEN"),
+            "telegram_chat_id": s.is_configured("TELEGRAM_CHAT_ID"),
+            "resend_api_key": s.is_configured("RESEND_API_KEY"),
         },
     }
