@@ -12,6 +12,7 @@ from app.schemas import (
     AdvisoryProperties,
     DispatchReceipt,
     HazardLayer,
+    HazardLayerCollection,
     ImpactResultProperties,
     RiskScoreProperties,
     TriggerEventProperties,
@@ -162,9 +163,14 @@ def test_trigger_consistency():
         TriggerEventProperties(**base, triggered=False, payout_estimate_inr=0)
 
 
-def test_get_hazard_layer_is_a_stub():
+def test_get_hazard_layer_live_raises_not_implemented():
     with pytest.raises(NotImplementedError):
-        get_hazard_layer("surge", TS)
+        get_hazard_layer("surge", "live")
+
+
+def test_get_hazard_layer_returns_collection():
+    res = get_hazard_layer("surge", TS)
+    assert isinstance(res, HazardLayerCollection)
 
 
 @pytest.fixture
@@ -179,5 +185,10 @@ def test_fixture_key_rejects_unsafe(demo_on, key):
 
 
 def test_fixture_key_accepts_contract_names(demo_on):
+    # Valid key for existing fixture returns loaded data (v1.1 change, pending Dev B)
+    data = demo.load_fixture("hazard__layers-surge__20200520T1200Z")
+    assert isinstance(data, dict)
+
+    # Valid key for non-existent fixture passes format validation but raises FileNotFoundError
     with pytest.raises(FileNotFoundError):
-        demo.load_fixture("hazard__layers-surge__20200520T1200Z")
+        demo.load_fixture("hazard__layers-surge__19990101T0000Z")
