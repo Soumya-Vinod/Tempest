@@ -436,13 +436,12 @@ def test_timeline_chronological_ordering():
 
     dt_format = "%Y-%m-%dT%H:%M:%SZ"
     parsed_dates = [
-        datetime.strptime(ts, dt_format).replace(tzinfo=UTC)
-        for ts in REPLAY_TIMELINE_TIMESTEPS
+        datetime.strptime(ts, dt_format).replace(tzinfo=UTC) for ts in REPLAY_TIMELINE_TIMESTEPS
     ]
 
     for i in range(len(parsed_dates) - 1):
         delta = parsed_dates[i + 1] - parsed_dates[i]
-        assert delta == timedelta(hours=3), f"Interval between step {i} and {i+1} is not 3 hours"
+        assert delta == timedelta(hours=3), f"Interval between step {i} and {i + 1} is not 3 hours"
 
     # Start is T-72h, end is landfall
     assert REPLAY_TIMELINE_TIMESTEPS[0] == "2020-05-17T12:00:00Z"
@@ -580,9 +579,7 @@ def test_hazard_track_fixture_loading_and_roundtrip(monkeypatch):
     with fixture_path.open(encoding="utf-8") as f:
         direct_data = json.load(f)
 
-    monkeypatch.setattr(
-        demo_mod, "get_settings", lambda: Settings(_env_file=None, DEMO_MODE=True)
-    )
+    monkeypatch.setattr(demo_mod, "get_settings", lambda: Settings(_env_file=None, DEMO_MODE=True))
     fixture_data = load_fixture("hazard__track")
     assert fixture_data == direct_data
     assert fixture_data["event"] == "amphan"
@@ -610,9 +607,7 @@ def test_service_get_replay_track_integration(monkeypatch):
     # When DEMO_MODE is True
     import app.hazard.service as hazard_service
 
-    monkeypatch.setattr(
-        demo_mod, "get_settings", lambda: Settings(_env_file=None, DEMO_MODE=True)
-    )
+    monkeypatch.setattr(demo_mod, "get_settings", lambda: Settings(_env_file=None, DEMO_MODE=True))
     monkeypatch.setattr(
         hazard_service, "get_settings", lambda: Settings(_env_file=None, DEMO_MODE=True)
     )
@@ -620,6 +615,3 @@ def test_service_get_replay_track_integration(monkeypatch):
     assert isinstance(demo_service_track, tuple)
     assert len(demo_service_track) == 25
     assert demo_service_track == canonical_track
-
-
-

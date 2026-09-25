@@ -68,10 +68,7 @@ def haversine_distance_m(lat1: float, lon1: float, lat2: float, lon2: float) -> 
     phi1, phi2 = math.radians(lat1), math.radians(lat2)
     dphi = math.radians(lat2 - lat1)
     dlambda = math.radians(lon2 - lon1)
-    a = (
-        math.sin(dphi / 2.0) ** 2
-        + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2.0) ** 2
-    )
+    a = math.sin(dphi / 2.0) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2.0) ** 2
     return 2.0 * EARTH_RADIUS_M * math.asin(math.sqrt(a))
 
 
@@ -115,10 +112,7 @@ def read_raw_ibtracs(csv_path: Path) -> list[dict[str, str]]:
         rows = list(reader)
 
     # Filter for Cyclone Amphan
-    amphan_rows = [
-        r for r in rows
-        if r.get("NAME") == "AMPHAN" or r.get("SID") in AMPHAN_SIDS
-    ]
+    amphan_rows = [r for r in rows if r.get("NAME") == "AMPHAN" or r.get("SID") in AMPHAN_SIDS]
     if not amphan_rows:
         raise ValueError(f"No records matching Cyclone Amphan found in {csv_path}")
 
@@ -168,16 +162,18 @@ def extract_and_resample_track(raw_rows: list[dict[str, str]]) -> list[dict]:
         rmw_nm = float(rmw_str) if rmw_str else 16.0
         radius_max_wind_km = round(rmw_nm * NM_TO_KM, 1)
 
-        raw_points.append({
-            "timestep": ts,
-            "lat": lat,
-            "lon": lon,
-            "central_pressure_hpa": pres_hpa,
-            "max_wind_mps": max_wind_mps,
-            "radius_max_wind_km": radius_max_wind_km,
-            "forward_speed_mps": 0.0,
-            "heading_deg": 0.0,
-        })
+        raw_points.append(
+            {
+                "timestep": ts,
+                "lat": lat,
+                "lon": lon,
+                "central_pressure_hpa": pres_hpa,
+                "max_wind_mps": max_wind_mps,
+                "radius_max_wind_km": radius_max_wind_km,
+                "forward_speed_mps": 0.0,
+                "heading_deg": 0.0,
+            }
+        )
 
     # Compute derived forward translation speed and geodesic heading
     for i in range(len(raw_points) - 1):

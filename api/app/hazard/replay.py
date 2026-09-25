@@ -121,8 +121,7 @@ def _load_track_dict() -> dict[str, CycloneTrackPoint]:
             with fixture_path.open(encoding="utf-8") as f:
                 data = json.load(f)
                 return {
-                    pt["timestep"]: CycloneTrackPoint.model_validate(pt)
-                    for pt in data["points"]
+                    pt["timestep"]: CycloneTrackPoint.model_validate(pt) for pt in data["points"]
                 }
         except Exception:
             pass
@@ -160,7 +159,6 @@ def get_replay_track() -> tuple[CycloneTrackPoint, ...]:
     return tuple(track_dict[ts] for ts in REPLAY_TIMESTEPS)
 
 
-
 def iso_to_compact_ts(timestep: str) -> str:
     """Convert ISO 8601 UTC timestamp to compact format: 2020-05-20T12:00:00Z -> 20200520T1200Z."""
     return timestep.replace("-", "").replace(":", "")[:13] + "Z"
@@ -177,10 +175,7 @@ def haversine_distance_km(lat1: float, lon1: float, lat2: float, lon2: float) ->
     phi1, phi2 = math.radians(lat1), math.radians(lat2)
     dphi = math.radians(lat2 - lat1)
     dlambda = math.radians(lon2 - lon1)
-    a = (
-        math.sin(dphi / 2.0) ** 2
-        + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2.0) ** 2
-    )
+    a = math.sin(dphi / 2.0) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2.0) ** 2
     return 2.0 * r * math.asin(math.sqrt(a))
 
 
