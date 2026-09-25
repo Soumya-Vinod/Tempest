@@ -7,7 +7,12 @@ import pytest
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
+import app.core.demo as demo_mod
+from app.core.config import Settings
+from app.core.demo import DEMO_DIR, load_fixture
 from app.hazard.models import (
+    CycloneTrack,
+    CycloneTrackPoint,
     GridCell,
     HazardLayer,
     HazardLayerCollection,
@@ -31,7 +36,14 @@ from app.hazard.replay import (
     iso_to_compact_ts,
     validate_timestep,
 )
-from app.hazard.service import get_hazard_layer, get_replay_timeline
+from app.hazard.replay import (
+    get_replay_track as replay_get_track,
+)
+from app.hazard.service import (
+    get_hazard_layer,
+    get_replay_timeline,
+    get_replay_track,
+)
 from app.main import app
 from app.schemas import LANDFALL_TIMESTEP, REPLAY_TIMESTEPS
 
@@ -491,4 +503,120 @@ def test_timeline_api_endpoint_matches_contract():
     assert body["landfall"] == "2020-05-20T12:00:00Z"
     assert len(body["timesteps"]) == 25
     assert body["timesteps"] == list(REPLAY_TIMELINE_TIMESTEPS)
+
+
+# ===========================================================================
+# 5. Cyclone Track Ingestion and Validation Tests (Phase 3)
+# ===========================================================================
+
+
+def test_replay_track_count_and_types():
+    """Verify get_replay_track() returns exactly 25 CycloneTrackPoint instances
+    in an immutable tuple.
+    """
+    track = replay_get_track()
+    assert isinstance(track, tuple)
+    assert len(track) == 25
+    for pt in track:
+        assert isinstance(pt, CycloneTrackPoint)
+
+
+def test_replay_track_timestamp_alignment():
+    """Verify replay track points are 1-to-1 synchronized with REPLAY_TIMESTEPS."""
+    track = replay_get_track()
+    track_timesteps = [pt.timestep for pt in track]
+    assert track_timesteps == list(REPLAY_TIMESTEPS)
+    assert track[0].timestep == "2020-05-17T12:00:00Z"
+    assert track[-1].timestep == LANDFALL_TIMESTEP
+
+
+def test_replay_track_lat_lon_and_physical_bounds():
+    """Verify physical track coordinates and intensity parameters fall within expected ranges."""
+    track = replay_get_track()
+    for pt in track:
+        # Track moves through Bay of Bengal towards West Bengal/Sundarbans
+        assert 10.0 <= pt.lat <= 23.0
+        assert 85.0 <= pt.lon <= 90.0
+        # Central pressure bounds (Amphan was a Super Cyclone with Pc between 920 and 990 hPa)
+        assert 910.0 <= pt.central_pressure_hpa <= 1000.0
+        # Maximum sustained 10m wind speed between 20 m/s and 70 m/s
+        assert 20.0 <= pt.max_wind_mps <= 70.0
+        # Radius of maximum winds
+        assert 15.0 <= pt.radius_max_wind_km <= 50.0
+        # Forward translation speed
+        assert 1.0 <= pt.forward_speed_mps <= 20.0
+        # Heading azimuth [0, 360)
+        assert 0.0 <= pt.heading_deg < 360.0
+
+
+def test_replay_track_chronological_ordering_and_motion():
+    """Verify storm progresses northward and demonstrates intensification curve."""
+    track = replay_get_track()
+    # Continuous northward motion
+    for i in range(len(track) - 1):
+        assert track[i + 1].lat > track[i].lat, f"Step {i} did not progress northward"
+
+    # Deepening to super cyclonic intensity at T-48h (lowest pressure)
+    peak_pt = min(track, key=lambda p: p.central_pressure_hpa)
+    assert peak_pt.central_pressure_hpa == 920.0
+    assert peak_pt.timestep == "2020-05-18T12:00:00Z"
+
+
+def test_replay_track_immutability():
+    """Verify CycloneTrackPoint and the track tuple are strictly immutable."""
+    track = replay_get_track()
+    pt = track[0]
+    with pytest.raises(ValidationError):
+        pt.lat = 12.0  # type: ignore
+
+    with pytest.raises(TypeError):
+        track[0] = pt  # type: ignore
+
+
+def test_hazard_track_fixture_loading_and_roundtrip(monkeypatch):
+    """Verify api/data/demo/hazard__track.json loads and matches the canonical track model."""
+    fixture_path = DEMO_DIR / "hazard__track.json"
+    assert fixture_path.is_file()
+    with fixture_path.open(encoding="utf-8") as f:
+        direct_data = json.load(f)
+
+    monkeypatch.setattr(
+        demo_mod, "get_settings", lambda: Settings(_env_file=None, DEMO_MODE=True)
+    )
+    fixture_data = load_fixture("hazard__track")
+    assert fixture_data == direct_data
+    assert fixture_data["event"] == "amphan"
+    assert len(fixture_data["points"]) == 25
+
+    track_model = CycloneTrack.model_validate(fixture_data)
+    assert track_model.event == "amphan"
+    assert len(track_model.points) == 25
+    assert [p.timestep for p in track_model.points] == list(REPLAY_TIMESTEPS)
+
+    # Lossless JSON roundtrip
+    rehydrated = CycloneTrack.model_validate_json(track_model.model_dump_json())
+    assert rehydrated == track_model
+
+
+def test_service_get_replay_track_integration(monkeypatch):
+    """Verify service.get_replay_track() returns the canonical track matching replay module."""
+    # When DEMO_MODE is False
+    service_track = get_replay_track()
+    canonical_track = replay_get_track()
+    assert isinstance(service_track, tuple)
+    assert len(service_track) == 25
+    assert service_track == canonical_track
+
+    # When DEMO_MODE is True
+    import app.hazard.service as hazard_service
+
+    monkeypatch.setattr(
+        hazard_service, "get_settings", lambda: Settings(_env_file=None, DEMO_MODE=True)
+    )
+    demo_service_track = get_replay_track()
+    assert isinstance(demo_service_track, tuple)
+    assert len(demo_service_track) == 25
+    assert demo_service_track == canonical_track
+
+
 
