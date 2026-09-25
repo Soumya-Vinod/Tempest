@@ -79,6 +79,14 @@ One feature per hazard cell/polygon. Geometry: `Polygon | MultiPolygon`.
 | `unit` | `"m/s" \| "m" \| "index"` | wind → `m/s`, surge → `m`, flood → `index` (0–1). |
 | `severity` | float [0, 1] | Normalised by Dev A. *v1.1 change, pending Dev A:* impact and insurance use `value` for physical thresholds (surge in m, wind in m/s); flood uses `severity`. |
 
+*v1.1 change, pending Dev B:* Grid resolution is 0.05° (~5.5 km, 24 rows × 22 columns = 528 cells)
+spanning the AOI bbox. Terrain elevation per cell is sampled from NASA SRTM GL1 30m / Copernicus DEM
+once via GEE and committed as `api/data/reference/hazard_elevation_grid.json` to ensure realistic
+coastal surge and flood susceptibility modeling while remaining deterministic offline.
+
+*v1.1 change, pending Dev B:* HazardLayer Pydantic model provides hybrid attribute access (e.g.
+`layer.hazard_type`, `layer.value`) mirroring `layer.properties` for caller convenience.
+
 *v1.1 change, pending Dev A:* flood `severity` is treated as susceptibility (static, repeated at
 every timestep), not as an event, so flood never cuts roads and never makes a feature `isolated`;
 it only marks roads, substations, hospitals and shelters `at_risk` (severity >= 0.7).
@@ -278,6 +286,7 @@ the schema listed here, and fails on any route resource not in this table.
 | Route | Resource | Timestep suffix | Schema |
 |---|---|---|---|
 | `GET /api/hazard/timesteps` | `timesteps` | no | ReplayTimeline |
+| `GET /api/hazard/track` (internal) | `track` | no | CycloneTrack *(v1.1 change, pending Dev B)* |
 | `GET /api/hazard/layers` | `layers-<hazard_type>` | yes | FC&lt;HazardLayer&gt; |
 | `GET /api/exposure/infra` | `infra-<infra_type>`, one per type. Unfiltered: no fixture of its own; composed from the per-type files *(added in v0.9)* | no | FC&lt;InfraFeature&gt; |
 | `GET /api/impact/results` | `results`, or `results-<filter>` with `[a-z0-9-]` filter values | yes | FC&lt;ImpactResult&gt; |
@@ -293,6 +302,7 @@ Enum values containing `_` (e.g. `power_line`) are written with `-` in resource 
 Examples:
 ```
 hazard__timesteps.json
+hazard__track.json *(v1.1 change, pending Dev B)*
 hazard__layers-surge__20200520T1200Z.json
 hazard__gee-flood-susceptibility.json
 exposure__infra-power-line.json
