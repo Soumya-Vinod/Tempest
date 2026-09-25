@@ -9,9 +9,8 @@ TS = LANDFALL_TIMESTEP
 
 # (method, path, json body) for every contract route still stubbed, each with valid params.
 # /api/exposure/infra is implemented: see test_exposure_routes.py.
+# /api/hazard/* routes are implemented: see test_hazard.py.
 CONTRACT_ROUTES = [
-    ("GET", "/api/hazard/timesteps", None),
-    ("GET", f"/api/hazard/layers?hazard_type=surge&timestep={TS}", None),
     ("GET", f"/api/impact/results?timestep={TS}", None),
     ("GET", f"/api/risk/scores?timestep={TS}", None),
     ("GET", "/api/advisory/", None),

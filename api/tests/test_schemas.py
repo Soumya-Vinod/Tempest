@@ -12,6 +12,7 @@ from app.schemas import (
     AdvisoryProperties,
     DispatchReceipt,
     HazardLayer,
+    HazardLayerCollection,
     ImpactResultProperties,
     RiskScoreProperties,
     TriggerEventProperties,
@@ -162,9 +163,14 @@ def test_trigger_consistency():
         TriggerEventProperties(**base, triggered=False, payout_estimate_inr=0)
 
 
-def test_get_hazard_layer_is_a_stub():
+def test_get_hazard_layer_live_raises_not_implemented():
     with pytest.raises(NotImplementedError):
-        get_hazard_layer("surge", TS)
+        get_hazard_layer("surge", "live")
+
+
+def test_get_hazard_layer_returns_collection():
+    res = get_hazard_layer("surge", TS)
+    assert isinstance(res, HazardLayerCollection)
 
 
 @pytest.fixture
