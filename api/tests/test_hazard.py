@@ -1,6 +1,7 @@
 """Unit and contract compliance tests for the hazard module (Dev A)."""
 
 import json
+from datetime import UTC
 
 import pytest
 from fastapi.testclient import TestClient
@@ -17,11 +18,18 @@ from app.hazard.models import (
 )
 from app.hazard.replay import (
     AMPHAN_TRACK,
+    EVENT_NAME,
+    LANDFALL_TIMESTAMP,
+    REPLAY_TIMELINE_TIMESTEPS,
+    TIMESTEP_INTERVAL_HOURS,
+    TOTAL_TIMESTEPS,
     compute_flood_susceptibility_metric,
     compute_surge_metric,
     compute_wind_metric,
+    create_replay_timeline,
     get_aoi_grid,
     iso_to_compact_ts,
+    validate_timestep,
 )
 from app.hazard.service import get_hazard_layer, get_replay_timeline
 from app.main import app
@@ -393,3 +401,94 @@ def test_hazard_routes_http():
     # 4. Unknown timestep returns 422
     resp_bad = client.get("/api/hazard/layers?hazard_type=wind&timestep=bad-time")
     assert resp_bad.status_code == 422
+
+
+# ===========================================================================
+# 4. Replay Timeline and Timestep Validation Tests
+# ===========================================================================
+
+
+def test_timeline_constants_and_immutability():
+    """Verify replay timeline constants, interval, length, and immutability."""
+    assert EVENT_NAME == "amphan"
+    assert LANDFALL_TIMESTAMP == "2020-05-20T12:00:00Z"
+    assert TIMESTEP_INTERVAL_HOURS == 3
+    assert TOTAL_TIMESTEPS == 25
+    assert isinstance(REPLAY_TIMELINE_TIMESTEPS, tuple)
+    assert len(REPLAY_TIMELINE_TIMESTEPS) == 25
+
+
+def test_timeline_chronological_ordering():
+    """Verify deterministic chronological ordering and exact 3-hour intervals."""
+    from datetime import datetime, timedelta
+
+    dt_format = "%Y-%m-%dT%H:%M:%SZ"
+    parsed_dates = [
+        datetime.strptime(ts, dt_format).replace(tzinfo=UTC)
+        for ts in REPLAY_TIMELINE_TIMESTEPS
+    ]
+
+    for i in range(len(parsed_dates) - 1):
+        delta = parsed_dates[i + 1] - parsed_dates[i]
+        assert delta == timedelta(hours=3), f"Interval between step {i} and {i+1} is not 3 hours"
+
+    # Start is T-72h, end is landfall
+    assert REPLAY_TIMELINE_TIMESTEPS[0] == "2020-05-17T12:00:00Z"
+    assert REPLAY_TIMELINE_TIMESTEPS[-1] == "2020-05-20T12:00:00Z"
+    assert REPLAY_TIMELINE_TIMESTEPS[-1] == LANDFALL_TIMESTAMP
+
+
+def test_validate_timestep_valid():
+    """Verify validate_timestep accepts all 25 replay timesteps."""
+    for ts in REPLAY_TIMELINE_TIMESTEPS:
+        assert validate_timestep(ts) == ts
+
+
+def test_validate_timestep_live():
+    """Verify validate_timestep accepts 'live' as a reserved parameter value."""
+    assert validate_timestep("live") == "live"
+
+
+@pytest.mark.parametrize(
+    "bad_ts",
+    [
+        "2020-05-20T13:00:00Z",
+        "2020-05-20T12:00Z",
+        "2020-05-20",
+        "2020-05-17T09:00:00Z",
+        "2020-05-20T15:00:00Z",
+        "LIVE",
+        "",
+        "unknown",
+        "null",
+    ],
+)
+def test_validate_timestep_invalid_raises(bad_ts):
+    """Verify validate_timestep rejects all invalid values with a clear ValueError."""
+    with pytest.raises(ValueError, match="must be one of the 25 Amphan replay timesteps"):
+        validate_timestep(bad_ts)
+
+
+def test_timeline_service_returns_contract_model():
+    """Verify get_replay_timeline() returns the contract model matching create_replay_timeline()."""
+    timeline = get_replay_timeline()
+    assert isinstance(timeline, ReplayTimeline)
+    assert timeline.event == "amphan"
+    assert timeline.landfall == "2020-05-20T12:00:00Z"
+    assert len(timeline.timesteps) == 25
+    assert timeline.timesteps == list(REPLAY_TIMELINE_TIMESTEPS)
+
+    canonical = create_replay_timeline()
+    assert timeline == canonical
+
+
+def test_timeline_api_endpoint_matches_contract():
+    """Verify GET /api/hazard/timesteps returns exact timeline JSON matching contracts.md §5."""
+    resp = client.get("/api/hazard/timesteps")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["event"] == "amphan"
+    assert body["landfall"] == "2020-05-20T12:00:00Z"
+    assert len(body["timesteps"]) == 25
+    assert body["timesteps"] == list(REPLAY_TIMELINE_TIMESTEPS)
+
