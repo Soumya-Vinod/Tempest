@@ -7,6 +7,8 @@ import logging
 from app.core.config import get_settings
 from app.core.demo import load_fixture
 from app.hazard.models import (
+    CycloneTrack,
+    CycloneTrackPoint,
     HazardLayerCollection,
     HazardType,
     ReplayTimeline,
@@ -16,6 +18,9 @@ from app.hazard.replay import (
     generate_hazard_layer,
     iso_to_compact_ts,
     validate_timestep,
+)
+from app.hazard.replay import (
+    get_replay_track as replay_get_track,
 )
 from app.schemas.common import LIVE
 
@@ -41,6 +46,25 @@ def get_replay_timeline() -> ReplayTimeline:
             logger.debug("Demo fixture hazard__timesteps not loaded: %s; using default", e)
 
     return create_replay_timeline()
+
+
+def get_replay_track() -> tuple[CycloneTrackPoint, ...]:
+    """Return the canonical immutable 25-point Cyclone Amphan replay track.
+
+    In DEMO_MODE, attempts to load from fixture hazard__track if available;
+    otherwise returns the canonical computed track.
+    """
+    settings = get_settings()
+    if settings.DEMO_MODE:
+        try:
+            data = load_fixture("hazard__track")
+            if data is not None:
+                track_model = CycloneTrack.model_validate(data)
+                return tuple(track_model.points)
+        except Exception as e:
+            logger.debug("Demo fixture hazard__track not loaded: %s; using canonical track", e)
+
+    return replay_get_track()
 
 
 def get_hazard_layer(hazard_type: HazardType, timestep: str) -> HazardLayerCollection:
