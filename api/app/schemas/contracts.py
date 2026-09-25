@@ -25,6 +25,8 @@ from app.schemas.geojson import AreaGeometry, Feature, FeatureCollection, InfraG
 
 HAZARD_UNITS: dict[str, str] = {"wind": "m/s", "surge": "m", "flood": "index"}
 METRIC_UNITS: dict[str, str] = {"wind_speed": "m/s", "surge_depth": "m"}
+# <infra_type with - for _>-<osm_type>-<osm_number>, e.g. power-line-way-123 (§4.2, v0.9 addition).
+INFRA_ID_PATTERN = r"^(substation|power-line|road|hospital|shelter)-(node|way|relation)-\d+$"
 
 
 # --- 4.1 HazardLayer (Dev A) ---
@@ -58,7 +60,7 @@ class HazardLayerCollection(FeatureCollection[HazardLayer]):
 
 
 class InfraFeatureProperties(ContractModel):
-    id: str
+    id: str = Field(pattern=INFRA_ID_PATTERN)
     infra_type: InfraType
     name: str | None
     osm_id: str | None = Field(pattern=r"^(node|way|relation)/\d+$")

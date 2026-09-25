@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 
 import { getHealth, type HealthResponse } from '../lib/api'
 import { ABOVE_TIMELINE, PANEL_WIDTH, UI_GAP } from '../lib/layout'
@@ -10,7 +10,8 @@ type HealthState =
   | { kind: 'ok'; data: HealthResponse }
   | { kind: 'error'; message: string }
 
-export default function HealthPanel() {
+/** Side panel: backend status, then feature sections passed as children. */
+export default function HealthPanel({ children }: { children?: ReactNode }) {
   const [health, setHealth] = useState<HealthState>({ kind: 'loading' })
 
   useEffect(() => {
@@ -72,6 +73,7 @@ export default function HealthPanel() {
           </ul>
         </>
       )}
+      {children}
     </aside>
   )
 }

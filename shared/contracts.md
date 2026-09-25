@@ -22,7 +22,7 @@ pending Dev A's review.
 | Units | Wind speed **m/s**; surge depth **m** above ground; money **INR**. |
 | Timestamps | ISO 8601 UTC, always `YYYY-MM-DDTHH:MM:SSZ` (e.g. `2020-05-20T12:00:00Z`). |
 | Null geometry | Allowed only where stated (Advisory). |
-| Errors | FastAPI default `{"detail": ...}`. `404` unknown id, `409` invalid state change, `422` bad params (incl. unknown `timestep`), `501` not implemented yet. |
+| Errors | FastAPI default `{"detail": ...}`. `404` unknown id, `409` invalid state change, `422` bad params (incl. unknown `timestep`), `501` not implemented yet, `503` required processed data missing (live mode) *(v0.9 addition, pending Dev A review)*. |
 
 ## 2. Replay timeline — Cyclone Amphan
 
@@ -85,11 +85,26 @@ Polygons from OSM are reduced to their centroid.
 
 | Property | Type | Notes |
 |---|---|---|
-| `id` | string | Stable id: `<infra_type>-<osm_type>-<osm_number>`, e.g. `substation-way-123456`. |
+| `id` | string | Stable id: `<infra_type>-<osm_type>-<osm_number>`, e.g. `substation-way-123456`. `_` in `infra_type` is written `-` (`power-line-way-123`); must match `^(substation\|power-line\|road\|hospital\|shelter)-(node\|way\|relation)-\d+$`. *v0.9 addition, pending Dev A review.* |
 | `infra_type` | InfraType | |
 | `name` | string \| null | OSM `name`, null if missing. |
 | `osm_id` | string \| null | `"<node\|way\|relation>/<number>"`, e.g. `"way/123456"`. Null for non-OSM sources. |
-| `attributes` | object | Free-form extras (OSM tags, voltage, beds, capacity…). |
+| `attributes` | object | Free-form extras (OSM tags, voltage, beds, capacity…). Keys set by the OSM ingest are listed below. |
+
+OSM ingest attributes and scope *(v0.9 addition, pending Dev A review)*:
+
+| infra_type | OSM source | `attributes` keys |
+|---|---|---|
+| `substation` | `power=substation` | `voltage`, `operator` (when tagged) |
+| `power_line` | `power=line` (+ `minor_line` if ≤ 10,000 ways) | `voltage`, `operator` (when tagged) |
+| `road` | `highway` motorway…tertiary (+ `_link`), unclassified; `route=ferry` | `highway`, `ref`, `bridge` (when tagged); `ferry`: boolean; `baseline_component`: int \| null; `baseline_reachable_from_main`: boolean (see §4.3) |
+| `hospital` | `amenity=hospital\|clinic`, `healthcare=hospital\|clinic\|centre` | `facility_level`: `"hospital"` \| `"health_centre"` |
+| `shelter` | cyclone/flood shelters, `emergency=assembly_point`, `amenity=school` | `shelter_kind`: `"cyclone_shelter"` \| `"assembly_point"` \| `"school_proxy"` |
+
+`infra_type = "hospital"` therefore covers all health facilities; filter on `facility_level`.
+Features are clipped to the South 24 Parganas + Kolkata district boundaries, with river channels up
+to 4 km wide between them filled in (never across a neighbouring district or Bangladesh).
+`name` stays null when OSM has neither `name` nor `name:en`; clients display "Unnamed …".
 
 ### 4.3 ImpactResult (Dev B)
 One feature per (infra, hazard, timestep). Geometry: same as the referenced InfraFeature.
@@ -109,6 +124,17 @@ One feature per (infra, hazard, timestep). Geometry: same as the referenced Infr
 - `service` step: `id = "service:<slug>"`, e.g. `service:hospital-power`
 
 Example: surge → substation flooded → power line de-energised → hospital loses power (`isolated`).
+
+**`isolated` vs baseline connectivity** *(v0.9 addition, pending Dev A review)*. `isolated` means
+reachable at baseline and unreachable under the hazard. The road graph (OSM, with ferries) is not
+fully connected even without a hazard: some islands have no mapped ferry, and some road
+fragments join the network only through minor roads outside the ingest's road classes. So:
+
+- Every road graph node and every `road` InfraFeature carries `baseline_component` (int; `0` is the
+  largest, i.e. main, component; `null` for a road feature with no edge in the graph) and
+  `baseline_reachable_from_main` (boolean, `baseline_component == 0`).
+- A feature not reachable from the main component at baseline is **never** marked `isolated`; the
+  impact engine leaves it to the baseline flag instead, so hazard isolation is not overstated.
 
 ### 4.4 RiskScore (Dev B)
 One feature per block per timestep. A block is a Census 2011 CD block or, if block boundaries
@@ -228,7 +254,7 @@ the schema listed here, and fails on any route resource not in this table.
 |---|---|---|---|
 | `GET /api/hazard/timesteps` | `timesteps` | no | ReplayTimeline |
 | `GET /api/hazard/layers` | `layers-<hazard_type>` | yes | FC&lt;HazardLayer&gt; |
-| `GET /api/exposure/infra` | `infra`, or `infra-<infra_type>` when filtered | no | FC&lt;InfraFeature&gt; |
+| `GET /api/exposure/infra` | `infra-<infra_type>`, one per type. Unfiltered: no fixture of its own; composed from the per-type files *(v0.9 addition, pending Dev A review)* | no | FC&lt;InfraFeature&gt; |
 | `GET /api/impact/results` | `results`, or `results-<filter>` with `[a-z0-9-]` filter values | yes | FC&lt;ImpactResult&gt; |
 | `GET /api/risk/scores` | `scores` | yes | FC&lt;RiskScore&gt; |
 | `GET /api/advisory/` | `list` | no | FC&lt;Advisory&gt; |
@@ -244,7 +270,6 @@ Examples:
 hazard__timesteps.json
 hazard__layers-surge__20200520T1200Z.json
 hazard__gee-flood-susceptibility.json
-exposure__infra.json
 exposure__infra-power-line.json
 exposure__overpass-substations.json
 impact__results__20200519T0000Z.json
@@ -257,4 +282,5 @@ insurance__triggers__20200520T1200Z.json
 ```
 
 Fixture content is exactly the route response (or the raw upstream body) as JSON, UTF-8, LF.
-Keep each file under ~2 MB. Anything larger or regenerable goes in `api/data/cache/` (ignored).
+Keep each file under ~2 MB, roads up to 5 MB (`exposure__infra-road`) *(v0.9 addition, pending Dev A
+review)*. Anything larger or regenerable goes in `api/data/cache/` (ignored).

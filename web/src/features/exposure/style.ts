@@ -1,0 +1,75 @@
+// Colours, sizes and plain-word labels for the infrastructure layers and panel.
+import type { Color } from '@deck.gl/core'
+
+import type { InfraType } from '../../types/contracts'
+
+/** Panel order, top to bottom. */
+export const INFRA_TYPES: readonly InfraType[] = [
+  'road',
+  'power_line',
+  'substation',
+  'hospital',
+  'shelter',
+]
+
+export const TYPE_LABEL: Record<InfraType, string> = {
+  road: 'Roads & ferries',
+  power_line: 'Power lines',
+  substation: 'Substations',
+  hospital: 'Health facilities',
+  shelter: 'Shelters',
+}
+
+export const COLOR = {
+  roadMajor: [194, 65, 12], // orange-700: motorway, trunk, primary
+  roadMinor: [71, 85, 105], // slate-600
+  ferry: [37, 99, 235], // blue-600
+  noMainland: [148, 163, 184, 120], // slate-400, translucent: muted
+  powerLine: [147, 51, 234], // purple-600
+  substation: [202, 138, 4], // yellow-600
+  hospital: [220, 38, 38], // red-600
+  healthCentre: [248, 113, 113], // red-400
+  shelter: [22, 163, 74], // green-600
+  outline: [255, 255, 255],
+  schoolFill: [255, 255, 255], // opaque white inside a green ring: reads hollow, stays pickable
+} satisfies Record<string, Color>
+
+/** Road line width (px) by OSM highway class; `_link` roads use LINK_WIDTH. */
+export const ROAD_WIDTH: Record<string, number> = {
+  motorway: 3.5,
+  trunk: 3.5,
+  primary: 3,
+  secondary: 2.5,
+  tertiary: 2,
+  unclassified: 1.2,
+}
+export const LINK_WIDTH = 1.5
+export const FERRY_WIDTH = 2
+export const MAJOR_ROADS = new Set(['motorway', 'trunk', 'primary'])
+
+/** Plain words for OSM highway classes. */
+export const HIGHWAY_LABEL: Record<string, string> = {
+  motorway: 'Motorway',
+  trunk: 'Trunk road',
+  primary: 'Primary road',
+  secondary: 'Secondary road',
+  tertiary: 'Tertiary road',
+  unclassified: 'Minor road',
+}
+
+/**
+ * Point radii in px as [at AOI zoom, full size]. Radii are set in metres (full size x
+ * FULL_SIZE_M_PER_PX) and clamped to this range, so points grow from ~2-3 px at the AOI view to
+ * full size around zoom 13 (~25 m/px at 22° N). Hospitals stay larger than health centres.
+ */
+export const POINT_PX = {
+  substation: [2, 4.5],
+  hospital: [3, 6],
+  healthCentre: [2, 4],
+  shelter: [2.5, 5],
+} as const satisfies Record<string, readonly [number, number]>
+export const FULL_SIZE_M_PER_PX = 25
+export const OUTLINE_PX = 0.75 // white edge on filled points
+export const SCHOOL_RING_PX = 1.5 // green ring on hollow school stand-ins
+
+export const cssColor = ([r, g, b, a = 255]: Color) => `rgb(${r} ${g} ${b} / ${a / 255})`
