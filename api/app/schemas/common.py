@@ -44,6 +44,8 @@ Timestep = Annotated[str, AfterValidator(_check_timestep)]
 TimestepParam = Annotated[str, AfterValidator(_check_timestep_param)]
 
 BlockId = Annotated[str, Field(pattern=r"^[a-z0-9-]+$")]
+# Lowercase UUID4 in practice; fixture-safe for advisory__item-<id> / dispatch__receipt-<id>.
+AdvisoryId = Annotated[str, Field(pattern=r"^[a-z0-9-]+$")]
 UnitFraction = Annotated[float, Field(ge=0, le=1)]
 
 

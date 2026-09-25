@@ -1,3 +1,5 @@
+import uuid
+
 import pytest
 from pydantic import ValidationError
 
@@ -8,6 +10,7 @@ from app.schemas import (
     LANDFALL_TIMESTEP,
     REPLAY_TIMESTEPS,
     AdvisoryProperties,
+    DispatchReceipt,
     HazardLayer,
     ImpactResultProperties,
     RiskScoreProperties,
@@ -119,6 +122,28 @@ def test_approved_advisory_needs_approver():
             status="approved",
             created_at="2020-05-20T12:00:00Z",
         )
+
+
+@pytest.mark.parametrize("advisory_id", ["3F2504E0-4F89-41D3-9A0C-0305E82C3301", "a_1", "a.b", ""])
+def test_advisory_id_rejects_unsafe(advisory_id):
+    with pytest.raises(ValidationError):
+        AdvisoryProperties(
+            id=advisory_id,
+            block_id="b-1",
+            timestep=TS,
+            language="en",
+            body="text",
+            citations=[],
+            status="draft",
+            created_at="2020-05-20T12:00:00Z",
+        )
+    with pytest.raises(ValidationError):
+        DispatchReceipt(advisory_id=advisory_id, sent_at="2020-05-20T12:00:00Z", channels=[])
+
+
+def test_advisory_id_accepts_lowercase_uuid4():
+    advisory_id = str(uuid.uuid4())
+    DispatchReceipt(advisory_id=advisory_id, sent_at="2020-05-20T12:00:00Z", channels=[])
 
 
 def test_trigger_consistency():

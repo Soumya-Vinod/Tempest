@@ -129,7 +129,7 @@ Geometry: **null** (join to the block via `block_id`).
 
 | Property | Type | Notes |
 |---|---|---|
-| `id` | string | UUID4. |
+| `id` | AdvisoryId | UUID4, lowercase. Must match `^[a-z0-9-]+$` (fixture-safe). *v0.9 addition, pending Dev A review.* |
 | `block_id` | string | |
 | `timestep` | Timestep | The timestep whose figures it cites. |
 | `language` | Language | |
@@ -160,7 +160,8 @@ One feature per insurance zone per timestep. Geometry: zone `Polygon | MultiPoly
 | `payout_estimate_inr` | float | `0` when not triggered. |
 
 ### 4.7 DispatchReceipt (Dev B, not GeoJSON)
-`{ advisory_id: string, sent_at: ISO datetime, channels: [{ channel: "telegram" | "email", ok: boolean, error: string | null }] }`
+`{ advisory_id: AdvisoryId, sent_at: ISO datetime, channels: [{ channel: "telegram" | "email", ok: boolean, error: string | null }] }`
+(`AdvisoryId` as in §4.5.)
 
 ## 5. Routes
 
@@ -219,16 +220,39 @@ computed route response is served from a fixture. Load with `app.core.demo.load_
 | Separator | Double underscore `__` between parts. Single `_` never appears. |
 | Allowed chars | `load_fixture` accepts keys matching `^[A-Za-z0-9_-]+$` only: no dots, no slashes. |
 
+**Route fixture resources** *(v0.9 addition, pending Dev A review)*. Every route response
+fixture uses one of these resources. `tests/test_demo_fixtures.py` validates each file against
+the schema listed here, and fails on any route resource not in this table.
+
+| Route | Resource | Timestep suffix | Schema |
+|---|---|---|---|
+| `GET /api/hazard/timesteps` | `timesteps` | no | ReplayTimeline |
+| `GET /api/hazard/layers` | `layers-<hazard_type>` | yes | FC&lt;HazardLayer&gt; |
+| `GET /api/exposure/infra` | `infra`, or `infra-<infra_type>` when filtered | no | FC&lt;InfraFeature&gt; |
+| `GET /api/impact/results` | `results`, or `results-<filter>` with `[a-z0-9-]` filter values | yes | FC&lt;ImpactResult&gt; |
+| `GET /api/risk/scores` | `scores` | yes | FC&lt;RiskScore&gt; |
+| `GET /api/advisory/` | `list` | no | FC&lt;Advisory&gt; |
+| `GET /api/advisory/{advisory_id}` | `item-<advisory_id>` | no | Advisory |
+| `POST /api/dispatch/{advisory_id}` | `receipt-<advisory_id>` | no | DispatchReceipt |
+| `GET /api/insurance/triggers` | `triggers` | yes | FC&lt;TriggerEvent&gt; |
+
+Enum values containing `_` (e.g. `power_line`) are written with `-` in resource names:
+`exposure__infra-power-line`. `advisory_id` is fixture-safe by §4.5, so it is used as is.
+
 Examples:
 ```
 hazard__timesteps.json
 hazard__layers-surge__20200520T1200Z.json
 hazard__gee-flood-susceptibility.json
 exposure__infra.json
+exposure__infra-power-line.json
 exposure__overpass-substations.json
 impact__results__20200519T0000Z.json
 risk__scores__20200520T1200Z.json
 advisory__gemini-draft-bn-<block_id>__20200520T1200Z.json
+advisory__list.json
+advisory__item-<advisory_id>.json
+dispatch__receipt-<advisory_id>.json
 insurance__triggers__20200520T1200Z.json
 ```
 

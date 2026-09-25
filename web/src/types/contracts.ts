@@ -61,6 +61,8 @@ export type TimestepParam = Timestep | "live";
 export type IsoDateTime = string;
 /** Opaque, matches ^[a-z0-9-]+$. */
 export type BlockId = string;
+/** UUID4, lowercase; matches ^[a-z0-9-]+$ (fixture-safe, contracts.md §4.5). */
+export type AdvisoryId = string;
 
 // ---------- §4.1 HazardLayer (Dev A) ----------
 
@@ -134,7 +136,7 @@ export interface Citation {
   source: string;
 }
 export interface AdvisoryProperties {
-  id: string;
+  id: AdvisoryId;
   block_id: BlockId;
   timestep: Timestep;
   language: Language;
@@ -173,7 +175,7 @@ export interface ChannelResult {
   error: string | null;
 }
 export interface DispatchReceipt {
-  advisory_id: string;
+  advisory_id: AdvisoryId;
   sent_at: IsoDateTime;
   channels: ChannelResult[];
 }

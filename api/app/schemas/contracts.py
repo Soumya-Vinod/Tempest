@@ -5,6 +5,7 @@ from typing import Any, Literal, Self
 from pydantic import AwareDatetime, Field, model_validator
 
 from app.schemas.common import (
+    AdvisoryId,
     AdvisoryStatus,
     BlockId,
     BlockSource,
@@ -146,7 +147,7 @@ class Citation(ContractModel):
 
 
 class AdvisoryProperties(ContractModel):
-    id: str
+    id: AdvisoryId
     block_id: BlockId
     timestep: Timestep
     language: Language
@@ -218,7 +219,7 @@ class ChannelResult(ContractModel):
 
 
 class DispatchReceipt(ContractModel):
-    advisory_id: str
+    advisory_id: AdvisoryId
     sent_at: AwareDatetime
     channels: list[ChannelResult]
 
