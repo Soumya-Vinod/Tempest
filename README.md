@@ -42,8 +42,11 @@ relative paths resolve against `api\`). That folder is git-ignored.
 Run the API (no venv activation needed):
 
 ```powershell
-api\.venv\Scripts\python -m uvicorn app.main:app --reload --app-dir api
+api\.venv\Scripts\python -m uvicorn app.main:app --reload --reload-dir api/app --app-dir api
 ```
+
+`--reload-dir api/app` limits the file watcher to backend code, so it doesn't also watch
+`web/node_modules` and the rest of the repo.
 
 Check it at <http://localhost:8000/health>. It reports `demo_mode` and a true/false flag for each
 configured key, never the values. Interactive docs are at <http://localhost:8000/docs>.
@@ -59,12 +62,30 @@ cd ..
 
 ### 3. Frontend (`web/`)
 
+React + Vite + TypeScript, Tailwind v4, MapLibre with the keyless OpenFreeMap Positron basemap, and
+deck.gl overlays.
+
 ```powershell
 cd web
 npm install
-Copy-Item .env.example .env
 npm run dev
 ```
+
+Open <http://localhost:5173>. Start the API first (step 2). In dev, Vite proxies `/api` and
+`/health` to `http://127.0.0.1:8000`, so no `.env` is needed. The side panel shows backend health
+and demo mode.
+
+Type-check, lint and build:
+
+```powershell
+npx tsc --noEmit -p tsconfig.app.json
+npm run lint
+npm run build
+cd ..
+```
+
+For a production build against a deployed API, copy `.env.example` to `.env` and set
+`VITE_API_BASE_URL` before `npm run build`.
 
 ### Demo mode
 
