@@ -6,3 +6,6 @@ export const TIMELINE_HEIGHT = 104
 
 /** Distance from the viewport bottom to the top of the timeline bar, plus a gap. */
 export const ABOVE_TIMELINE = TIMELINE_HEIGHT + 2 * UI_GAP
+
+/** Room for MapLibre's compact attribution button, which sits just above the timeline. */
+export const ATTRIBUTION_CLEARANCE = 44

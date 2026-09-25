@@ -6,6 +6,8 @@
   Remove once get_hazard_layer is implemented.
 """
 
+import threading
+from collections import OrderedDict
 from functools import lru_cache
 from pathlib import Path
 
@@ -45,8 +47,40 @@ def _graph(path: Path) -> nx.MultiDiGraph:
     return load_road_graph(path)
 
 
-@lru_cache(maxsize=4)
+# Computed collections by (timestep, synthetic), most recently used last. The web client asks for
+# each non-ok status in parallel; FastAPI runs those on threadpool threads, so a per-key lock makes
+# concurrent misses wait for one computation instead of each computing. Failures aren't cached.
+CACHE_SIZE = 8
+_cache: OrderedDict[tuple[str, bool], ImpactResultCollection] = OrderedDict()
+_cache_lock = threading.Lock()
+_key_locks: dict[tuple[str, bool], threading.Lock] = {}
+
+
 def _computed(timestep: str, synthetic: bool) -> ImpactResultCollection:
+    key = (timestep, synthetic)
+    with _cache_lock:
+        if key in _cache:
+            _cache.move_to_end(key)
+            return _cache[key]
+        key_lock = _key_locks.setdefault(key, threading.Lock())
+    with key_lock:
+        with _cache_lock:  # another thread may have finished it while we waited
+            if key in _cache:
+                _cache.move_to_end(key)
+                return _cache[key]
+        try:
+            result = _compute(timestep, synthetic)
+        finally:
+            with _cache_lock:
+                _key_locks.pop(key, None)
+        with _cache_lock:
+            _cache[key] = result
+            while len(_cache) > CACHE_SIZE:
+                _cache.popitem(last=False)
+        return result
+
+
+def _compute(timestep: str, synthetic: bool) -> ImpactResultCollection:
     # Hazards first: without them (Dev A's NotImplementedError) nothing else needs loading.
     if synthetic:
         hazards = synthetic_hazards(timestep)
@@ -86,4 +120,5 @@ def get_results(
 
 def clear_cache() -> None:
     _graph.cache_clear()
-    _computed.cache_clear()
+    with _cache_lock:
+        _cache.clear()

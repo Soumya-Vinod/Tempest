@@ -27,11 +27,30 @@ export const COLOR = {
   noMainland: [148, 163, 184, 120], // slate-400, translucent: muted
   powerLine: [147, 51, 234], // purple-600
   substation: [202, 138, 4], // yellow-600
-  hospital: [220, 38, 38], // red-600
-  healthCentre: [248, 113, 113], // red-400
+  hospital: [13, 148, 136], // teal-600 (red and orange are reserved for impact)
+  healthCentre: [45, 212, 191], // teal-400
   shelter: [22, 163, 74], // green-600
   outline: [255, 255, 255],
   standInFill: [255, 255, 255], // opaque white inside a ring: reads hollow, stays pickable
+} satisfies Record<string, Color>
+
+/**
+ * While impact results are showing, exposure steps back so red and orange read as impact only:
+ * greys by road class, pale tints for ferries and power lines, neutral points. Shelters keep
+ * filled (designated) vs hollow (stand-in).
+ */
+export const MUTED = {
+  roadMajor: [100, 116, 139], // slate-500: motorway, trunk, primary
+  roadMid: [148, 163, 184], // slate-400: secondary, tertiary
+  roadMinor: [203, 213, 225], // slate-300: unclassified, links
+  ferry: [147, 197, 253], // blue-300
+  noMainland: [226, 232, 240, 140], // slate-200, translucent
+  powerLine: [216, 180, 254], // purple-300, light lavender
+  substation: [168, 162, 158], // stone-400
+  hospital: [120, 113, 108], // stone-500
+  healthCentre: [168, 162, 158], // stone-400
+  shelter: [161, 161, 170], // zinc-400 (filled)
+  standInRing: [161, 161, 170], // zinc-400 (hollow)
 } satisfies Record<string, Color>
 
 /** Road line width (px) by OSM highway class; `_link` roads use LINK_WIDTH. */

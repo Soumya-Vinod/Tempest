@@ -1,6 +1,8 @@
 """GET /api/impact/results on the hand-built scenario (tests/impact_scenario.py)."""
 
 import json
+import time
+from concurrent.futures import ThreadPoolExecutor
 
 import pytest
 from fastapi.testclient import TestClient
@@ -12,11 +14,12 @@ from app.exposure import service as exposure
 from app.impact import service
 from app.impact.fixtures import fixture_key, to_fixture
 from app.main import app
-from app.schemas import LANDFALL_TIMESTEP, ImpactResultCollection
+from app.schemas import LANDFALL_TIMESTEP, REPLAY_TIMESTEPS, ImpactResultCollection
 from scripts.build_exposure_fixtures import build_fixtures
 from tests import impact_scenario as S
 
 TS = LANDFALL_TIMESTEP
+NON_OK = ("at_risk", "cut", "isolated")
 client = TestClient(app)
 URL = "/api/impact/results"
 
@@ -123,3 +126,59 @@ def test_demo_fixture_response_equals_computed(files, monkeypatch):
     assert filtered["features"] == [
         f for f in computed["features"] if f["properties"]["status"] == "ok"
     ]
+
+
+# --- Server-side cache --------------------------------------------------------------------------
+
+
+@pytest.fixture
+def counted(live, monkeypatch):
+    """Counts real computations behind the route (sequential or concurrent)."""
+    calls: list[tuple[str, bool]] = []
+    compute = service._compute
+
+    def counting(timestep, synthetic):
+        calls.append((timestep, synthetic))
+        time.sleep(0.2)  # long enough for concurrent requests to overlap
+        return compute(timestep, synthetic)
+
+    monkeypatch.setattr(service, "_compute", counting)
+    return calls
+
+
+def test_three_status_filters_compute_once(counted):
+    for status in ("at_risk", "cut", "isolated"):
+        get(f"timestep={TS}&synthetic=true&status={status}")
+    assert counted == [(TS, True)]
+
+
+def test_concurrent_status_requests_compute_once(counted):
+    """The web client sends the three non-ok status requests in parallel."""
+    url = f"{URL}?timestep={TS}&synthetic=true&status="
+    with ThreadPoolExecutor(max_workers=3) as pool:
+        codes = list(pool.map(lambda s: client.get(url + s).status_code, NON_OK))
+    assert codes == [200, 200, 200]
+    assert counted == [(TS, True)]
+
+
+def test_cache_is_lru_with_eight_entries(counted):
+    steps = REPLAY_TIMESTEPS[: service.CACHE_SIZE + 1]  # one more than fits
+    for ts in steps:
+        get(f"timestep={ts}&synthetic=true&status=isolated")
+    get(f"timestep={steps[-1]}&synthetic=true&status=cut")  # still cached
+    assert len(counted) == len(steps)
+    get(f"timestep={steps[0]}&synthetic=true&status=cut")  # evicted: computed again
+    assert counted[-1] == (steps[0], True) and len(counted) == len(steps) + 1
+
+
+def test_failures_are_not_cached(live, monkeypatch):
+    calls = []
+
+    def failing(timestep, synthetic):
+        calls.append(timestep)
+        raise NotImplementedError("get_hazard_layer: not implemented")
+
+    monkeypatch.setattr(service, "_compute", failing)
+    for _ in range(2):
+        assert client.get(f"{URL}?timestep={TS}").status_code == 501
+    assert len(calls) == 2
