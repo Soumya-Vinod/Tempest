@@ -15,6 +15,7 @@ from app.schemas.common import (
     ImpactStatus,
     InfraType,
     Language,
+    RiskDriver,
     StepType,
     Timestep,
     TimestepParam,
@@ -126,6 +127,8 @@ class RiskScoreProperties(ContractModel):
     timestep: Timestep
     score: UnitFraction
     components: RiskComponents
+    # v1.1 change pending Dev A: the largest contributing part; null when score is 0.
+    top_driver: RiskDriver | None = None
 
 
 class RiskScore(Feature):
@@ -134,6 +137,22 @@ class RiskScore(Feature):
 
 
 class RiskScoreCollection(FeatureCollection[RiskScore]):
+    pass
+
+
+# Areas inside the AOI clip that no block covers (§4.4, v1.1 change pending Dev A).
+class UnscoredAreaProperties(ContractModel):
+    id: str
+    label: str
+    area_km2: float = Field(ge=0)
+
+
+class UnscoredArea(Feature):
+    geometry: AreaGeometry
+    properties: UnscoredAreaProperties
+
+
+class UnscoredAreaCollection(FeatureCollection[UnscoredArea]):
     pass
 
 

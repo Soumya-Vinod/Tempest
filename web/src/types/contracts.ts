@@ -51,6 +51,18 @@ export type Language = "en" | "bn" | "hi";
 export type AdvisoryStatus = "draft" | "approved" | "sent";
 export type TriggerMetric = "wind_speed" | "surge_depth";
 export type BlockSource = "census2011_cd" | "h3_r7";
+/** The largest contributing part of a RiskScore (§4.4, v1.1 change pending Dev A). */
+export type RiskDriver =
+  | "surge"
+  | "wind"
+  | "flood"
+  | "isolated_facilities"
+  | "cut_roads"
+  | "cut_substations"
+  | "population_density"
+  | "hospital_access"
+  | "low_literacy"
+  | "mapped_shelters";
 export type Channel = "telegram" | "email";
 
 /** One of the 25 Amphan replay keys, `YYYY-MM-DDTHH:MM:SSZ`. */
@@ -122,9 +134,19 @@ export interface RiskScoreProperties {
   timestep: Timestep;
   score: number; // [0, 1]
   components: RiskComponents;
+  top_driver?: RiskDriver | null; // v1.1 change pending Dev A; null when score is 0
 }
 export type RiskScore = Feature<AreaGeometry, RiskScoreProperties>;
 export type RiskScoreCollection = FeatureCollection<RiskScore>;
+
+/** Areas inside the AOI clip that no block covers (v1.1 change pending Dev A). */
+export interface UnscoredAreaProperties {
+  id: string;
+  label: string; // "Municipal area, not scored"
+  area_km2: number;
+}
+export type UnscoredArea = Feature<AreaGeometry, UnscoredAreaProperties>;
+export type UnscoredAreaCollection = FeatureCollection<UnscoredArea>;
 
 // ---------- §4.5 Advisory (Dev B) ----------
 

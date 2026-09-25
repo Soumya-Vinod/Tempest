@@ -13,6 +13,19 @@ Language = Literal["en", "bn", "hi"]
 AdvisoryStatus = Literal["draft", "approved", "sent"]
 TriggerMetric = Literal["wind_speed", "surge_depth"]
 BlockSource = Literal["census2011_cd", "h3_r7"]
+# The largest contributing part of a RiskScore (§4.4, v1.1 change pending Dev A).
+RiskDriver = Literal[
+    "surge",
+    "wind",
+    "flood",
+    "isolated_facilities",
+    "cut_roads",
+    "cut_substations",
+    "population_density",
+    "hospital_access",
+    "low_literacy",
+    "mapped_shelters",
+]
 Channel = Literal["telegram", "email"]
 
 TIMESTEP_FORMAT = "%Y-%m-%dT%H:%M:%SZ"

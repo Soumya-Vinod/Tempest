@@ -75,14 +75,23 @@ built from the cached road response with osmnx, so it needs no download of its o
 changing a query in `api\app\exposure\ingest.py`, delete its `overpass-*.json` file or pass
 `--refresh`, since the cache is keyed by file name only.
 
-Impact results (`GET /api/impact/results`) need Dev A's hazard layers; until
-`get_hazard_layer` exists the live route returns 501. For development only, with
+Impact results (`GET /api/impact/results`) and risk scores (`GET /api/risk/scores`) need Dev A's
+hazard layers; until `get_hazard_layer` exists their live routes return 501. For development only, with
 `DEMO_MODE=false`, `?synthetic=true` runs the engine on made-up hazards from
 `api\app\impact\synthetic.py` (never real data, never written to `api\data\demo\`). This parameter
 is temporary: remove it once Dev A's hazards exist.
 
 ```powershell
 curl "http://localhost:8000/api/impact/results?timestep=2020-05-20T12:00:00Z&synthetic=true&status=isolated"
+```
+
+Risk uses committed block reference data in `api\data\reference\` (sources and verification
+status are in each file's header or build script):
+
+```powershell
+api\.venv\Scripts\python api\scripts\build_s24p_blocks.py      # block polygons and areas
+api\.venv\Scripts\python api\scripts\build_s24p_population.py  # population_2011 column
+api\.venv\Scripts\python api\scripts\build_s24p_land.py        # land polygon (run ingest_osm.py first)
 ```
 
 After an ingest, rebuild the committed exposure demo fixtures (`api\data\demo\exposure__infra*.json`)

@@ -174,6 +174,12 @@ aren't available, an H3 resolution-7 cell. Geometry: block `Polygon | MultiPolyg
 | `timestep` | Timestep | |
 | `score` | float [0, 1] | |
 | `components` | `{ hazard, exposure, vulnerability }` | Each a float in [0, 1]. The formula belongs to the risk engine, not this contract. |
+| `top_driver` | RiskDriver \| null, optional | *v1.1 change, pending Dev A.* The largest contributing part: `surge`, `wind`, `flood`, `isolated_facilities`, `cut_roads`, `cut_substations`, `population_density`, `hospital_access`, `low_literacy`, `mapped_shelters`. Null when `score` is 0. |
+
+**Unscored areas** *(v1.1 change, pending Dev A)*: parts of the AOI clip that no block covers
+(Kolkata, and South 24 Parganas municipal areas outside the CD blocks) get no RiskScore. They are
+served as FC&lt;UnscoredArea&gt;: geometry `Polygon | MultiPolygon`, properties `{ id: string,
+label: string, area_km2: number }`, with `label` "Municipal area, not scored".
 
 ### 4.5 Advisory (Dev B)
 Geometry: **null** (join to the block via `block_id`).
@@ -226,6 +232,7 @@ stated; `timestep=live` returns `501` in v1.0. FC = FeatureCollection.
 | B | GET | `/api/exposure/infra` | `infra_type?: InfraType` | FC&lt;InfraFeature&gt; (not time-dependent) |
 | B | GET | `/api/impact/results` | `timestep`, `hazard_type?`, `status?: ImpactStatus` | FC&lt;ImpactResult&gt; |
 | B | GET | `/api/risk/scores` | `timestep` | FC&lt;RiskScore&gt; |
+| B | GET | `/api/risk/unscored-areas` | — | FC&lt;UnscoredArea&gt; (static; the same in DEMO_MODE, from reference data). *v1.1 change, pending Dev A.* |
 | B | GET | `/api/advisory/` | `status?`, `block_id?` | FC&lt;Advisory&gt; |
 | B | POST | `/api/advisory/` | `{ block_id, timestep, language }` | Advisory (`draft`) |
 | B | GET | `/api/advisory/{advisory_id}` | — | Advisory |

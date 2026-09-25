@@ -6,13 +6,12 @@
   Remove once get_hazard_layer is implemented.
 """
 
-import threading
-from collections import OrderedDict
 from functools import lru_cache
 from pathlib import Path
 
 import networkx as nx
 
+from app.core.cache import SingleFlightLRU
 from app.core.config import get_settings
 from app.core.demo import load_fixture
 from app.exposure import service as exposure
@@ -22,7 +21,7 @@ from app.impact.engine import HAZARD_TYPES, compute_impacts
 from app.impact.fixtures import fixture_key, from_fixture
 from app.impact.synthetic import synthetic_hazards
 from app.impact.thresholds import ANCHOR_LONLAT
-from app.schemas import LIVE, ImpactResultCollection
+from app.schemas import LIVE, HazardLayerCollection, ImpactResultCollection
 
 GRAPH_PATH: Path = ROADS_GRAPHML  # tests point this at a small graph
 ANCHOR: tuple[float, float] = ANCHOR_LONLAT  # and this at its mainland node
@@ -47,45 +46,32 @@ def _graph(path: Path) -> nx.MultiDiGraph:
     return load_road_graph(path)
 
 
-# Computed collections by (timestep, synthetic), most recently used last. The web client asks for
-# each non-ok status in parallel; FastAPI runs those on threadpool threads, so a per-key lock makes
-# concurrent misses wait for one computation instead of each computing. Failures aren't cached.
+# Hazard layers and computed collections by (timestep, synthetic), each computed once even when the
+# web client's parallel requests arrive together (app/core/cache.py). Risk reuses both.
 CACHE_SIZE = 8
-_cache: OrderedDict[tuple[str, bool], ImpactResultCollection] = OrderedDict()
-_cache_lock = threading.Lock()
-_key_locks: dict[tuple[str, bool], threading.Lock] = {}
+_hazard_cache = SingleFlightLRU(lambda ts, synthetic: _load_hazards(ts, synthetic), CACHE_SIZE)
+_results_cache = SingleFlightLRU(lambda ts, synthetic: _compute(ts, synthetic), CACHE_SIZE)
 
 
-def _computed(timestep: str, synthetic: bool) -> ImpactResultCollection:
-    key = (timestep, synthetic)
-    with _cache_lock:
-        if key in _cache:
-            _cache.move_to_end(key)
-            return _cache[key]
-        key_lock = _key_locks.setdefault(key, threading.Lock())
-    with key_lock:
-        with _cache_lock:  # another thread may have finished it while we waited
-            if key in _cache:
-                _cache.move_to_end(key)
-                return _cache[key]
-        try:
-            result = _compute(timestep, synthetic)
-        finally:
-            with _cache_lock:
-                _key_locks.pop(key, None)
-        with _cache_lock:
-            _cache[key] = result
-            while len(_cache) > CACHE_SIZE:
-                _cache.popitem(last=False)
-        return result
+def _load_hazards(timestep: str, synthetic: bool) -> dict[str, HazardLayerCollection]:
+    if synthetic:
+        return synthetic_hazards(timestep)
+    return {h: get_hazard_layer(h, timestep) for h in HAZARD_TYPES}
+
+
+def hazard_layers(timestep: str, synthetic: bool) -> dict[str, HazardLayerCollection]:
+    """The hazard layers for a replay timestep (Dev A's, or synthetic in dev), cached."""
+    return _hazard_cache.get((timestep, synthetic))
+
+
+def results(timestep: str, synthetic: bool) -> ImpactResultCollection:
+    """The full computed collection (live mode), cached per (timestep, synthetic)."""
+    return _results_cache.get((timestep, synthetic))
 
 
 def _compute(timestep: str, synthetic: bool) -> ImpactResultCollection:
     # Hazards first: without them (Dev A's NotImplementedError) nothing else needs loading.
-    if synthetic:
-        hazards = synthetic_hazards(timestep)
-    else:
-        hazards = {h: get_hazard_layer(h, timestep) for h in HAZARD_TYPES}
+    hazards = hazard_layers(timestep, synthetic)
     graph = _graph(GRAPH_PATH)
     return compute_impacts(hazards, exposure.get_infra(), graph, timestep, anchor=ANCHOR)
 
@@ -106,12 +92,12 @@ def get_results(
             fixture = load_fixture(key)
         except FileNotFoundError as e:
             raise DemoFixtureMissing(f"no demo fixture for this timestep yet ({key})") from e
-        results = from_fixture(fixture, exposure.get_infra(), timestep)
+        collection = from_fixture(fixture, exposure.get_infra(), timestep)
     else:
-        results = _computed(timestep, synthetic)
+        collection = results(timestep, synthetic)
     features = [
         f
-        for f in results.features
+        for f in collection.features
         if (hazard_type is None or f.properties.hazard_type == hazard_type)
         and (status is None or f.properties.status == status)
     ]
@@ -120,5 +106,5 @@ def get_results(
 
 def clear_cache() -> None:
     _graph.cache_clear()
-    with _cache_lock:
-        _cache.clear()
+    _hazard_cache.clear()
+    _results_cache.clear()
