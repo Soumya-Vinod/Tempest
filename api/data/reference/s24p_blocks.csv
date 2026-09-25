@@ -1,0 +1,39 @@
+# South 24 Parganas CD blocks: geoBoundaries IND ADM3 shape -> Census 2011 sub-district code.
+# census2011_code: 5-digit Census of India 2011 sub-district (CD block) code, kept as a string.
+#   Source: Census of India 2011, West Bengal, South Twenty Four Parganas District Primary Census
+#   Abstract, pp. 588-590 (district code 343), as cited on Wikidata property P5578 for each block.
+#   Cross-checked 2026-09-25 against census2011.co.in/data/subdistrict/<code>-...: all 29 agree.
+#   Not checked against the Census PCA PDF itself.
+# block_name: Census 2011 spelling, with " - " written as "-" (Census: "Bishnupur - II").
+# geoboundaries_shape_id: shapeID in geoBoundaries gbOpen IND ADM3, release commit 9469f09
+#   (ODbL 1.0; source Pathways Data Pvt. Ltd. / lgdirectory.gov.in), matched by block name.
+geoboundaries_shape_id,block_name,census2011_code
+7132399B61821868380391,Thakurpukur Mahestola,02412
+7132399B15579509596825,Budge Budge-I,02413
+7132399B37107523777269,Budge Budge-II,02414
+7132399B89669187450970,Bishnupur-I,02415
+7132399B26597956459245,Bishnupur-II,02416
+7132399B8668963267585,Sonarpur,02417
+7132399B12552956761235,Bhangar-I,02418
+7132399B47860072797034,Bhangar-II,02419
+7132399B11422766927138,Canning-I,02420
+7132399B11351329952111,Canning-II,02421
+7132399B79003311953344,Baruipur,02422
+7132399B90655940365557,Magrahat-II,02423
+7132399B58876706346650,Magrahat-I,02424
+7132399B40955061140731,Falta,02425
+7132399B44062325856190,Diamond Harbour-I,02426
+7132399B75148677531452,Diamond Harbour-II,02427
+7132399B33683897075325,Kulpi,02428
+7132399B42376749952464,Mandirbazar,02429
+7132399B29342853885555,Mathurapur-I,02430
+7132399B34186677555902,Jaynagar-I,02431
+7132399B71578973344059,Jaynagar-II,02432
+7132399B60391710076443,Kultali,02433
+7132399B72739630366700,Basanti,02434
+7132399B91874597027785,Gosaba,02435
+7132399B3696711954189,Mathurapur-II,02436
+7132399B57179475336394,Kakdwip,02437
+7132399B83946510622683,Sagar,02438
+7132399B33746893857226,Namkhana,02439
+7132399B11296910323885,Patharpratima,02440
