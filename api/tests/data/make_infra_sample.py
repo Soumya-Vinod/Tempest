@@ -25,9 +25,14 @@ def main() -> None:
         ("hospital", "hospital"),
         ("shelter", "shelter"),
     ]:
-        found = ingest.normalise(infra_type, load(sample))
+        data = load(sample)
+        if infra_type == "shelter":
+            data = ingest.merge_responses([data, load("standin-candidates")])
+        found = ingest.normalise(infra_type, data)
         if infra_type == "hospital":
             found = ingest.dedupe_health(found)
+        elif infra_type == "shelter":
+            found = ingest.dedupe_shelters(found)
         records += ingest.clip_records(found, clip)
     ingest.write_infra(records, DATA / "infra-sample.parquet")
     print(f"{len(records)} features")

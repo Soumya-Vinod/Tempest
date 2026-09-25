@@ -2,11 +2,13 @@
 import type { DeckProps, PickingInfo } from '@deck.gl/core'
 
 import type { InfraFeature } from '../../types/contracts'
-import { HIGHWAY_LABEL } from './style'
+import { HIGHWAY_LABEL, STAND_IN } from './style'
 
 type Attrs = Record<string, unknown>
 /** deck.gl's tooltip return type (not exported from the package root). */
 type TooltipContent = ReturnType<NonNullable<DeckProps['getTooltip']>>
+
+const capitalise = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
 
 /** What the feature is, in plain words (also used for "Unnamed …"). */
 export function kindLabel(infraType: InfraFeature['properties']['infra_type'], a: Attrs): string {
@@ -26,7 +28,7 @@ export function kindLabel(infraType: InfraFeature['properties']['infra_type'], a
     case 'shelter':
       if (a.shelter_kind === 'cyclone_shelter') return 'Cyclone shelter'
       if (a.shelter_kind === 'assembly_point') return 'Assembly point'
-      return 'School'
+      return capitalise(STAND_IN[String(a.shelter_kind)]?.label ?? 'shelter')
   }
 }
 
@@ -47,9 +49,8 @@ function details(infraType: InfraFeature['properties']['infra_type'], a: Attrs):
   if (a.operator) lines.push(`Operator: ${String(a.operator)}`)
   if (a.ref) lines.push(`Route number: ${String(a.ref)}`)
   if (a.bridge && a.bridge !== 'no') lines.push('Bridge')
-  if (infraType === 'shelter' && a.shelter_kind === 'school_proxy') {
-    lines.push('Stand-in: not a designated cyclone shelter')
-  }
+  const standIn = infraType === 'shelter' ? STAND_IN[String(a.shelter_kind)] : undefined
+  if (standIn) lines.push(`Stand-in: ${standIn.label}, not a designated shelter`)
   if (infraType === 'road' && a.baseline_reachable_from_main === false) {
     lines.push('No mapped connection to mainland')
   }

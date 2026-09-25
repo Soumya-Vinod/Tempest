@@ -40,8 +40,77 @@ def test_shelter_kinds():
         "shelter-node-6": "school_proxy",
         "shelter-node-7": "cyclone_shelter",  # Bengali name, precomposed ড় / য়
         "shelter-node-8": "cyclone_shelter",  # indicator beats assembly_point
+        "shelter-node-10": "public_building_proxy",  # building=civic
         "shelter-node-11": "cyclone_shelter",  # public building, name matched locally
-    }  # bus shelter (1), plain amenity=shelter (2), restaurant (9), civic office (10) dropped
+    }  # bus shelter (1), plain amenity=shelter (2) and the restaurant (9) are dropped
+
+
+def shelters_with_candidates() -> list[ingest.InfraRecord]:
+    """Tag query first, then the `out center` candidates, as the ingest merges them."""
+    merged = ingest.merge_responses([load("shelter"), load("standin-candidates")])
+    return ingest.normalise("shelter", merged)
+
+
+def test_stand_in_kinds_and_priority():
+    recs = by_id(shelters_with_candidates())
+    kind = {rid: r.attributes["shelter_kind"] for rid, r in recs.items()}
+    assert kind["shelter-node-100"] == "community_proxy"  # amenity=community_centre
+    assert kind["shelter-node-101"] == "community_proxy"  # amenity=townhall
+    assert kind["shelter-node-102"] == "school_proxy"  # amenity=college
+    assert kind["shelter-node-108"] == "school_proxy"  # amenity=university
+    assert kind["shelter-way-103"] == "school_proxy"  # building=school
+    assert kind["shelter-node-106"] == "school_proxy"  # college beats office=government
+    assert kind["shelter-node-107"] == "public_building_proxy"  # office=government
+    assert kind["shelter-relation-109"] == "public_building_proxy"  # building=public
+    # Way 5 is in both responses: one record, cyclone_shelter, full geometry from the tag query.
+    assert kind["shelter-way-5"] == "cyclone_shelter"
+    assert recs["shelter-way-5"].area is not None
+
+
+@pytest.mark.parametrize(
+    ("tags", "kind"),
+    [
+        ({"amenity": "school", "office": "government"}, "school_proxy"),
+        ({"amenity": "townhall", "building": "public"}, "community_proxy"),
+        ({"building": "civic"}, "public_building_proxy"),
+        ({"emergency": "assembly_point", "amenity": "school"}, "assembly_point"),
+        ({"amenity": "community_centre", "name": "Flood Shelter"}, "cyclone_shelter"),
+        ({"building": "house"}, None),
+    ],
+)
+def test_shelter_kind_priority(tags, kind):
+    got = ingest.classify("shelter", tags)
+    assert (got and got["shelter_kind"]) == kind
+
+
+def test_center_only_elements_become_points():
+    way = {"type": "way", "id": 1, "center": {"lat": 22.3, "lon": 88.3}, "tags": {}}
+    assert ingest.element_geometry(way, as_line=False) == (Point(88.3, 22.3), None)
+    assert ingest.element_geometry(way, as_line=True) == (None, None)
+
+
+def test_dedupe_stand_ins():
+    recs = by_id(ingest.dedupe_shelters(shelters_with_candidates()))
+    assert "shelter-node-100" in recs
+    assert "shelter-node-101" not in recs  # same normalised name, ~32 m, same kind
+    assert "shelter-way-103" in recs
+    assert "shelter-way-104" not in recs  # both unnamed building=school, ~38 m
+    assert "shelter-node-105" in recs  # unnamed but a different kind, ~21 m away
+    assert {"shelter-node-102", "shelter-node-108"} <= set(recs)  # same name but ~56 m apart
+    assert recs["shelter-node-3"].attributes["shelter_kind"] == "cyclone_shelter"  # untouched
+
+
+def test_dedupe_keeps_higher_priority_kind():
+    a = ingest.InfraRecord(
+        "shelter-node-2", "shelter", "Ward Office", "node/2",
+        {"shelter_kind": "public_building_proxy"}, Point(88.3, 22.3),
+    )  # fmt: skip
+    b = ingest.InfraRecord(
+        "shelter-node-9", "shelter", "Ward office", "node/9",
+        {"shelter_kind": "community_proxy"}, Point(88.3001, 22.3),
+    )  # fmt: skip
+    kept = ingest.dedupe_shelters([a, b])
+    assert [r.id for r in kept] == ["shelter-node-9"]  # community beats public building
 
 
 def test_shelter_queries():
@@ -154,6 +223,7 @@ def test_ids_are_hyphenated_and_valid_features():
         ("road", "road"),
         ("hospital", "hospital"),
         ("shelter", "shelter"),
+        ("shelter", "standin-candidates"),
     ]:
         records += ingest.normalise(infra_type, load(sample), include_minor_line=True)
     for r in records:

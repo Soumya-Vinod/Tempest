@@ -87,6 +87,30 @@ SHELTER_INDICATOR_KEYS = ("shelter_type", "emergency", "building", "amenity", "s
 SHELTER_INDICATOR_RE = re.compile(r"cyclone|flood", re.IGNORECASE)
 SHELTER_FLAG_KEYS = ("cyclone_shelter", "flood_shelter")
 
+# shelter_kind values, highest priority first. An element matching several keeps the first.
+# The *_proxy kinds are stand-ins: buildings that could shelter people, not designated shelters.
+SHELTER_KINDS: tuple[str, ...] = (
+    "cyclone_shelter",
+    "assembly_point",
+    "school_proxy",
+    "community_proxy",
+    "public_building_proxy",
+)
+STAND_IN_KINDS = frozenset(k for k in SHELTER_KINDS if k.endswith("_proxy"))
+STAND_IN_RULES: tuple[tuple[str, Any], ...] = (
+    (
+        "school_proxy",
+        lambda t: (
+            t.get("amenity") in {"school", "college", "university"} or t.get("building") == "school"
+        ),
+    ),
+    ("community_proxy", lambda t: t.get("amenity") in {"community_centre", "townhall"}),
+    (
+        "public_building_proxy",
+        lambda t: t.get("office") == "government" or t.get("building") in {"public", "civic"},
+    ),
+)
+
 
 def _nfc(text: str) -> str:
     return unicodedata.normalize("NFC", text)
@@ -141,8 +165,9 @@ def classify(infra_type: str, tags: dict[str, str], *, include_minor_line: bool 
             return {"shelter_kind": "cyclone_shelter"}
         if tags.get("emergency") == "assembly_point":
             return {"shelter_kind": "assembly_point"}
-        if tags.get("amenity") == "school":
-            return {"shelter_kind": "school_proxy"}
+        for kind, is_kind in STAND_IN_RULES:
+            if is_kind(tags):
+                return {"shelter_kind": kind}
         return None
     raise ValueError(f"unknown infra_type {infra_type!r}")
 
@@ -193,6 +218,19 @@ def infra_query(infra_type: str, bbox, *, include_minor_line: bool = False) -> s
         ],
     }[infra_type]
     return _query(bbox, statements, "out geom")
+
+
+def standin_candidate_query(bbox) -> str:
+    """Stand-in candidates beyond the tag query: `out center` (centres only; these are points)."""
+    return _query(
+        bbox,
+        [
+            'nwr["amenity"~"^(community_centre|townhall|college|university)$"];',
+            'nwr["office"="government"];',
+            'nwr["building"~"^(school|public|civic)$"];',
+        ],
+        "out center",
+    )
 
 
 def bbox_tiles(bbox: tuple[float, float, float, float]) -> list[tuple[float, float, float, float]]:
@@ -263,10 +301,17 @@ def relation_area(members: list[dict]) -> BaseGeometry | None:
 def element_geometry(
     element: dict, *, as_line: bool
 ) -> tuple[BaseGeometry | None, BaseGeometry | None]:
-    """(feature geometry, source area). Lines stay lines; areas become their centroid."""
+    """(feature geometry, source area). Lines stay lines; areas become their centroid.
+
+    `out center` responses give ways and relations only a centre point; that is used as is.
+    """
     kind = element["type"]
     if kind == "node":
         return Point(element["lon"], element["lat"]), None
+    if "center" in element and not element.get("geometry") and not element.get("members"):
+        if as_line:
+            return None, None
+        return Point(element["center"]["lon"], element["center"]["lat"]), None
     if kind == "way":
         coords = _coords(element.get("geometry"))
         if len(coords) < 2:
@@ -335,6 +380,12 @@ def infra_id(infra_type: str, osm_type: str, osm_number: int) -> str:
     return f"{infra_type.replace('_', '-')}-{osm_type}-{osm_number}"
 
 
+def _kind_rank(attributes: dict[str, Any]) -> int:
+    """Priority of a shelter_kind (0 = highest); 0 for every other type."""
+    kind = attributes.get("shelter_kind")
+    return SHELTER_KINDS.index(kind) if kind else 0
+
+
 def normalise(
     infra_type: str, data: dict, *, include_minor_line: bool = False
 ) -> list[InfraRecord]:
@@ -351,6 +402,8 @@ def normalise(
             continue
         name = (tags.get("name") or tags.get("name:en") or "").strip() or None
         rid = infra_id(infra_type, element["type"], element["id"])
+        if rid in records and _kind_rank(records[rid].attributes) <= _kind_rank(attributes):
+            continue  # same element seen in another response: keep the better / first copy
         records[rid] = InfraRecord(
             id=rid,
             infra_type=infra_type,
@@ -425,6 +478,37 @@ def dedupe_health(records: list[InfraRecord]) -> list[InfraRecord]:
                     _merge_into(a, b)
                     dropped.add(b.id)
     return [r for r in kept if r.id not in dropped]
+
+
+STAND_IN_DEDUPE_M = 50.0
+
+
+def dedupe_shelters(records: list[InfraRecord]) -> list[InfraRecord]:
+    """Drop a stand-in within STAND_IN_DEDUPE_M of another stand-in with the same normalised name,
+    or, if both are unnamed, the same shelter_kind. The higher-priority kind is kept, then an area
+    over a node, then the smaller OSM id. Real shelters are never dropped."""
+    stand_ins = sorted(
+        (r for r in records if r.attributes["shelter_kind"] in STAND_IN_KINDS),
+        key=lambda r: (_kind_rank(r.attributes), *_priority(r)),
+    )
+    groups: dict[tuple[str, str], list[InfraRecord]] = {}
+    for r in stand_ins:
+        key = ("name", n) if (n := _norm_name(r.name)) else ("kind", r.attributes["shelter_kind"])
+        groups.setdefault(key, []).append(r)
+    dropped: set[str] = set()
+    for group in groups.values():
+        if len(group) < 2:
+            continue
+        pts = gpd.GeoSeries([r.geometry for r in group], crs="EPSG:4326").to_crs(METRIC_CRS)
+        for i, a in enumerate(group):
+            if a.id in dropped:
+                continue
+            for j in range(i + 1, len(group)):
+                b = group[j]
+                if b.id not in dropped and pts.iloc[i].distance(pts.iloc[j]) <= STAND_IN_DEDUPE_M:
+                    a.name = a.name or b.name
+                    dropped.add(b.id)
+    return [r for r in records if r.id not in dropped]
 
 
 # --- Clipping -----------------------------------------------------------------------------------
