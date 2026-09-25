@@ -111,6 +111,29 @@ AMPHAN_TRACK: dict[str, CycloneTrackPoint] = {
 }
 
 
+@lru_cache(maxsize=1)
+def get_replay_track() -> tuple[CycloneTrackPoint, ...]:
+    """Return the canonical immutable 25-point Cyclone Amphan replay track.
+
+    Source Dataset:
+        Official IBTrACS Cyclone Amphan track (IBTrACS.NI.2020137N10087.v04r00) and
+        India Meteorological Department (IMD) RSMC Best Track Report for Super Cyclonic
+        Storm AMPHAN (16–21 May 2020).
+
+    Sampling:
+        One track point per 3-hour synoptic timestep over the 72-hour replay window
+        from 2020-05-17T12:00:00Z to landfall at 2020-05-20T12:00:00Z (25 points).
+
+    Derived Fields:
+        - forward_speed_mps: Translation velocity computed via Haversine great-circle
+          distance between consecutive 3-hourly fixes divided by 10800s.
+        - heading_deg: Meteorological forward heading azimuth (0° = North, 90° = East)
+          computed using spherical forward geodesic bearing between consecutive fixes.
+    """
+    return tuple(AMPHAN_TRACK[ts] for ts in REPLAY_TIMESTEPS)
+
+
+
 def iso_to_compact_ts(timestep: str) -> str:
     """Convert ISO 8601 UTC timestamp to compact format: 2020-05-20T12:00:00Z -> 20200520T1200Z."""
     return timestep.replace("-", "").replace(":", "")[:13] + "Z"
