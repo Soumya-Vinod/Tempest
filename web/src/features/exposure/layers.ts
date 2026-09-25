@@ -20,7 +20,8 @@ import {
   OUTLINE_PX,
   POINT_PX,
   ROAD_WIDTH,
-  SCHOOL_RING_PX,
+  STAND_IN,
+  STAND_IN_RING_PX,
 } from './style'
 
 type InfraGeoFeature = Feature<Geometry, InfraFeatureProperties>
@@ -44,13 +45,12 @@ function roadWidth(f: InfraGeoFeature): number {
   return ROAD_WIDTH[hw] ?? ROAD_WIDTH.unclassified
 }
 
-const isSchoolProxy = (f: InfraGeoFeature) => attr(f, 'shelter_kind') === 'school_proxy'
+/** The stand-in style for a *_proxy shelter_kind, or undefined for a real shelter. */
+const standIn = (f: InfraGeoFeature) => STAND_IN[String(attr(f, 'shelter_kind'))]
 
-const shelterFill = (f: InfraGeoFeature): Color =>
-  isSchoolProxy(f) ? COLOR.schoolFill : COLOR.shelter
-const shelterLine = (f: InfraGeoFeature): Color =>
-  isSchoolProxy(f) ? COLOR.shelter : COLOR.outline
-const shelterLineWidth = (f: InfraGeoFeature) => (isSchoolProxy(f) ? SCHOOL_RING_PX : OUTLINE_PX)
+const shelterFill = (f: InfraGeoFeature): Color => (standIn(f) ? COLOR.standInFill : COLOR.shelter)
+const shelterLine = (f: InfraGeoFeature): Color => standIn(f)?.ring ?? COLOR.outline
+const shelterLineWidth = (f: InfraGeoFeature) => (standIn(f) ? STAND_IN_RING_PX : OUTLINE_PX)
 
 const HIGHLIGHT: number[] = [250, 204, 21, 200] // yellow-400
 

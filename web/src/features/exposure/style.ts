@@ -31,7 +31,7 @@ export const COLOR = {
   healthCentre: [248, 113, 113], // red-400
   shelter: [22, 163, 74], // green-600
   outline: [255, 255, 255],
-  schoolFill: [255, 255, 255], // opaque white inside a green ring: reads hollow, stays pickable
+  standInFill: [255, 255, 255], // opaque white inside a ring: reads hollow, stays pickable
 } satisfies Record<string, Color>
 
 /** Road line width (px) by OSM highway class; `_link` roads use LINK_WIDTH. */
@@ -70,6 +70,24 @@ export const POINT_PX = {
 } as const satisfies Record<string, readonly [number, number]>
 export const FULL_SIZE_M_PER_PX = 25
 export const OUTLINE_PX = 0.75 // white edge on filled points
-export const SCHOOL_RING_PX = 1.5 // green ring on hollow school stand-ins
+export const STAND_IN_RING_PX = 1.5 // coloured ring on hollow stand-in markers
+
+/**
+ * Shelter stand-ins (shelter_kind *_proxy): buildings that could shelter people but are not
+ * designated shelters. Each is a hollow marker with its own ring colour; real shelters are filled.
+ */
+export const STAND_IN: Record<string, { ring: Color; label: string; plural: string }> = {
+  school_proxy: { ring: [22, 163, 74], label: 'school or college', plural: 'schools & colleges' },
+  community_proxy: {
+    ring: [14, 116, 144], // cyan-700
+    label: 'community centre',
+    plural: 'community centres',
+  },
+  public_building_proxy: {
+    ring: [79, 70, 229], // indigo-600
+    label: 'public building',
+    plural: 'public buildings',
+  },
+}
 
 export const cssColor = ([r, g, b, a = 255]: Color) => `rgb(${r} ${g} ${b} / ${a / 255})`

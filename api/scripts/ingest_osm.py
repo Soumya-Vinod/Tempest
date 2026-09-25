@@ -141,7 +141,11 @@ def main() -> None:
                 cached_overpass(f"shelter-names-{n}", q, args.refresh)
                 for n, q in enumerate(ingest.shelter_name_queries(bbox), start=1)
             ]
-            data = ingest.merge_responses([data, *names])
+            candidates = cached_overpass(
+                "standin-candidates", ingest.standin_candidate_query(bbox), args.refresh
+            )
+            # Tag query first, so its full geometry wins over `out center` copies of an element.
+            data = ingest.merge_responses([data, *names, candidates])
         if infra_type == "road":
             ferries_before = _ferry_count(data)
             data = ingest.drop_long_ferries(data)
@@ -149,7 +153,11 @@ def main() -> None:
             road_data = data  # the road graph is built from this same response
         found = ingest.normalise(infra_type, data, include_minor_line=minor)
         raw_counts[infra_type] = len(found)
-        deduped = ingest.dedupe_health(found) if infra_type == "hospital" else found
+        deduped = found
+        if infra_type == "hospital":
+            deduped = ingest.dedupe_health(found)
+        elif infra_type == "shelter":
+            deduped = ingest.dedupe_shelters(found)
         records += ingest.clip_records(deduped, polygon)
 
     print("Road graph (from overpass-road.json)", flush=True)

@@ -1,7 +1,8 @@
 import type { Color } from '@deck.gl/core'
+import type { ReactNode } from 'react'
 
 import type { InfraFeatureCollection, InfraType } from '../../types/contracts'
-import { COLOR, cssColor, INFRA_TYPES, TYPE_LABEL } from './style'
+import { COLOR, cssColor, INFRA_TYPES, STAND_IN, TYPE_LABEL } from './style'
 import type { InfraByType } from './useInfra'
 
 interface Props {
@@ -14,7 +15,7 @@ const count = (fc: InfraFeatureCollection, key: string, value: unknown) =>
   fc.features.filter((f) => f.properties.attributes[key] === value).length
 
 /** Legend-style breakdown under a row, e.g. hollow vs filled shelters. */
-function breakdown(infraType: InfraType, fc: InfraFeatureCollection): string | null {
+function breakdown(infraType: InfraType, fc: InfraFeatureCollection): ReactNode {
   const n = (v: number) => v.toLocaleString()
   switch (infraType) {
     case 'road': {
@@ -28,13 +29,39 @@ function breakdown(infraType: InfraType, fc: InfraFeatureCollection): string | n
       return `${n(hospitals)} hospitals (large) · ${n(centres)} health centres`
     }
     case 'shelter': {
-      const schools = count(fc, 'shelter_kind', 'school_proxy')
-      const real = fc.features.length - schools
-      return `${n(real)} shelters (filled) · ${n(schools)} school stand-ins (hollow)`
+      const standIns = Object.entries(STAND_IN).map(([kind, s]) => ({
+        ...s,
+        n: count(fc, 'shelter_kind', kind),
+      }))
+      const real = fc.features.length - standIns.reduce((sum, s) => sum + s.n, 0)
+      return (
+        <ul className="space-y-0.5">
+          <li className="flex items-center gap-1.5">
+            <Dot fill={COLOR.shelter} ring={COLOR.shelter} />
+            {n(real)} designated shelters
+          </li>
+          {standIns.map((s) => (
+            <li key={s.label} className="flex items-center gap-1.5">
+              <Dot fill={[255, 255, 255]} ring={s.ring} />
+              {n(s.n)} {s.plural} (stand-ins)
+            </li>
+          ))}
+        </ul>
+      )
     }
     default:
       return null
   }
+}
+
+function Dot({ fill, ring }: { fill: Color; ring: Color }) {
+  return (
+    <span
+      className="size-2 shrink-0 rounded-full border-[1.5px]"
+      style={{ background: cssColor(fill), borderColor: cssColor(ring) }}
+      aria-hidden
+    />
+  )
 }
 
 const SWATCH: Record<InfraType, { color: Color; line: boolean }> = {
@@ -86,7 +113,7 @@ export default function InfraPanel({ state, visible, onToggle }: Props) {
                   {s.status === 'error' && <span className="text-red-600">error</span>}
                 </span>
               </label>
-              {detail && <p className="mt-0.5 ml-6 text-xs text-slate-500">{detail}</p>}
+              {detail && <div className="mt-0.5 ml-6 text-xs text-slate-500">{detail}</div>}
               {s.status === 'error' && (
                 <p className="mt-0.5 ml-6 text-xs text-red-600">{s.message}</p>
               )}

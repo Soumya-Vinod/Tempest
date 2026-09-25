@@ -1,0 +1,26 @@
+{
+  "elements": [
+    {"type": "node", "id": 100, "lat": 22.40, "lon": 88.20,
+     "tags": {"amenity": "community_centre", "name": "Kultali Community Hall"}},
+    {"type": "node", "id": 101, "lat": 22.4001, "lon": 88.2003,
+     "tags": {"amenity": "townhall", "name": "Kultali community-hall"}},
+    {"type": "node", "id": 102, "lat": 22.30, "lon": 88.30,
+     "tags": {"amenity": "college", "name": "Canning College"}},
+    {"type": "way", "id": 103, "center": {"lat": 22.35, "lon": 88.35},
+     "tags": {"building": "school"}},
+    {"type": "way", "id": 104, "center": {"lat": 22.3502, "lon": 88.3503},
+     "tags": {"building": "school"}},
+    {"type": "node", "id": 105, "lat": 22.35, "lon": 88.3502,
+     "tags": {"amenity": "community_centre"}},
+    {"type": "node", "id": 106, "lat": 22.45, "lon": 88.45,
+     "tags": {"amenity": "college", "office": "government", "name": "Govt College Office"}},
+    {"type": "node", "id": 107, "lat": 22.15, "lon": 88.45,
+     "tags": {"office": "government", "name": "BDO Office Gosaba"}},
+    {"type": "node", "id": 108, "lat": 22.3005, "lon": 88.30,
+     "tags": {"amenity": "university", "name": "Canning College"}},
+    {"type": "way", "id": 5, "center": {"lat": 22.305, "lon": 88.305},
+     "tags": {"amenity": "school", "name": "Patharpratima Flood Shelter cum School"}},
+    {"type": "relation", "id": 109, "center": {"lat": 22.55, "lon": 88.55},
+     "tags": {"type": "multipolygon", "building": "public", "name": "Block Office Complex"}}
+  ]
+}

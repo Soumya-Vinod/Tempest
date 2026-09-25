@@ -99,7 +99,22 @@ OSM ingest attributes and scope *(v0.9 addition, pending Dev A review)*:
 | `power_line` | `power=line` (+ `minor_line` if ≤ 10,000 ways) | `voltage`, `operator` (when tagged) |
 | `road` | `highway` motorway…tertiary (+ `_link`), unclassified; `route=ferry` | `highway`, `ref`, `bridge` (when tagged); `ferry`: boolean; `baseline_component`: int \| null; `baseline_reachable_from_main`: boolean (see §4.3) |
 | `hospital` | `amenity=hospital\|clinic`, `healthcare=hospital\|clinic\|centre` | `facility_level`: `"hospital"` \| `"health_centre"` |
-| `shelter` | cyclone/flood shelters, `emergency=assembly_point`, `amenity=school` | `shelter_kind`: `"cyclone_shelter"` \| `"assembly_point"` \| `"school_proxy"` |
+| `shelter` | cyclone/flood shelters, assembly points and stand-in buildings (see below) | `shelter_kind` (see below) |
+
+`shelter_kind` values *(v0.9 addition, pending Dev A review)*, highest priority first. An OSM element
+matching several gets the first. The `*_proxy` kinds are **stand-ins**: buildings that could shelter
+people but are not designated shelters.
+
+| `shelter_kind` | OSM source |
+|---|---|
+| `cyclone_shelter` | `shelter_type` / `emergency` / `building` etc. matching cyclone or flood, or a cyclone / flood shelter name |
+| `assembly_point` | `emergency=assembly_point` |
+| `school_proxy` | `amenity=school\|college\|university`, `building=school` |
+| `community_proxy` | `amenity=community_centre\|townhall` |
+| `public_building_proxy` | `office=government`, `building=public\|civic` |
+
+Stand-ins within 50 m of another stand-in with the same normalised name (or, both unnamed, the same
+`shelter_kind`) are merged into the higher-priority one.
 
 `infra_type = "hospital"` therefore covers all health facilities; filter on `facility_level`.
 Features are clipped to the South 24 Parganas + Kolkata district boundaries, with river channels up
