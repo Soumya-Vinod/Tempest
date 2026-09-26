@@ -29,7 +29,9 @@ sys.path.insert(0, str(API_DIR))
 from app.core.demo import DEMO_DIR  # noqa: E402
 from app.hazard.models import HazardType  # noqa: E402
 from app.hazard.replay import (  # noqa: E402
+    generate_flood_layer,
     generate_hazard_layer,
+    generate_surge_layer,
     generate_wind_layer,
     iso_to_compact_ts,
 )
@@ -67,6 +69,10 @@ def build_hazard_fixtures(
 
             if h_type == "wind":
                 collection = generate_wind_layer(timestep)
+            elif h_type == "surge":
+                collection = generate_surge_layer(timestep)
+            elif h_type == "flood":
+                collection = generate_flood_layer(timestep)
             else:
                 collection = generate_hazard_layer(h_type, timestep)
 
