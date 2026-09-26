@@ -4,13 +4,14 @@ Run from the repo root:  api\\.venv\\Scripts\\python api\\scripts\\build_advisor
 
 For every block suggested (risk score >= service.SUGGEST_MIN_SCORE) at T-6, T-3 and T-0, calls
 Gemini once (plus one retry if the draft fails the number check), paced at GEMINI_RPM calls a
-minute and capped by --max-calls, and writes the raw structured
-response that passed to api/data/demo/advisory__gemini-<census_code>__<ts>.json. Facts come from
-the DEMO_MODE data, so the fixtures match what the demo serves. Failures are written to the
-audit log (api/data/state/tempest.db) and printed. Pairs that already have a fixture are
-skipped unless --all. When Gemini answers 503 (overloaded), the script waits BACKOFF_503_S and
-tries the same pair again; every attempt, failed or not, counts towards --max-calls. A 429
-(quota exhausted) stops the run at once and lists the pairs still to generate.
+minute and capped by --max-calls, and writes the raw structured response that passed, with the
+text values it refers to (service.fixture_payload; the staleness check compares them), to
+api/data/demo/advisory__gemini-<census_code>__<ts>.json. Facts come from the DEMO_MODE data, so
+the fixtures match what the demo serves. Failures are written to the audit log
+(api/data/state/tempest.db) and printed. Pairs that already have a fixture are skipped unless
+--all. When Gemini answers 503 (overloaded), the script waits BACKOFF_503_S and tries the same
+pair again; every attempt, failed or not, counts towards --max-calls. A 429 (quota exhausted)
+stops the run at once and lists the pairs still to generate.
 """
 
 import argparse
@@ -108,7 +109,7 @@ def run(
                 print(f"  FAILED {name} {ts} after {e.calls} call(s): {str(e)[:160]} {e.problems}")
                 break
             result.calls += used
-            write(block_id, ts, raw)
+            write(block_id, ts, service.fixture_payload(raw, facts))
             result.written.append((name, ts, used))
             print(f"  {name:<14} {ts}  calls {used}")
             break

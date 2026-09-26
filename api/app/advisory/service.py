@@ -3,8 +3,13 @@
 Generate: engine facts -> Gemini (one call per block and timestep, en + bn + hi) -> number check
 -> placeholders filled -> a draft. In DEMO_MODE a cached Gemini response
 (advisory__gemini-<census_code>__<ts>) is used when there is one; otherwise the live key if it is
-set, else 503. A draft failing the number check is retried once, then refused (502); each
-failure is written to the audit log.
+set, else 503. A cached response is stale when the engines have changed its meaning since it was
+generated: it refers to a {{key}} the current facts don't have, or a text value it refers to (a
+name, cause or route, stored with it under CITED_TEXT_KEY) differs now, or it has no stored
+values. A stale response is audited and the live / 503 path is used. Numbers may change: they
+are filled at render time.
+A draft failing the number check is retried once, then refused (502); each failure is written to
+the audit log.
 
 Rules: only drafts can be edited, approved or rejected (else 409). Edits are checked like
 Gemini's drafts, and can't remove a placeholder. Approval needs "Name (Designation)"; rejection
@@ -189,15 +194,76 @@ def generate_live(
     )
 
 
+CITED_TEXT_KEY = "_cited_text"  # in a Gemini fixture: {key: text value} its templates used
+
+
+def _used_keys(raw: dict) -> set[str] | None:
+    """Placeholders in a Gemini response, or None if it is not a valid draft."""
+    try:
+        templates = AdvisoryTexts.model_validate(
+            gemini.GeminiDraft.model_validate(raw).model_dump()
+        )
+    except ValidationError:
+        return None
+    return set().union(
+        *(render.placeholder_keys(getattr(templates, lang)) for lang in render.LANGUAGES)
+    )
+
+
+def fixture_payload(raw: dict, facts: Facts) -> dict:
+    """What the fixture script writes: Gemini's response plus the text values it refers to."""
+    used = _used_keys(raw) or set()
+    cited = {c.key: c.value for c in facts.citations if c.key in used and isinstance(c.value, str)}
+    return {**raw, CITED_TEXT_KEY: dict(sorted(cited.items()))}
+
+
+def staleness(cached: dict, facts: Facts) -> dict | None:
+    """Why a cached response no longer fits the facts (audit details), or None if it does. An
+    invalid response is not called stale here; evaluate() reports it."""
+    used = _used_keys(cached)
+    if used is None:
+        return None
+    current = {c.key: c.value for c in facts.citations}
+    if missing := sorted(used - current.keys()):
+        return {"missing_keys": missing}
+    stored = cached.get(CITED_TEXT_KEY)
+    if not isinstance(stored, dict):
+        return {"cited_text": "not stored"}
+    changed = {
+        k: {"cached": stored.get(k), "current": v}
+        for k, v in sorted(current.items())
+        if k in used and isinstance(v, str) and stored.get(k) != v
+    }
+    return {"changed_text": changed} if changed else None
+
+
 def _templates_for(facts: Facts, actor: str | None) -> tuple[AdvisoryTexts, str, int]:
-    """(templates, source, attempts): the cached response in DEMO_MODE if present and valid,
-    else a live call."""
+    """(templates, source, attempts): the cached response in DEMO_MODE if present, valid and not
+    stale, else a live call (503 without a key)."""
     try:
         cached = load_fixture(fixture_key(facts.block_id, facts.timestep))
     except FileNotFoundError:
         cached = None
+    keys = {c.key for c in facts.citations}
+    if cached is not None and (why := staleness(cached, facts)):
+        # AuditAction is a contract enum, so staleness is a reason under invalid_response.
+        with store.transaction() as conn:
+            store.audit(
+                conn,
+                None,
+                "invalid_response",
+                actor,
+                {
+                    "block_id": facts.block_id,
+                    "timestep": facts.timestep,
+                    "attempt": "fixture",
+                    "reason": "stale_fixture",
+                    **why,
+                },
+            )
+        cached = None
     if cached is not None:
-        templates, action, details = evaluate(cached, {c.key for c in facts.citations})
+        templates, action, details = evaluate(cached, keys)
         if templates is not None:
             return templates, "fixture", 0
         with store.transaction() as conn:

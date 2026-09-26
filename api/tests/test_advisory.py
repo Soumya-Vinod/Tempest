@@ -334,12 +334,123 @@ def test_gemini_error_is_502(env, monkeypatch):
 
 def test_demo_mode_uses_cached_response_without_calling_gemini(env):
     env.mode(True, key=None)
-    (env.dir / f"{service.fixture_key(BLOCK, TS)}.json").write_text(
-        json.dumps(CLEAN), encoding="utf-8"
-    )
+    write_cached(env, service.fixture_payload(CLEAN, FACTS))
     resp, fake = create(env)
     assert resp.status_code == 200 and fake.calls == []
     assert json.loads(store.events()[0].details)["source"] == "fixture"
+
+
+STALE = {**CLEAN, "bn": lang(body="{{peak_surge_m}}, {{cut_substations}}.")}  # key facts lack
+
+
+def write_cached(env, response: dict) -> None:
+    (env.dir / f"{service.fixture_key(BLOCK, TS)}.json").write_text(
+        json.dumps(response), encoding="utf-8"
+    )
+
+
+def with_citations(*changes: Citation) -> Facts:
+    """FACTS with citations replaced or added by key."""
+    by_key = {c.key: c for c in CITATIONS} | {c.key: c for c in changes}
+    return Facts(BLOCK, "Gosaba", TS, list(by_key.values()))
+
+
+# Mahendraganj PHC at Sagar T-3: first cut off by a ferry stopped by wind, then (Dev A's new
+# surge model) by storm surge. Same keys, different meaning.
+CAUSE_WIND = Citation(
+    key="isolated_1_cause",
+    label="Cause",
+    value="ferry suspended by wind",
+    unit=None,
+    source="impact",
+)
+CAUSE_SURGE = CAUSE_WIND.model_copy(update={"value": "road flooded by storm surge"})
+MAHENDRAGANJ = Citation(
+    key="isolated_1_name", label="Isolated", value="Mahendraganj PHC", unit=None, source="impact"
+)
+WITH_CAUSE = {
+    **CLEAN,
+    "en": lang(
+        actions=("Move patients from {{isolated_1_name}} ({{isolated_1_cause}}).", "b", "c")
+    ),
+}
+
+
+def test_fixture_payload_stores_the_text_values_its_templates_use():
+    facts = with_citations(MAHENDRAGANJ, CAUSE_WIND)
+    stored = service.fixture_payload(WITH_CAUSE, facts)[service.CITED_TEXT_KEY]
+    # Text only (numbers are filled at render time), and only keys the templates use.
+    assert stored == {
+        "block_name": "Gosaba",
+        "isolated_1_cause": "ferry suspended by wind",
+        "isolated_1_name": "Mahendraganj PHC",
+        "reach": "cut off by the storm",
+    }
+
+
+def test_staleness():
+    wind = with_citations(MAHENDRAGANJ, CAUSE_WIND)
+    cached = service.fixture_payload(WITH_CAUSE, wind)
+    assert service.staleness(cached, wind) is None
+    # Numbers may change freely.
+    surge_up = CITATIONS[2].model_copy(update={"value": 3.32})
+    assert service.staleness(cached, with_citations(MAHENDRAGANJ, CAUSE_WIND, surge_up)) is None
+    # A referenced cause that changed makes it stale.
+    assert service.staleness(cached, with_citations(MAHENDRAGANJ, CAUSE_SURGE)) == {
+        "changed_text": {
+            "isolated_1_cause": {
+                "cached": "ferry suspended by wind",
+                "current": "road flooded by storm surge",
+            }
+        }
+    }
+    # Missing keys, and fixtures written before values were stored (the Sagar T-3 one).
+    assert service.staleness(STALE, FACTS) == {"missing_keys": ["cut_substations"]}
+    assert service.staleness(CLEAN, FACTS) == {"cited_text": "not stored"}
+    assert service.staleness({"en": "not a draft"}, FACTS) is None  # evaluate() reports it
+
+
+def test_changed_cause_is_stale_audited_and_falls_back_to_503(env, monkeypatch):
+    env.mode(True, key=None)
+    write_cached(env, service.fixture_payload(WITH_CAUSE, with_citations(MAHENDRAGANJ, CAUSE_WIND)))
+    now = with_citations(MAHENDRAGANJ, CAUSE_SURGE)
+    monkeypatch.setattr(service, "build_facts", lambda block_id, ts: now)
+    resp, fake = create(env, CLEAN)
+    assert resp.status_code == 503 and fake.calls == []
+    stale = store.events()[0]
+    assert stale.action == "invalid_response" and stale.advisory_id is None
+    details = json.loads(stale.details)
+    assert details["reason"] == "stale_fixture" and details["attempt"] == "fixture"
+    assert details["changed_text"]["isolated_1_cause"]["current"] == "road flooded by storm surge"
+
+
+def test_fixture_without_stored_values_is_stale(env):
+    env.mode(True, key=None)
+    write_cached(env, CLEAN)  # as written before this check existed
+    resp, fake = create(env, CLEAN)
+    assert resp.status_code == 503 and fake.calls == []
+    details = json.loads(store.events()[0].details)
+    assert details["reason"] == "stale_fixture" and details["cited_text"] == "not stored"
+
+
+def test_stale_cached_response_is_audited_and_falls_back_to_503(env):
+    env.mode(True, key=None)
+    write_cached(env, STALE)
+    resp, fake = create(env, CLEAN)
+    assert resp.status_code == 503 and fake.calls == []
+    stale = store.events()[0]
+    assert stale.action == "invalid_response" and stale.advisory_id is None
+    details = json.loads(stale.details)
+    assert details["reason"] == "stale_fixture" and details["missing_keys"] == ["cut_substations"]
+
+
+def test_stale_cached_response_falls_back_to_the_live_key(env):
+    env.mode(True, key="test-key")
+    write_cached(env, STALE)
+    resp, fake = create(env, CLEAN)
+    assert resp.status_code == 200 and len(fake.calls) == 1
+    assert [e.action for e in store.events()][:2] == ["invalid_response", "generated"]
+    assert json.loads(store.events()[1].details)["source"] == "gemini"
 
 
 def test_demo_mode_without_fixture_or_key_is_503(env):
@@ -614,7 +725,7 @@ def fixture_script(env, monkeypatch):
         return script.run(
             todo,
             max_calls,
-            lambda block_id, ts, raw: written.append((block_id, ts)),
+            lambda block_id, ts, payload: written.append((block_id, ts, payload)),
             sleep=sleep,
             clock=lambda: clock["now"],
         )
@@ -664,3 +775,12 @@ def test_script_number_check_retry_uses_the_budget(fixture_script):
     result = fixture_script.run([PAIR], 20, bad, CLEAN)
     assert result.calls == 2 and result.written == [("Gosaba", TS, 2)]
     assert fixture_script.clock["sleeps"] == [20.0]
+
+
+def test_script_writes_the_cited_text_with_the_response(fixture_script):
+    fixture_script.run([PAIR], 20, CLEAN)
+    [(block_id, ts, payload)] = fixture_script.written
+    assert (block_id, ts) == (BLOCK, TS)
+    assert payload == service.fixture_payload(CLEAN, FACTS)
+    assert payload[service.CITED_TEXT_KEY]["isolated_1_name"] == "Ward 12 PHC"
+    assert service.staleness(payload, FACTS) is None
