@@ -342,6 +342,11 @@ interface SentinelValidationMetrics {
   observed_flooded_km2: number;
   predicted_flooded_km2: number;
   intersection_km2: number;
+  accuracy?: UnitFraction;
+  false_positive_km2?: number;
+  missed_flood_km2?: number;
+  true_negative_km2?: number;
+  confusion_matrix?: Record<string, number>;
 }
 interface SentinelValidationAOI {
   name: string;
@@ -368,6 +373,8 @@ interface SentinelValidationResponse {
   };
   satellite: string;
   baseline_event: string;
+  mode?: "demo" | "live";
+  artifacts?: Record<string, string>;
 }
 ```
 
@@ -381,7 +388,7 @@ stated; `timestep=live` returns `501` in v1.1. FC = FeatureCollection.
 | A | GET | `/api/hazard/timesteps` | — | `{ event: "amphan", landfall: Timestep, timesteps: Timestep[] }` |
 | A | GET | `/api/hazard/track` | — | CycloneTrack *(added in v1.1)* |
 | A | GET | `/api/hazard/layers` | `hazard_type: HazardType`, `timestep` | FC&lt;HazardLayer&gt; |
-| A | GET | `/api/hazard/validation/sentinel` | — | SentinelValidationResponse *(added in Phase 12)* |
+| A | GET | `/api/hazard/validation/sentinel` | `mode?: "demo" \| "live"` | SentinelValidationResponse *(updated Phase A)* |
 | B | GET | `/api/exposure/infra` | `infra_type?: InfraType` | FC&lt;InfraFeature&gt; (not time-dependent) |
 | B | GET | `/api/impact/results` | `timestep`, `hazard_type?`, `status?: ImpactStatus` | FC&lt;ImpactResult&gt; |
 | B | GET | `/api/risk/scores` | `timestep` | FC&lt;RiskScore&gt; |
