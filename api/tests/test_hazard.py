@@ -827,6 +827,20 @@ def test_hazard_routes_wind_endpoint():
     assert resp_bad.status_code == 422
 
 
+def test_hazard_routes_track_endpoint():
+    """Verify GET /api/hazard/track returns a valid 25-point CycloneTrack."""
+    resp = client.get("/api/hazard/track")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["event"] == "amphan"
+    assert len(data["points"]) == 25
+    assert [p["timestep"] for p in data["points"]] == list(REPLAY_TIMESTEPS)
+    for pt in data["points"]:
+        assert 10.0 <= pt["lat"] <= 23.0
+        assert 85.0 <= pt["lon"] <= 90.0
+        assert pt["radius_max_wind_km"] > 0
+
+
 def test_replay_consistency_across_all_25_timesteps():
     """Verify wind hazard layers across all 25 timesteps demonstrate continuity and bounds."""
     peak_winds_over_time: list[float] = []
@@ -844,8 +858,8 @@ def test_replay_consistency_across_all_25_timesteps():
 
         peak_winds_over_time.append(max(speeds))
 
-    # At T-72h (far south in Bay of Bengal), peak AOI wind should be ambient (~6 m/s)
-    assert peak_winds_over_time[0] == 6.0
+    # At T-72h (far south in Bay of Bengal), peak AOI wind should be low (outer envelope only)
+    assert peak_winds_over_time[0] < 12.0
 
     # At landfall T-0h (passing through Sundarbans AOI), peak wind should be severe (> 35 m/s)
     assert peak_winds_over_time[-1] > 35.0
@@ -1615,4 +1629,159 @@ def test_phase7_cross_hazard_api_contract():
         assert res_live.status_code == 501
 
 
+# ===========================================================================
+# 11. Wind Field Gradual Intensification Regression Tests
+# ===========================================================================
+
+
+def test_wind_gradual_intensification_no_abrupt_jumps():
+    """Verify no single 3-hour step causes more than a 2× jump in mean wind speed.
+
+    The outer wind envelope (Willoughby et al. 2006) ensures the wind field
+    strengthens gradually as the cyclone approaches the AOI, rather than jumping
+    from ambient to severe in a single timestep.
+    """
+    mean_winds: list[float] = []
+
+    for ts in REPLAY_TIMESTEPS:
+        col = generate_wind_layer(ts)
+        speeds = [f.properties.value for f in col.features]
+        mean_winds.append(sum(speeds) / len(speeds))
+
+    # No consecutive timestep pair should have a mean-wind ratio > 2.0
+    for i in range(len(mean_winds) - 1):
+        if mean_winds[i] > 0.0:
+            ratio = mean_winds[i + 1] / mean_winds[i]
+            assert ratio < 2.0, (
+                f"Abrupt jump at step {i}: mean wind {mean_winds[i]:.1f} -> "
+                f"{mean_winds[i+1]:.1f} m/s (ratio {ratio:.2f})"
+            )
+
+
+def test_wind_intensification_ramp_final_12h():
+    """Verify wind speeds increase across the final 4 timesteps (T-9h to T-0h).
+
+    The last 12 hours before landfall must show strictly rising mean wind
+    across the AOI as the eye rapidly approaches and enters the grid.
+    """
+    # Final 4 timesteps: T-9, T-6, T-3, T-0
+    final_timesteps = REPLAY_TIMESTEPS[-4:]
+    mean_winds: list[float] = []
+
+    for ts in final_timesteps:
+        col = generate_wind_layer(ts)
+        speeds = [f.properties.value for f in col.features]
+        mean_winds.append(sum(speeds) / len(speeds))
+
+    for i in range(len(mean_winds) - 1):
+        assert mean_winds[i + 1] > mean_winds[i], (
+            f"Mean wind did not increase from {final_timesteps[i]} to "
+            f"{final_timesteps[i+1]}: {mean_winds[i]:.1f} -> {mean_winds[i+1]:.1f}"
+        )
+
+
+def test_wind_outer_envelope_extends_beyond_holland():
+    """Verify the outer wind envelope produces above-ambient winds at 200-400 km distance.
+
+    At intermediate distances where the Holland inner profile would give near-zero
+    winds, the outer modified-Rankine profile must provide physically meaningful
+    wind speeds reflecting the cyclone's broad outer circulation.
+    """
+    from app.hazard.replay import OUTER_DECAY_EXPONENT
+
+    # Use a representative coastal cell and track points at intermediate distance
+    grid = get_aoi_grid()
+    coastal_cells = [c for c in grid if c.dist_to_coast_km < 5]
+    assert len(coastal_cells) > 0, "Must have coastal cells for testing"
+
+    cell = coastal_cells[0]
+
+    # T-12h: eye is ~180-270 km from coastal cells
+    ts_minus_12 = REPLAY_TIMESTEPS[-5]  # T-12h
+    track_pt = AMPHAN_TRACK[ts_minus_12]
+
+    from app.hazard.replay import haversine_distance_km
+    dist = haversine_distance_km(cell.centroid_lat, cell.centroid_lon, track_pt.lat, track_pt.lon)
+
+    # At this distance (100-300 km), Holland alone would give < 10 m/s
+    # but the outer envelope should lift the wind meaningfully above ambient
+    wind = compute_wind_metric(cell, track_pt)
+    assert wind.value > 10.0, (
+        f"Wind at {dist:.0f} km should exceed 10 m/s with outer envelope, got {wind.value}"
+    )
+
+    # Verify the outer decay exponent is in the physically realistic range
+    # (Willoughby et al. 2006 reports 0.3-0.6 for North Indian Ocean TCs)
+    assert 0.3 <= OUTER_DECAY_EXPONENT <= 0.6, (
+        f"Outer decay exponent {OUTER_DECAY_EXPONENT} outside physical range [0.3, 0.6]"
+    )
+
+
+def test_wind_max_step_ratio_bounded():
+    """Verify the maximum wind speed across all cells doesn't jump more than 2.5× per step.
+
+    Even though the eye enters the AOI between T-6 and T-3 (the sharpest transition),
+    the peak-cell wind ratio between any two consecutive steps should remain bounded.
+    """
+    peak_winds: list[float] = []
+
+    for ts in REPLAY_TIMESTEPS:
+        col = generate_wind_layer(ts)
+        speeds = [f.properties.value for f in col.features]
+        peak_winds.append(max(speeds))
+
+    for i in range(len(peak_winds) - 1):
+        if peak_winds[i] > 0.0:
+            ratio = peak_winds[i + 1] / peak_winds[i]
+            assert ratio < 2.5, (
+                f"Peak wind jumped {ratio:.2f}× at step {i}: "
+                f"{peak_winds[i]:.1f} -> {peak_winds[i+1]:.1f} m/s"
+            )
+
+
+def test_wind_progression_coastal_cells_t24_to_landfall():
+    """Regression: coastal wind speeds ramp up smoothly over the final 24 hours.
+
+    At representative coastal cells (dist_to_coast < 10 km, mid-AOI), the wind
+    progression must show:
+    - T-24h: below 15 m/s (storm still 500+ km away, outer circulation only)
+    - T-12h: 14-22 m/s (outer envelope strengthening, storm ~180-270 km away)
+    - T-6h: 17-25 m/s (strong outer winds, storm ~130-180 km away)
+    - T-0h: above 28 m/s (landfall, eye crossing AOI)
+    """
+    grid = get_aoi_grid()
+    # Pick coastal cells near the AOI center
+    coastal_center = sorted(
+        [c for c in grid if c.dist_to_coast_km < 10],
+        key=lambda c: abs(c.centroid_lon - 88.5) + abs(c.centroid_lat - 21.75),
+    )[:3]
+
+    # T-24h (index 16)
+    ts_24h = REPLAY_TIMESTEPS[16]
+    winds_24h = [compute_wind_metric(c, AMPHAN_TRACK[ts_24h]).value for c in coastal_center]
+    mean_24h = sum(winds_24h) / len(winds_24h)
+    assert mean_24h < 15.0, f"T-24h mean wind {mean_24h:.1f} should be < 15 m/s"
+
+    # T-12h (index 20)
+    ts_12h = REPLAY_TIMESTEPS[20]
+    winds_12h = [compute_wind_metric(c, AMPHAN_TRACK[ts_12h]).value for c in coastal_center]
+    mean_12h = sum(winds_12h) / len(winds_12h)
+    assert 14.0 <= mean_12h <= 22.0, f"T-12h mean wind {mean_12h:.1f} should be 14-22 m/s"
+
+    # T-6h (index 22)
+    ts_6h = REPLAY_TIMESTEPS[22]
+    winds_6h = [compute_wind_metric(c, AMPHAN_TRACK[ts_6h]).value for c in coastal_center]
+    mean_6h = sum(winds_6h) / len(winds_6h)
+    assert 17.0 <= mean_6h <= 25.0, f"T-6h mean wind {mean_6h:.1f} should be 17-25 m/s"
+
+    # T-0h (index 24, landfall)
+    ts_0h = REPLAY_TIMESTEPS[24]
+    winds_0h = [compute_wind_metric(c, AMPHAN_TRACK[ts_0h]).value for c in coastal_center]
+    mean_0h = sum(winds_0h) / len(winds_0h)
+    assert mean_0h > 28.0, f"T-0h mean wind {mean_0h:.1f} should be > 28 m/s"
+
+    # Overall progression must be monotonically increasing
+    assert mean_12h > mean_24h, f"T-12h ({mean_12h:.1f}) must exceed T-24h ({mean_24h:.1f})"
+    assert mean_6h > mean_12h, f"T-6h ({mean_6h:.1f}) must exceed T-12h ({mean_12h:.1f})"
+    assert mean_0h > mean_6h, f"T-0h ({mean_0h:.1f}) must exceed T-6h ({mean_6h:.1f})"
 
