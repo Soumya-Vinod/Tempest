@@ -10,7 +10,10 @@ ENV_VARS = (
     "GEE_KEY_PATH",
     "TELEGRAM_BOT_TOKEN",
     "TELEGRAM_CHAT_ID",
-    "RESEND_API_KEY",
+    "GMAIL_ADDRESS",
+    "GMAIL_APP_PASSWORD",
+    "DISPATCH_EMAIL_TO",
+    "DISPATCH_PIN",
     "DEMO_MODE",
 )
 FLAGS = {v.lower() for v in ENV_VARS if v != "DEMO_MODE"}

@@ -168,12 +168,12 @@ def test_advisory_id_rejects_unsafe(advisory_id):
             created_at="2020-05-20T12:00:00Z",
         )
     with pytest.raises(ValidationError):
-        DispatchReceipt(advisory_id=advisory_id, sent_at="2020-05-20T12:00:00Z", channels=[])
+        DispatchReceipt(advisory_id=advisory_id, dispatched_at="2020-05-20T12:00:00Z", channels=[])
 
 
 def test_advisory_id_accepts_lowercase_uuid4():
     advisory_id = str(uuid.uuid4())
-    DispatchReceipt(advisory_id=advisory_id, sent_at="2020-05-20T12:00:00Z", channels=[])
+    DispatchReceipt(advisory_id=advisory_id, dispatched_at="2020-05-20T12:00:00Z", channels=[])
 
 
 def test_trigger_consistency():

@@ -22,7 +22,7 @@ Dev A* (or *Dev B*) until both devs sign off and the version is bumped.
 | Units | Wind speed **m/s**; surge depth **m** above ground; money **INR**. |
 | Timestamps | ISO 8601 UTC, always `YYYY-MM-DDTHH:MM:SSZ` (e.g. `2020-05-20T12:00:00Z`). |
 | Null geometry | Allowed only where stated (Advisory). |
-| Errors | FastAPI default `{"detail": ...}`. `404` unknown id, `409` invalid state change, `422` bad params (incl. unknown `timestep`), `501` not implemented yet, `503` required processed data missing (live mode) *(added in v0.9)*, or an upstream key missing; `502` an upstream (Gemini) response unusable *(v1.2 change, pending Dev A)*. |
+| Errors | FastAPI default `{"detail": ...}`. `404` unknown id, `409` invalid state change, `422` bad params (incl. unknown `timestep`), `501` not implemented yet, `503` required processed data missing (live mode) *(added in v0.9)*, or an upstream key missing; `502` an upstream (Gemini) response unusable *(v1.2 change, pending Dev A)*. `403` wrong or unset dispatch PIN, `429` dispatch rate limit *(v1.2 change, pending Dev A)*. |
 
 ## 2. Replay timeline — Cyclone Amphan
 
@@ -56,7 +56,9 @@ type StepType     = "hazard" | "infra" | "service";
 type Language     = "en" | "bn" | "hi";
 type AdvisoryStatus = "draft" | "approved" | "sent" | "rejected";  // rejected: v1.2 change, pending Dev A
 type AuditAction = "generated" | "number_check_failed" | "invalid_response" | "edited"
-  | "approved" | "rejected" | "new_draft" | "copied" | "sent";  // v1.2 change, pending Dev A
+  | "approved" | "rejected" | "new_draft" | "copied" | "sent"
+  | "dispatched";  // v1.2 change, pending Dev A (dispatched: one per channel attempt)
+type ChannelStatus = "sent" | "failed" | "dry_run";  // v1.2 change, pending Dev A
 type TriggerMetric  = "wind_speed" | "surge_depth";
 type BlockSource    = "census2011_cd" | "h3_r7";
 type Timestep = string;       // one of the 25 replay keys (in responses)
@@ -268,8 +270,44 @@ One feature per insurance zone per timestep. Geometry: zone `Polygon | MultiPoly
 | `payout_estimate_inr` | float | `0` when not triggered. |
 
 ### 4.7 DispatchReceipt (Dev B, not GeoJSON)
-`{ advisory_id: AdvisoryId, sent_at: ISO datetime, channels: [{ channel: "telegram" | "email", ok: boolean, error: string | null }] }`
-(`AdvisoryId` as in §4.5.)
+*v1.2 change, pending Dev A* (was `{ advisory_id, sent_at, channels: [{ channel, ok, error }] }`):
+```ts
+interface DispatchReceipt {
+  advisory_id: AdvisoryId;
+  dispatched_at: string;            // ISO datetime
+  dry_run: boolean;                 // true: built and validated, nothing sent, not stored
+  resend: boolean;                  // the advisory was already sent
+  channels: ChannelResult[];        // one per requested channel, each attempted on its own
+}
+interface ChannelResult {
+  channel: Channel;                 // "telegram" | "email"
+  status: ChannelStatus;            // "sent" | "failed" | "dry_run"
+  provider_message_id: string | null; // Telegram message ids (comma-separated) / e-mail Message-ID
+  error: string | null;             // when failed; never contains a credential
+  at: string;                       // ISO datetime
+}
+```
+(`AdvisoryId` as in §4.5.) Rules: only `approved` advisories (`409`); a `sent` one needs
+`resend: true` (`409`). A live dispatch needs `pin` matching `DISPATCH_PIN` in `api/.env`
+(`403` if wrong or unset); dry runs need none. At most 10 live dispatches per rolling hour
+(`429`). Recipients come only from `api/.env` (Telegram chat, e-mail list), never from a request.
+Each channel attempt is audited (`dispatched`, details = the ChannelResult); the advisory becomes
+`sent` (audit `sent`) if at least one channel succeeded. Live receipts are stored in SQLite; dry
+runs only in the audit log. Dispatch sends for real in DEMO_MODE too (a human-approved action,
+not a data fetch).
+
+**Channels.** Telegram: plain text, one message per language (bn, then en), split at 4096
+characters. E-mail (Gmail SMTP, STARTTLS): subject starts `[EXERCISE]`, body en then bn, the CAP
+attached.
+
+**CAP 1.2** (validated against the OASIS XSD): `status` Exercise, `msgType` Alert, `scope` Public,
+`sender` `tempest-s24p-exercise@invalid`; one `<info>` per language (`en-IN`, `bn-IN`, `hi-IN`),
+`category` Met, `event` Cyclone, `headline`, `description` = body, `instruction` = the actions;
+`<area>`: block name, the simplified block polygon (lat,lon, one per part), and `<geocode>`
+`census2011_cd` = the block's Census 2011 code. Mapping from the advisory's cited figures:
+`severity` from the risk score (≥ 0.6 Extreme, ≥ 0.4 Severe, ≥ 0.25 Moderate, else Minor);
+`urgency` Immediate at ≤ 12 h to landfall, else Future (CAP's Expected means "within the next
+hour"); `certainty` Observed at landfall, else Likely.
 
 ## 5. Routes
 
@@ -295,7 +333,10 @@ stated; `timestep=live` returns `501` in v1.1. FC = FeatureCollection.
 | B | POST | `/api/advisory/{advisory_id}/reject` | `{ reason, rejected_by? }`; `reason` not blank, else `422`; `draft` only, else `409` | Advisory (`rejected`). *v1.2 change, pending Dev A* |
 | B | POST | `/api/advisory/{advisory_id}/new-draft` | `{ created_by? }`; not a `draft`, else `409` | Advisory (`draft`, `created_from` set). *v1.2 change, pending Dev A* |
 | B | GET | `/api/advisory/{advisory_id}/audit` | — | `{ events: AuditEvent[] }`, oldest first. *v1.2 change, pending Dev A* |
-| B | POST | `/api/dispatch/{advisory_id}` | `{ channels: ("telegram" \| "email")[] }`; `approved` only, else `409` | DispatchReceipt; advisory → `sent` |
+| B | POST | `/api/dispatch/{advisory_id}` | `{ channels: ("telegram" \| "email")[], resend?, dry_run?, pin? }` (*v1.2 change, pending Dev A*: resend, dry_run, pin); rules in §4.7 | DispatchReceipt; advisory → `sent` |
+| B | GET | `/api/dispatch/{advisory_id}/receipts` | — | `{ receipts: DispatchReceipt[] }`, oldest first. *v1.2 change, pending Dev A* |
+| B | GET | `/api/dispatch/{advisory_id}/cap.xml` | — | CAP 1.2 XML of the latest dispatch (a fresh one if approved and never sent; `409` otherwise). *v1.2 change, pending Dev A* |
+| B | GET | `/api/dispatch/recipients` | — | `{ telegram: { configured, chat_id }, email: { configured, to[] }, pin_configured }`, masked. *v1.2 change, pending Dev A* |
 | B | GET | `/api/insurance/triggers` | `timestep` | FC&lt;TriggerEvent&gt; |
 | — | GET | `/health` | — | not part of this contract (see README) |
 
@@ -349,7 +390,6 @@ the schema listed here, and fails on any route resource not in this table.
 | `GET /api/risk/scores` | `scores` | yes | FC&lt;RiskScore&gt; |
 | `GET /api/risk/breakdown` | `breakdown` *(added in v1.1)* | yes | RiskBreakdown |
 | `GET /api/risk/unscored-areas` | `unscored-areas` *(added in v1.1)* | no | FC&lt;UnscoredArea&gt; |
-| `POST /api/dispatch/{advisory_id}` | `receipt-<advisory_id>` | no | DispatchReceipt |
 | `GET /api/insurance/triggers` | `triggers` | yes | FC&lt;TriggerEvent&gt; |
 
 Enum values containing `_` (e.g. `power_line`) are written with `-` in resource names:
@@ -366,7 +406,6 @@ exposure__overpass-substations.json
 impact__results__20200519T0000Z.json
 risk__scores__20200520T1200Z.json
 advisory__gemini-<census_code>__20200520T1200Z.json *(v1.2 change, pending Dev A)*
-dispatch__receipt-<advisory_id>.json
 insurance__triggers__20200520T1200Z.json
 ```
 

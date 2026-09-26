@@ -13,8 +13,8 @@ TS = LANDFALL_TIMESTEP
 # /api/impact/results is implemented: see test_impact_routes.py.
 # /api/risk/scores is implemented: see test_risk_routes.py.
 # /api/advisory/* is implemented: see test_advisory.py.
+# /api/dispatch/* is implemented: see test_dispatch.py.
 CONTRACT_ROUTES = [
-    ("POST", "/api/dispatch/abc", {"channels": ["telegram"]}),
     ("GET", f"/api/insurance/triggers?timestep={TS}", None),
 ]
 

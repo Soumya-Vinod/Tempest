@@ -10,5 +10,6 @@ osmnx==2.1.1
 networkx==3.7
 google-genai==2.25.0
 earthengine-api==1.7.45
+xmlschema==4.3.2  # CAP 1.2 validation (dispatch)
 pytest==9.1.1
 ruff==0.16.9

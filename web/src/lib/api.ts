@@ -13,6 +13,8 @@ import type {
   AuditLog,
   BlockId,
   DispatchReceipt,
+  DispatchReceipts,
+  DispatchRecipients,
   DispatchRequest,
   HazardLayerCollection,
   HazardType,
@@ -147,8 +149,21 @@ export const newDraftFrom = (advisoryId: string, body: AdvisoryNewDraft = {}) =>
 export const getAdvisoryAudit = (advisoryId: string) =>
   request<AuditLog>('GET', `/api/advisory/${enc(advisoryId)}/audit`)
 
+/** v1.2 change, pending Dev A: resend, dry_run and pin in the body. */
 export const dispatchAdvisory = (advisoryId: string, body: DispatchRequest) =>
   request<DispatchReceipt>('POST', `/api/dispatch/${enc(advisoryId)}`, { body })
+
+/** v1.2 change, pending Dev A. Stored live receipts, oldest first. */
+export const getDispatchReceipts = (advisoryId: string) =>
+  request<DispatchReceipts>('GET', `/api/dispatch/${enc(advisoryId)}/receipts`)
+
+/** v1.2 change, pending Dev A. Configured recipients, masked. */
+export const getDispatchRecipients = () =>
+  request<DispatchRecipients>('GET', '/api/dispatch/recipients')
+
+/** v1.2 change, pending Dev A. Link target for "Download CAP". */
+export const capXmlUrl = (advisoryId: string) =>
+  `${BASE_URL}/api/dispatch/${enc(advisoryId)}/cap.xml`
 
 export const getTriggers = (timestep: TimestepParam) =>
   request<TriggerEventCollection>('GET', '/api/insurance/triggers', { query: { timestep } })

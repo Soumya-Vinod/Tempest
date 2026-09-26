@@ -14,6 +14,7 @@ from app.schemas.common import (
     BlockId,
     BlockSource,
     Channel,
+    ChannelStatus,
     ContractModel,
     HazardType,
     ImpactStatus,
@@ -354,16 +355,47 @@ class TriggerEventCollection(FeatureCollection[TriggerEvent]):
 # --- 4.7 DispatchReceipt (Dev B, not GeoJSON) ---
 
 
+# v1.2 change, pending Dev A: status / provider_message_id / at replace ok; the receipt gains
+# dispatched_at (was sent_at), dry_run and resend.
 class ChannelResult(ContractModel):
     channel: Channel
-    ok: bool
-    error: str | None = None
+    status: ChannelStatus
+    provider_message_id: str | None = None  # Telegram message ids / email Message-ID
+    error: str | None = None  # set when failed; never contains a credential
+    at: AwareDatetime
 
 
 class DispatchReceipt(ContractModel):
     advisory_id: AdvisoryId
-    sent_at: AwareDatetime
+    dispatched_at: AwareDatetime
+    dry_run: bool = False
+    resend: bool = False
     channels: list[ChannelResult]
+
+
+class DispatchReceipts(ContractModel):
+    """GET /api/dispatch/{advisory_id}/receipts, oldest first (v1.2 change, pending Dev A)."""
+
+    receipts: list[DispatchReceipt]
+
+
+class TelegramRecipient(ContractModel):
+    configured: bool
+    chat_id: str | None = None  # masked
+
+
+class EmailRecipients(ContractModel):
+    configured: bool
+    to: list[str] = []  # masked
+
+
+class DispatchRecipients(ContractModel):
+    """GET /api/dispatch/recipients: who a dispatch would reach, masked (v1.2 change, pending
+    Dev A). Recipients come only from api/.env, never from a request."""
+
+    telegram: TelegramRecipient
+    email: EmailRecipients
+    pin_configured: bool
 
 
 # --- §5 route payloads ---
@@ -425,4 +457,10 @@ class AdvisorySuggestions(ContractModel):
 
 
 class DispatchRequest(ContractModel):
+    """v1.2 change, pending Dev A: resend, dry_run and pin. No recipient fields: extra keys are
+    rejected (422)."""
+
     channels: list[Channel] = Field(min_length=1)
+    resend: bool = False
+    dry_run: bool = False
+    pin: str | None = None  # required for a live dispatch (DISPATCH_PIN); not for a dry run

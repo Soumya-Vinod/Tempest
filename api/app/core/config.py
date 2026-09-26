@@ -12,7 +12,10 @@ PLACEHOLDERS: dict[str, str] = {
     "GEE_SERVICE_ACCOUNT": "your-sa@your-project.iam.gserviceaccount.com",
     "TELEGRAM_BOT_TOKEN": "123456:your-telegram-bot-token",
     "TELEGRAM_CHAT_ID": "-1001234567890",
-    "RESEND_API_KEY": "re_your_resend_api_key",
+    "GMAIL_ADDRESS": "you@gmail.com",
+    "GMAIL_APP_PASSWORD": "your-16-char-app-password",
+    "DISPATCH_EMAIL_TO": "officer@example.org",
+    "DISPATCH_PIN": "change-me",
 }
 
 
@@ -28,7 +31,12 @@ class Settings(BaseSettings):
     GEE_KEY_PATH: str | None = None
     TELEGRAM_BOT_TOKEN: str | None = None
     TELEGRAM_CHAT_ID: str | None = None
-    RESEND_API_KEY: str | None = None
+    # Dispatch e-mail: Gmail SMTP with an app password; DISPATCH_EMAIL_TO is comma-separated.
+    GMAIL_ADDRESS: str | None = None
+    GMAIL_APP_PASSWORD: str | None = None
+    DISPATCH_EMAIL_TO: str | None = None
+    # Required in the request for every live (non-dry-run) dispatch.
+    DISPATCH_PIN: str | None = None
     DEMO_MODE: bool = True
     # South 24 Parganas / Sundarbans, EPSG:4326: min_lon,min_lat,max_lon,max_lat
     AOI_BBOX: str = "88.0,21.5,89.1,22.7"

@@ -19,7 +19,6 @@ from app.risk import service as risk
 from app.risk.blocks import load_blocks
 from app.schemas import (
     REPLAY_TIMESTEPS,
-    DispatchReceipt,
     HazardLayerCollection,
     HazardType,
     ImpactResultCollection,
@@ -42,7 +41,6 @@ def _alternatives(literal) -> str:
     return "|".join(v.replace("_", "-") for v in get_args(literal))
 
 
-ADVISORY_ID = r"(?P<id>[a-z0-9-]+)"
 # module -> [(resource regex, schema, time-dependent, id in the key -> id in the body)]
 ROUTE_SCHEMAS = {
     "hazard": [
@@ -60,7 +58,8 @@ ROUTE_SCHEMAS = {
     ],
     # Advisory state lives in SQLite; its only fixtures are raw gemini-* responses.
     "advisory": [],
-    "dispatch": [(rf"receipt-{ADVISORY_ID}", DispatchReceipt, False, lambda m: m.advisory_id)],
+    # Dispatch receipts live in SQLite (v1.2 change, pending Dev A: receipt fixture dropped).
+    "dispatch": [],
     "insurance": [(r"triggers", TriggerEventCollection, True, None)],
 }
 FIXTURES = sorted(DEMO_DIR.glob("*.json"))

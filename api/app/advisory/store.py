@@ -36,6 +36,16 @@ CREATE TABLE IF NOT EXISTS audit_events (
     details TEXT
 );
 CREATE INDEX IF NOT EXISTS audit_advisory ON audit_events (advisory_id);
+-- Live dispatches only (app/dispatch); dry runs are in the audit log alone.
+CREATE TABLE IF NOT EXISTS dispatch_receipts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    advisory_id TEXT NOT NULL,
+    dispatched_at TEXT NOT NULL,
+    data TEXT NOT NULL,
+    cap_xml TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS dispatch_advisory ON dispatch_receipts (advisory_id);
+CREATE INDEX IF NOT EXISTS dispatch_at ON dispatch_receipts (dispatched_at);
 """
 
 

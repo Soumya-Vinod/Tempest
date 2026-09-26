@@ -60,7 +60,8 @@ export type AuditAction =
   | "rejected"
   | "new_draft"
   | "copied"
-  | "sent";
+  | "sent"
+  | "dispatched"; // one per channel attempt (v1.2 change pending Dev A)
 export type TriggerMetric = "wind_speed" | "surge_depth";
 export type BlockSource = "census2011_cd" | "h3_r7";
 /** The largest contributing part of a RiskScore (§4.4, added in v1.1). */
@@ -78,6 +79,8 @@ export type RiskDriver =
 /** How the cyclone reaches a block (§4.4 risk breakdown, added in v1.1). */
 export type RiskReach = "direct" | "cut_off";
 export type Channel = "telegram" | "email";
+/** dry_run: built and validated, not sent (v1.2 change pending Dev A). */
+export type ChannelStatus = "sent" | "failed" | "dry_run";
 
 /** One of the 25 Amphan replay keys, `YYYY-MM-DDTHH:MM:SSZ`. */
 export type Timestep = string;
@@ -271,15 +274,31 @@ export type TriggerEventCollection = FeatureCollection<TriggerEvent>;
 
 // ---------- §4.7 DispatchReceipt (Dev B) ----------
 
+/** v1.2 change pending Dev A: status / provider_message_id / at replace ok. */
 export interface ChannelResult {
   channel: Channel;
-  ok: boolean;
+  status: ChannelStatus;
+  provider_message_id: string | null;
   error: string | null;
+  at: IsoDateTime;
 }
+/** v1.2 change pending Dev A: dispatched_at (was sent_at), dry_run, resend. */
 export interface DispatchReceipt {
   advisory_id: AdvisoryId;
-  sent_at: IsoDateTime;
+  dispatched_at: IsoDateTime;
+  dry_run: boolean;
+  resend: boolean;
   channels: ChannelResult[];
+}
+/** GET /api/dispatch/{advisory_id}/receipts (v1.2 change pending Dev A). */
+export interface DispatchReceipts {
+  receipts: DispatchReceipt[];
+}
+/** GET /api/dispatch/recipients, masked (v1.2 change pending Dev A). */
+export interface DispatchRecipients {
+  telegram: { configured: boolean; chat_id: string | null };
+  email: { configured: boolean; to: string[] };
+  pin_configured: boolean;
 }
 
 // ---------- §5 Route payloads ----------
@@ -308,6 +327,10 @@ export interface AdvisoryReject {
 export interface AdvisoryNewDraft {
   created_by?: string | null;
 }
+/** v1.2 change pending Dev A: resend, dry_run, pin. Never recipients. */
 export interface DispatchRequest {
   channels: Channel[];
+  resend?: boolean;
+  dry_run?: boolean;
+  pin?: string | null; // required for a live dispatch
 }

@@ -64,6 +64,9 @@ def health() -> dict:
             "gee_key_path": s.gee_key_file is not None and s.gee_key_file.is_file(),
             "telegram_bot_token": s.is_configured("TELEGRAM_BOT_TOKEN"),
             "telegram_chat_id": s.is_configured("TELEGRAM_CHAT_ID"),
-            "resend_api_key": s.is_configured("RESEND_API_KEY"),
+            "gmail_address": s.is_configured("GMAIL_ADDRESS"),
+            "gmail_app_password": s.is_configured("GMAIL_APP_PASSWORD"),
+            "dispatch_email_to": s.is_configured("DISPATCH_EMAIL_TO"),
+            "dispatch_pin": s.is_configured("DISPATCH_PIN"),
         },
     }

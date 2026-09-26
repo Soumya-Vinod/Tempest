@@ -23,6 +23,7 @@ AuditAction = Literal[
     "new_draft",
     "copied",
     "sent",
+    "dispatched",  # one per channel attempt, incl. dry runs (v1.2 change, pending Dev A)
 ]
 TriggerMetric = Literal["wind_speed", "surge_depth"]
 BlockSource = Literal["census2011_cd", "h3_r7"]
@@ -43,6 +44,8 @@ RiskDriver = Literal[
 # (§4.4 risk breakdown, added in v1.1).
 RiskReach = Literal["direct", "cut_off"]
 Channel = Literal["telegram", "email"]
+# dry_run: built and validated, not sent (v1.2 change, pending Dev A).
+ChannelStatus = Literal["sent", "failed", "dry_run"]
 
 TIMESTEP_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 LANDFALL = datetime(2020, 5, 20, 12, tzinfo=UTC)

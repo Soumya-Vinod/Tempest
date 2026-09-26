@@ -2,11 +2,13 @@ import { useState } from 'react'
 
 import {
   approveAdvisory,
+  getAdvisory,
   newDraftFrom,
   rejectAdvisory,
   updateAdvisory,
 } from '../../lib/api'
 import type { Advisory, AdvisoryText, Citation, Language } from '../../types/contracts'
+import { DispatchDialog, ReceiptList } from '../dispatch'
 import { ApproveDialog, RejectDialog } from './Dialogs'
 import { errorText } from './errors'
 import { STATUS_STYLE, timestepLabel } from './style'
@@ -114,10 +116,11 @@ export default function AdvisoryDetail(props: {
   const p = props.advisory.properties
   const [language, setLanguage] = useState<Language>('en')
   const [editing, setEditing] = useState<AdvisoryText | null>(null)
-  const [dialog, setDialog] = useState<'approve' | 'reject' | null>(null)
+  const [dialog, setDialog] = useState<'approve' | 'reject' | 'dispatch' | null>(null)
+  const [dispatches, setDispatches] = useState(0) // bumps the receipt list after a dispatch
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const version = `${p.status}|${JSON.stringify(p.templates)}`
+  const version = `${p.status}|${JSON.stringify(p.templates)}|${dispatches}`
   const audit = useAudit(p.id, version)
 
   const run = async (action: () => Promise<Advisory>, after?: () => void) => {
@@ -234,6 +237,16 @@ export default function AdvisoryDetail(props: {
             </button>
           </>
         )}
+        {(p.status === 'approved' || p.status === 'sent') && (
+          <button
+            type="button"
+            disabled={busy}
+            className={`${BUTTON} border-violet-700 bg-violet-700 text-white`}
+            onClick={() => setDialog('dispatch')}
+          >
+            {p.status === 'sent' ? 'Resend' : 'Dispatch'}
+          </button>
+        )}
         {!isDraft && (
           <button
             type="button"
@@ -263,6 +276,10 @@ export default function AdvisoryDetail(props: {
         </tbody>
       </table>
 
+      {(p.status === 'approved' || p.status === 'sent') && (
+        <ReceiptList advisoryId={p.id} version={`${p.status}|${dispatches}`} />
+      )}
+
       <h3 className="mt-4 text-xs font-semibold tracking-wide text-slate-500 uppercase">Audit</h3>
       <ul className="mt-1 space-y-0.5 text-xs text-slate-600">
         {audit.map((e) => (
@@ -287,6 +304,20 @@ export default function AdvisoryDetail(props: {
           onApprove={(approvedBy) =>
             run(() => approveAdvisory(p.id, { approved_by: approvedBy }), () => setDialog(null))
           }
+        />
+      )}
+      {dialog === 'dispatch' && (
+        <DispatchDialog
+          advisoryId={p.id}
+          blockName={p.block_name}
+          resend={p.status === 'sent'}
+          onClose={(dispatched) => {
+            setDialog(null)
+            if (dispatched) {
+              setDispatches((n) => n + 1)
+              void run(() => getAdvisory(p.id))
+            }
+          }}
         />
       )}
       {dialog === 'reject' && (
