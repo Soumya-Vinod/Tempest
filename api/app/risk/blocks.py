@@ -129,11 +129,25 @@ def load_blocks(
     return make_blocks(frame, land, inhabited)
 
 
+@lru_cache(maxsize=2)
+def local_names(lookup_path: Path = LOOKUP_CSV) -> dict[str, dict[str, str]]:
+    """English block name -> {"bn": ..., "hi": ...}; a missing label is left out."""
+    if not lookup_path.is_file():
+        return {}
+    lookup = pd.read_csv(lookup_path, comment="#", dtype=str, keep_default_na=False)
+    langs = [lang for lang in ("bn", "hi") if f"name_{lang}" in lookup.columns]
+    return {
+        row["block_name"]: {lang: row[f"name_{lang}"] for lang in langs if row[f"name_{lang}"]}
+        for _, row in lookup.iterrows()
+    }
+
+
 _cached_load = load_blocks  # the lru_cache wrapper, even if tests replace load_blocks
 
 
 def clear_cache() -> None:
     _cached_load.cache_clear()
+    local_names.cache_clear()
 
 
 def unscored_areas(blocks: Blocks) -> UnscoredAreaCollection:

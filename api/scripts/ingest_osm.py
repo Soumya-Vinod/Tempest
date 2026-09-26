@@ -139,6 +139,7 @@ def main() -> None:
     print("Infrastructure")
     records: list[ingest.InfraRecord] = []
     raw_counts: dict[str, int] = {}
+    health_merges: list[ingest.Merge] = []
     for infra_type in ingest.INFRA_TYPES:
         minor = include_minor and infra_type == "power_line"
         query = ingest.infra_query(infra_type, bbox, include_minor_line=minor)
@@ -162,7 +163,7 @@ def main() -> None:
         raw_counts[infra_type] = len(found)
         deduped = found
         if infra_type == "hospital":
-            deduped = ingest.dedupe_health(found)
+            deduped, health_merges = ingest.merge_unnamed_health(ingest.dedupe_health(found))
         elif infra_type == "shelter":
             deduped = ingest.dedupe_shelters(found)
         clipped = ingest.clip_records(deduped, polygon)
@@ -170,6 +171,14 @@ def main() -> None:
             clipped, protected_stand_ins = ingest.drop_protected_stand_ins(clipped, protected)
         records += clipped
 
+    kept_ids = {r.id for r in records}
+    print(
+        f"  unnamed health facilities merged into a named one within "
+        f"{ingest.UNNAMED_MERGE_M:.0f} m: {len(health_merges)}"
+    )
+    for m in health_merges:
+        where = "in the AOI" if m.kept in kept_ids else "outside the AOI (clipped)"
+        print(f"    {m.dropped} -> {m.kept_name} ({m.kept}), {m.distance_m:.0f} m, {where}")
     in_reserve = [r for r in records if r.infra_type == "hospital" and protected.covers(r.geometry)]
     print(f"  stand-in shelters inside protected areas, dropped: {len(protected_stand_ins)}")
     print(f"  hospitals / health centres inside protected areas, kept: {len(in_reserve)}")

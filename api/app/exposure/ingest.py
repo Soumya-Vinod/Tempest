@@ -498,6 +498,50 @@ def dedupe_health(records: list[InfraRecord]) -> list[InfraRecord]:
     return [r for r in kept if r.id not in dropped]
 
 
+# An unnamed hospital / health centre this close (outline to outline) to a named one is the same
+# facility mapped twice. 120 m: Sagar's unnamed hospital outline is 108 m from Gangasagar PHC, a
+# same-compound duplicate; in the current data 120 m merges nothing else inside the AOI.
+UNNAMED_MERGE_M = 120.0
+
+
+@dataclass(frozen=True)
+class Merge:
+    dropped: str  # the unnamed facility's id
+    kept: str  # the named facility's id
+    kept_name: str
+    distance_m: float
+
+
+def merge_unnamed_health(
+    records: list[InfraRecord], max_m: float = UNNAMED_MERGE_M
+) -> tuple[list[InfraRecord], list[Merge]]:
+    """Merge each unnamed hospital / health centre into the nearest named one within `max_m`
+    (outline to outline: the source polygon where there is one). The named record is kept as it
+    is (name and facility_level); two named facilities are never merged."""
+    named = [r for r in records if r.name]
+    unnamed = [r for r in records if not r.name]
+    if not named or not unnamed:
+        return records, []
+
+    def metric(rs: list[InfraRecord]) -> list[BaseGeometry]:
+        shapes = [r.area if r.area is not None else r.geometry for r in rs]
+        return list(gpd.GeoSeries(shapes, crs="EPSG:4326").to_crs(METRIC_CRS))
+
+    named_m = metric(named)
+    tree = shapely.STRtree(named_m)
+    merges: list[Merge] = []
+    for r, geom in zip(unnamed, metric(unnamed), strict=True):
+        i = tree.nearest(geom)
+        if i is None:
+            continue
+        d = float(named_m[int(i)].distance(geom))
+        if d <= max_m:
+            kept = named[int(i)]
+            merges.append(Merge(r.id, kept.id, kept.name or "", round(d, 1)))
+    dropped = {m.dropped for m in merges}
+    return [r for r in records if r.id not in dropped], merges
+
+
 STAND_IN_DEDUPE_M = 50.0
 
 

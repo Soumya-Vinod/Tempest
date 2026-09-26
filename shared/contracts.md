@@ -22,7 +22,7 @@ Dev A* (or *Dev B*) until both devs sign off and the version is bumped.
 | Units | Wind speed **m/s**; surge depth **m** above ground; money **INR**. |
 | Timestamps | ISO 8601 UTC, always `YYYY-MM-DDTHH:MM:SSZ` (e.g. `2020-05-20T12:00:00Z`). |
 | Null geometry | Allowed only where stated (Advisory). |
-| Errors | FastAPI default `{"detail": ...}`. `404` unknown id, `409` invalid state change, `422` bad params (incl. unknown `timestep`), `501` not implemented yet, `503` required processed data missing (live mode) *(added in v0.9)*. |
+| Errors | FastAPI default `{"detail": ...}`. `404` unknown id, `409` invalid state change, `422` bad params (incl. unknown `timestep`), `501` not implemented yet, `503` required processed data missing (live mode) *(added in v0.9)*, or an upstream key missing; `502` an upstream (Gemini) response unusable *(v1.2 change, pending Dev A)*. `403` wrong or unset dispatch PIN, `429` dispatch rate limit *(v1.2 change, pending Dev A)*. |
 
 ## 2. Replay timeline — Cyclone Amphan
 
@@ -54,7 +54,12 @@ type InfraType    = "substation" | "power_line" | "road" | "hospital" | "shelter
 type ImpactStatus = "ok" | "at_risk" | "cut" | "isolated";
 type StepType     = "hazard" | "infra" | "service";
 type Language     = "en" | "bn" | "hi";
-type AdvisoryStatus = "draft" | "approved" | "sent";
+type AdvisoryStatus = "draft" | "approved" | "sent" | "rejected";  // rejected: v1.2 change, pending Dev A
+type AuditAction = "generated" | "number_check_failed" | "invalid_response" | "edited"
+  | "approved" | "rejected" | "new_draft" | "copied" | "sent"
+  | "dispatched";  // v1.2 change, pending Dev A (dispatched: one per channel attempt)
+type ChannelStatus = "sent" | "failed" | "dry_run";  // v1.2 change, pending Dev A
+type ModelProvider = "gemini" | "groq";  // v1.2 change, pending Dev A
 type TriggerMetric  = "wind_speed" | "surge_depth";
 type BlockSource    = "census2011_cd" | "h3_r7";
 type Timestep = string;       // one of the 25 replay keys (in responses)
@@ -206,24 +211,57 @@ which of the two scaled the score.
 ### 4.5 Advisory (Dev B)
 Geometry: **null** (join to the block via `block_id`).
 
+*v1.2 change, pending Dev A*: one Advisory per block and timestep, holding all three languages (was one `language` and
+one `body` per record).
+
 | Property | Type | Notes |
 |---|---|---|
 | `id` | AdvisoryId | UUID4, lowercase. Must match `^[a-z0-9-]+$` (fixture-safe). *Added in v0.9.* |
 | `block_id` | string | |
+| `block_name` | string | *v1.2 change, pending Dev A* |
 | `timestep` | Timestep | The timestep whose figures it cites. |
-| `language` | Language | |
-| `body` | string | Written by Gemini; contains **no numbers except those in `citations`**. |
-| `citations` | Citation[] | The source figures, all from the risk engine. |
-| `status` | AdvisoryStatus | `draft → approved → sent` only. |
-| `approved_by` | string \| null | Required once `status ≠ draft`. |
-| `approved_at` | ISO datetime \| null | Required once `status ≠ draft`. |
+| `texts` | `{ en, bn, hi }` of AdvisoryText | *v1.2 change, pending Dev A* The advisory as shown: figures filled in, each `body` starting with the exercise label (below). |
+| `templates` | `{ en, bn, hi }` of AdvisoryText | *v1.2 change, pending Dev A* The same text with `{{key}}` placeholders and no label: what Gemini wrote and what edits change. |
+| `citations` | Citation[] | The source of every figure and name in `texts`, all from the engines. |
+| `status` | AdvisoryStatus | `draft → approved → sent`, or `draft → rejected` (*v1.2 change, pending Dev A*). |
+| `approved_by` | string \| null | Required once `approved` or `sent`. `"Name (Designation)"`, see §5. |
+| `approved_at` | ISO datetime \| null | Required once `approved` or `sent`. |
+| `rejection_reason` | string \| null | *v1.2 change, pending Dev A* Required once `rejected`. |
+| `rejected_at` | ISO datetime \| null | *v1.2 change, pending Dev A* Required once `rejected`. |
+| `created_from` | AdvisoryId \| null | *v1.2 change, pending Dev A* The advisory this draft was copied from ("New draft from this"). |
 | `created_at` | ISO datetime | |
+| `generated_by` | `{ provider: ModelProvider, model: string }` \| null | *v1.2 change, pending Dev A* The model that wrote the draft: Gemini (`gemini-3.7-flash`), or the Groq fallback (`GROQ_MODEL`) when Gemini answered 429, or 503 twice (one retry ~2 s later). The same checks (schema, placeholders, numbers rule, staleness) apply to both. Copied by "New draft from this"; null on advisories stored before v1.2. The `generated` audit entry records it, plus `fallback_reason` (`"gemini 429"`, `"gemini 503 x2"`) when the fallback wrote it. Demo fixtures are Gemini's only. |
 
-`Citation = { key: string, label: string, value: number, unit: string | null, source: string }`
-e.g. `{"key":"risk_score","label":"Block risk score","value":0.82,"unit":null,"source":"risk"}`
+`AdvisoryText = { headline: string, body: string, actions: string[] }` (*v1.2 change, pending Dev A*): `actions` has 3 to 5
+lines for local officials.
+
+`Citation = { key: string, label: string, value: number | string, unit: string | null, source: string }`
+e.g. `{"key":"risk_score","label":"Block risk score (0-1)","value":0.27,"unit":null,"source":"risk"}`.
+`key` matches `^[a-z0-9_]+$`. `value` may be a string (*v1.2 change, pending Dev A*): names and causes, e.g.
+`{"key":"isolated_1_cause","label":"Cause","value":"ferry suspended by wind","unit":null,"source":"impact"}`.
+
+**Numbers rule** (*v1.2 change, pending Dev A*). Gemini never writes a figure: `templates` contain no digits (any script)
+and no number words outside `{{key}}` placeholders, and only keys from `citations`. The server
+rejects drafts and edits that break this, and fills the placeholders: Bengali numerals for `bn`,
+Latin digits for `en` and `hi`, units in the text's language. The only other digits in `texts` are
+the exercise label the server puts at the start of every `body`: `[EXERCISE: Cyclone Amphan 2020
+replay]`, `[মহড়া: ঘূর্ণিঝড় আমফান ২০২০ রিপ্লে]`, `[अभ्यास: चक्रवात अम्फान 2020 रीप्ले]`.
+
+**Audit log** (*v1.2 change, pending Dev A*). Every action is recorded as
+`AuditEvent = { id: int, advisory_id: AdvisoryId | null, action: AuditAction, actor: string | null,
+at: ISO datetime, details: string | null }`. `advisory_id` is null for a generation that produced
+no advisory (its draft failed the checks); `details` is JSON text.
+
+`AdvisorySuggestions = { timestep, threshold: float, blocks: { block_id, block_name, score }[] }`
+(*v1.2 change, pending Dev A*): the blocks at or above the suggestion threshold (0.25), highest first.
 
 ### 4.6 TriggerEvent (Dev B)
 One feature per insurance zone per timestep. Geometry: zone `Polygon | MultiPolygon`.
+*v1.2 change, pending Dev A:* a zone is a CD block (Census 2011 code). The feature reports the
+metric that sets the payout: of wind and surge, the higher tier (never the sum of both); on a
+tie, the one further past its threshold (untriggered: closer to its first threshold). Terms are
+illustrative (`api/app/insurance/constants.py`): wind ≥ 33 / 46 / 62 m/s and surge ≥ 1 / 2 / 3 m
+pay 25 / 50 / 100 % of a sum insured of ₹1,000 per resident (2011 population).
 
 | Property | Type | Notes |
 |---|---|---|
@@ -231,16 +269,63 @@ One feature per insurance zone per timestep. Geometry: zone `Polygon | MultiPoly
 | `zone_id` | string | |
 | `zone_name` | string | |
 | `timestep` | Timestep | |
-| `metric` | TriggerMetric | Read from HazardLayer `value` (not severity). |
+| `metric` | TriggerMetric | Read from HazardLayer `value` (not severity). *v1.2:* the governing metric. |
 | `unit` | `"m/s" \| "m"` | |
-| `threshold` | float | |
-| `observed` | float | Max over the zone at this timestep. |
+| `threshold` | float | *v1.2:* the governing metric's threshold for the tier reached (its first tier when none). |
+| `observed` | float | *v1.2 change, pending Dev A* (was: max over the zone): the nearest-rank 90th percentile of the cells overlapping the zone's inhabited land by ≥ 1 km², so one extreme cell can't trigger alone. |
 | `triggered` | boolean | `observed >= threshold` |
-| `payout_estimate_inr` | float | `0` when not triggered. |
+| `payout_estimate_inr` | float | `0` when not triggered. *v1.2:* `payout_fraction × sum_insured_inr` (the current reading). |
+| `tier` | int ≥ 0 | *v1.2 change, pending Dev A.* 0 = not triggered; `triggered == (tier > 0)`. |
+| `payout_fraction` | float [0, 1] | *v1.2 change, pending Dev A.* Of `sum_insured_inr`, for `tier`. |
+| `sum_insured_inr` | float | *v1.2 change, pending Dev A.* |
+| `released_tier` | int ≥ `tier` | *v1.2 change, pending Dev A.* The highest tier at any timestep up to this one: released money is never taken back. |
+| `released_payout_inr` | float ≥ `payout_estimate_inr` | *v1.2 change, pending Dev A.* The payout for `released_tier`. |
+
+**InsuranceSummary** (*v1.2 change, pending Dev A*), `GET /api/insurance/summary`:
+`{ district: [{ timestep, released_payout_inr, triggered_zones, released_zones }] (25, never
+decreasing), zones: [{ zone_id, zone_name, first_trigger_timestep | null, hours_before_landfall |
+null, first_trigger_metric | null, first_trigger_tier, first_trigger_payout_inr,
+final_released_tier, final_released_payout_inr, sum_insured_inr }] }`.
 
 ### 4.7 DispatchReceipt (Dev B, not GeoJSON)
-`{ advisory_id: AdvisoryId, sent_at: ISO datetime, channels: [{ channel: "telegram" | "email", ok: boolean, error: string | null }] }`
-(`AdvisoryId` as in §4.5.)
+*v1.2 change, pending Dev A* (was `{ advisory_id, sent_at, channels: [{ channel, ok, error }] }`):
+```ts
+interface DispatchReceipt {
+  advisory_id: AdvisoryId;
+  dispatched_at: string;            // ISO datetime
+  dry_run: boolean;                 // true: built and validated, nothing sent, not stored
+  resend: boolean;                  // the advisory was already sent
+  channels: ChannelResult[];        // one per requested channel, each attempted on its own
+}
+interface ChannelResult {
+  channel: Channel;                 // "telegram" | "email"
+  status: ChannelStatus;            // "sent" | "failed" | "dry_run"
+  provider_message_id: string | null; // Telegram message ids (comma-separated) / e-mail Message-ID
+  error: string | null;             // when failed; never contains a credential
+  at: string;                       // ISO datetime
+}
+```
+(`AdvisoryId` as in §4.5.) Rules: only `approved` advisories (`409`); a `sent` one needs
+`resend: true` (`409`). A live dispatch needs `pin` matching `DISPATCH_PIN` in `api/.env`
+(`403` if wrong or unset); dry runs need none. At most 10 live dispatches per rolling hour
+(`429`). Recipients come only from `api/.env` (Telegram chat, e-mail list), never from a request.
+Each channel attempt is audited (`dispatched`, details = the ChannelResult); the advisory becomes
+`sent` (audit `sent`) if at least one channel succeeded. Live receipts are stored in SQLite; dry
+runs only in the audit log. Dispatch sends for real in DEMO_MODE too (a human-approved action,
+not a data fetch).
+
+**Channels.** Telegram: plain text, one message per language (bn, then en), split at 4096
+characters. E-mail (Gmail SMTP, STARTTLS): subject starts `[EXERCISE]`, body en then bn, the CAP
+attached.
+
+**CAP 1.2** (validated against the OASIS XSD): `status` Exercise, `msgType` Alert, `scope` Public,
+`sender` `tempest-s24p-exercise@invalid`; one `<info>` per language (`en-IN`, `bn-IN`, `hi-IN`),
+`category` Met, `event` Cyclone, `headline`, `description` = body, `instruction` = the actions;
+`<area>`: block name, the simplified block polygon (lat,lon, one per part), and `<geocode>`
+`census2011_cd` = the block's Census 2011 code. Mapping from the advisory's cited figures:
+`severity` from the risk score (≥ 0.6 Extreme, ≥ 0.4 Severe, ≥ 0.25 Moderate, else Minor);
+`urgency` Immediate at ≤ 12 h to landfall, else Future (CAP's Expected means "within the next
+hour"); `certainty` Observed at landfall, else Likely.
 
 ## 5. Routes
 
@@ -256,13 +341,22 @@ stated; `timestep=live` returns `501` in v1.1. FC = FeatureCollection.
 | B | GET | `/api/risk/scores` | `timestep` | FC&lt;RiskScore&gt; |
 | B | GET | `/api/risk/breakdown` | `timestep` | RiskBreakdown. *added in v1.1.* |
 | B | GET | `/api/risk/unscored-areas` | — | FC&lt;UnscoredArea&gt; (static; live from reference data, DEMO_MODE from the `unscored-areas` fixture). *added in v1.1.* |
-| B | GET | `/api/advisory/` | `status?`, `block_id?` | FC&lt;Advisory&gt; |
-| B | POST | `/api/advisory/` | `{ block_id, timestep, language }` | Advisory (`draft`) |
+| B | GET | `/api/advisory/` | `status?`, `block_id?`, `timestep?` (*v1.2 change, pending Dev A*) | FC&lt;Advisory&gt;, newest first |
+| B | POST | `/api/advisory/` | `{ block_id, timestep }` (*v1.2 change, pending Dev A*: no `language`) | Advisory (`draft`). `502` if Gemini's draft fails the numbers rule twice; `503` with no cached response and no Gemini key. |
+| B | GET | `/api/advisory/suggestions` | `timestep` | AdvisorySuggestions. *v1.2 change, pending Dev A* |
+| B | GET | `/api/advisory/audit` | — | `{ events: AuditEvent[] }`, all events. *v1.2 change, pending Dev A* |
 | B | GET | `/api/advisory/{advisory_id}` | — | Advisory |
-| B | PATCH | `/api/advisory/{advisory_id}` | `{ body }`; `draft` only, else `409` | Advisory |
-| B | POST | `/api/advisory/{advisory_id}/approve` | `{ approved_by }`; `draft` only, else `409` | Advisory (`approved`) |
-| B | POST | `/api/dispatch/{advisory_id}` | `{ channels: ("telegram" \| "email")[] }`; `approved` only, else `409` | DispatchReceipt; advisory → `sent` |
-| B | GET | `/api/insurance/triggers` | `timestep` | FC&lt;TriggerEvent&gt; |
+| B | PATCH | `/api/advisory/{advisory_id}` | `{ templates, edited_by? }` (*v1.2 change, pending Dev A*: was `{ body }`); `draft` only, else `409`; `422` if it breaks the numbers rule or removes a placeholder | Advisory |
+| B | POST | `/api/advisory/{advisory_id}/approve` | `{ approved_by }` as `"Name (Designation)"`, designation `BDO`, `SDO`, `ADM (Disaster Management)`, `District Magistrate` or `Other: <role>` (*v1.2 change, pending Dev A*), else `422`; `draft` only, else `409` | Advisory (`approved`) |
+| B | POST | `/api/advisory/{advisory_id}/reject` | `{ reason, rejected_by? }`; `reason` not blank, else `422`; `draft` only, else `409` | Advisory (`rejected`). *v1.2 change, pending Dev A* |
+| B | POST | `/api/advisory/{advisory_id}/new-draft` | `{ created_by? }`; not a `draft`, else `409` | Advisory (`draft`, `created_from` set). *v1.2 change, pending Dev A* |
+| B | GET | `/api/advisory/{advisory_id}/audit` | — | `{ events: AuditEvent[] }`, oldest first. *v1.2 change, pending Dev A* |
+| B | POST | `/api/dispatch/{advisory_id}` | `{ channels: ("telegram" \| "email")[], resend?, dry_run?, pin? }` (*v1.2 change, pending Dev A*: resend, dry_run, pin); rules in §4.7 | DispatchReceipt; advisory → `sent` |
+| B | GET | `/api/dispatch/{advisory_id}/receipts` | — | `{ receipts: DispatchReceipt[] }`, oldest first. *v1.2 change, pending Dev A* |
+| B | GET | `/api/dispatch/{advisory_id}/cap.xml` | — | CAP 1.2 XML of the latest dispatch (a fresh one if approved and never sent; `409` otherwise). *v1.2 change, pending Dev A* |
+| B | GET | `/api/dispatch/recipients` | — | `{ telegram: { configured, chat_id }, email: { configured, to[] }, pin_configured }`, masked. *v1.2 change, pending Dev A* |
+| B | GET | `/api/insurance/triggers` | `timestep` | FC&lt;TriggerEvent&gt;, one per CD block |
+| B | GET | `/api/insurance/summary` | — | InsuranceSummary. *v1.2 change, pending Dev A* |
 | — | GET | `/health` | — | not part of this contract (see README) |
 
 The `/api/hazard/*` routes are for the web client only. Dev B reads hazard data through §6.
@@ -315,10 +409,8 @@ the schema listed here, and fails on any route resource not in this table.
 | `GET /api/risk/scores` | `scores` | yes | FC&lt;RiskScore&gt; |
 | `GET /api/risk/breakdown` | `breakdown` *(added in v1.1)* | yes | RiskBreakdown |
 | `GET /api/risk/unscored-areas` | `unscored-areas` *(added in v1.1)* | no | FC&lt;UnscoredArea&gt; |
-| `GET /api/advisory/` | `list` | no | FC&lt;Advisory&gt; |
-| `GET /api/advisory/{advisory_id}` | `item-<advisory_id>` | no | Advisory |
-| `POST /api/dispatch/{advisory_id}` | `receipt-<advisory_id>` | no | DispatchReceipt |
-| `GET /api/insurance/triggers` | `triggers` | yes | FC&lt;TriggerEvent&gt; |
+| `GET /api/insurance/triggers` | `triggers` (compact, see below) | yes | FC&lt;TriggerEvent&gt; |
+| `GET /api/insurance/summary` | `summary` *(v1.2 change, pending Dev A)* | no | InsuranceSummary |
 
 Enum values containing `_` (e.g. `power_line`) are written with `-` in resource names:
 `exposure__infra-power-line`. `advisory_id` is fixture-safe by §4.5, so it is used as is.
@@ -333,14 +425,16 @@ exposure__infra-power-line.json
 exposure__overpass-substations.json
 impact__results__20200519T0000Z.json
 risk__scores__20200520T1200Z.json
-advisory__gemini-draft-bn-<block_id>__20200520T1200Z.json
-advisory__list.json
-advisory__item-<advisory_id>.json
-dispatch__receipt-<advisory_id>.json
+advisory__gemini-<census_code>__20200520T1200Z.json *(v1.2 change, pending Dev A)*
 insurance__triggers__20200520T1200Z.json
+insurance__summary.json *(v1.2 change, pending Dev A)*
 ```
 
 Fixture content is exactly the route response (or the raw upstream body) as JSON, UTF-8, LF.
+Advisories are local state (SQLite), not fixtures, in both modes (*v1.2 change, pending Dev A*): the only advisory
+fixtures are Gemini's raw responses, `advisory__gemini-<census_code>__<ts>`, one per block and
+timestep with all three languages. In DEMO_MODE a cached response is used when present, else the
+live Gemini key if set, else `503`.
 *Exception (added in v1.1):* `impact__results__<ts>` stores only the non-`ok` rows.
 When loading it, the route adds an `ok` row (empty `pathway`) for every InfraFeature and hazard
 type not present, so the response is exactly the full contract collection.
@@ -349,4 +443,7 @@ type not present, so the response is exactly the full contract collection.
 geometry back from the block reference file (`api/data/reference/s24p_blocks.geojson`), so the
 response is exactly the full contract collection. `risk__breakdown__<ts>` has no geometry and is
 stored as is.
+*Exception (v1.2 change, pending Dev A):* `insurance__triggers__<ts>` stores each TriggerEvent
+without its `geometry`, which the route adds back from the same block reference file, as for
+`risk__scores__<ts>`.
 Keep each file under ~2 MB, roads up to 5 MB (`exposure__infra-road`) *(added in v0.9)*. Anything larger or regenerable goes in `api/data/cache/` (ignored).

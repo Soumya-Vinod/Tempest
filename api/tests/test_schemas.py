@@ -10,6 +10,7 @@ from app.schemas import (
     LANDFALL_TIMESTEP,
     REPLAY_TIMESTEPS,
     AdvisoryProperties,
+    Citation,
     DispatchReceipt,
     HazardLayer,
     HazardLayerCollection,
@@ -111,18 +112,46 @@ def test_block_id_rejects_unsafe(block_id):
         )
 
 
+TEXT = {"headline": "h", "body": "b", "actions": ["a", "b", "c"]}
+TEXTS = {"en": TEXT, "bn": TEXT, "hi": TEXT}
+
+
+def _advisory(**changes):
+    fields = {
+        "id": "a",
+        "block_id": "b-1",
+        "block_name": "B",
+        "timestep": TS,
+        "texts": TEXTS,
+        "templates": TEXTS,
+        "citations": [],
+        "status": "draft",
+        "created_at": "2020-05-20T12:00:00Z",
+    }
+    return AdvisoryProperties(**(fields | changes))
+
+
 def test_approved_advisory_needs_approver():
+    _advisory()
     with pytest.raises(ValidationError):
-        AdvisoryProperties(
-            id="a",
-            block_id="b-1",
-            timestep=TS,
-            language="en",
-            body="text",
-            citations=[],
-            status="approved",
-            created_at="2020-05-20T12:00:00Z",
-        )
+        _advisory(status="approved")
+    _advisory(status="approved", approved_by="A (BDO)", approved_at="2020-05-20T12:00:00Z")
+
+
+def test_rejected_advisory_needs_reason():
+    with pytest.raises(ValidationError):
+        _advisory(status="rejected", rejected_at="2020-05-20T12:00:00Z")
+    _advisory(status="rejected", rejection_reason="r", rejected_at="2020-05-20T12:00:00Z")
+
+
+def test_advisory_needs_three_to_five_actions():
+    for n in (2, 6):
+        with pytest.raises(ValidationError):
+            _advisory(texts={**TEXTS, "bn": {**TEXT, "actions": ["x"] * n}})
+
+
+def test_citation_value_can_be_text():
+    Citation(key="isolated_1_name", label="l", value="Gosaba Rural Hospital", unit=None, source="s")
 
 
 @pytest.mark.parametrize("advisory_id", ["3F2504E0-4F89-41D3-9A0C-0305E82C3301", "a_1", "a.b", ""])
@@ -139,12 +168,12 @@ def test_advisory_id_rejects_unsafe(advisory_id):
             created_at="2020-05-20T12:00:00Z",
         )
     with pytest.raises(ValidationError):
-        DispatchReceipt(advisory_id=advisory_id, sent_at="2020-05-20T12:00:00Z", channels=[])
+        DispatchReceipt(advisory_id=advisory_id, dispatched_at="2020-05-20T12:00:00Z", channels=[])
 
 
 def test_advisory_id_accepts_lowercase_uuid4():
     advisory_id = str(uuid.uuid4())
-    DispatchReceipt(advisory_id=advisory_id, sent_at="2020-05-20T12:00:00Z", channels=[])
+    DispatchReceipt(advisory_id=advisory_id, dispatched_at="2020-05-20T12:00:00Z", channels=[])
 
 
 def test_trigger_consistency():
@@ -158,9 +187,18 @@ def test_trigger_consistency():
         "threshold": 40.0,
         "observed": 45.0,
     }
-    TriggerEventProperties(**base, triggered=True, payout_estimate_inr=1e6)
+    tier1 = {"tier": 1, "payout_fraction": 0.25, "sum_insured_inr": 4e6}
+    released = {"released_tier": 1, "released_payout_inr": 1e6}
+    TriggerEventProperties(**base, triggered=True, payout_estimate_inr=1e6, **tier1, **released)
     with pytest.raises(ValidationError):
         TriggerEventProperties(**base, triggered=False, payout_estimate_inr=0)
+    # v1.2: tier > 0 exactly when triggered; payout = fraction x sum insured; released >= current.
+    with pytest.raises(ValidationError):
+        TriggerEventProperties(**base, triggered=True, payout_estimate_inr=1e6)  # tier 0
+    with pytest.raises(ValidationError):
+        TriggerEventProperties(**base, triggered=True, payout_estimate_inr=2e6, **tier1, **released)
+    with pytest.raises(ValidationError):
+        TriggerEventProperties(**base, triggered=True, payout_estimate_inr=1e6, **tier1)
 
 
 def test_get_hazard_layer_live_raises_not_implemented():

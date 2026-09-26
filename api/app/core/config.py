@@ -9,10 +9,14 @@ API_DIR = Path(__file__).resolve().parents[2]
 # configured. tests/test_health.py checks that .env.example matches this dict.
 PLACEHOLDERS: dict[str, str] = {
     "GEMINI_API_KEY": "your-gemini-api-key",
+    "GROQ_API_KEY": "your-groq-api-key",
     "GEE_SERVICE_ACCOUNT": "your-sa@your-project.iam.gserviceaccount.com",
     "TELEGRAM_BOT_TOKEN": "123456:your-telegram-bot-token",
     "TELEGRAM_CHAT_ID": "-1001234567890",
-    "RESEND_API_KEY": "re_your_resend_api_key",
+    "GMAIL_ADDRESS": "you@gmail.com",
+    "GMAIL_APP_PASSWORD": "your-16-char-app-password",
+    "DISPATCH_EMAIL_TO": "officer@example.org",
+    "DISPATCH_PIN": "change-me",
 }
 
 
@@ -24,11 +28,20 @@ class Settings(BaseSettings):
     )
 
     GEMINI_API_KEY: str | None = None
+    # Fallback advisory model, only when Gemini fails with 429 / 503 (app/advisory/providers.py).
+    # GROQ_MODEL is a plain setting, not a secret: its .env.example value is the real default.
+    GROQ_API_KEY: str | None = None
+    GROQ_MODEL: str = "openai/gpt-oss-120b"
     GEE_SERVICE_ACCOUNT: str | None = None
     GEE_KEY_PATH: str | None = None
     TELEGRAM_BOT_TOKEN: str | None = None
     TELEGRAM_CHAT_ID: str | None = None
-    RESEND_API_KEY: str | None = None
+    # Dispatch e-mail: Gmail SMTP with an app password; DISPATCH_EMAIL_TO is comma-separated.
+    GMAIL_ADDRESS: str | None = None
+    GMAIL_APP_PASSWORD: str | None = None
+    DISPATCH_EMAIL_TO: str | None = None
+    # Required in the request for every live (non-dry-run) dispatch.
+    DISPATCH_PIN: str | None = None
     DEMO_MODE: bool = True
     # South 24 Parganas / Sundarbans, EPSG:4326: min_lon,min_lat,max_lon,max_lat
     AOI_BBOX: str = "88.0,21.5,89.1,22.7"

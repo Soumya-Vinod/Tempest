@@ -31,6 +31,8 @@ const TOOLTIP_STYLE: Partial<CSSStyleDeclaration> = {
 
 export interface ImpactMap {
   layers: Layer[]
+  /** The hovered / selected feature's highlight, drawn above everything else. */
+  highlightLayers: Layer[]
   /** Impact results are on the map (exposure should mute its colours). */
   active: boolean
   /** Tooltip for impact layers; null elsewhere, so the exposure tooltip can take over. */
@@ -58,7 +60,10 @@ export function useImpactMap(timestepIndex: number, infra: InfraByType): ImpactM
     ? (lookup.get(highlightId)?.geometry ?? affected.get(highlightId)?.geometry ?? null)
     : null
 
-  const layers = useMemo(() => buildImpactLayers(data, highlight, pulse), [data, highlight, pulse])
+  const { layers, highlight: highlightLayers } = useMemo(
+    () => buildImpactLayers(data, highlight, pulse),
+    [data, highlight, pulse],
+  )
 
   const counts = useMemo(() => {
     if (state.status !== 'ok') return null
@@ -97,6 +102,7 @@ export function useImpactMap(timestepIndex: number, infra: InfraByType): ImpactM
 
   return {
     layers,
+    highlightLayers,
     active: shown.length > 0,
     tooltip,
     onClick,

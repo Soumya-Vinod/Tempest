@@ -3,7 +3,8 @@ import type { DeckProps, Layer, PickingInfo } from '@deck.gl/core'
 import type { Map as MapLibreMap } from 'maplibre-gl'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
-import { REPLAY_TIMESTEPS } from '../../lib/constants'
+import { REPLAY_TIMESTEPS, RISK_VIEW_MIN_SCORE } from '../../lib/constants'
+import type { MapViewMode } from '../hazard'
 import { syncUnscored } from './hatch'
 import { buildRiskLayers, pickedBlock, pickedUnscored } from './layers'
 import type { RiskCardProps } from './RiskCard'
@@ -27,35 +28,57 @@ const TOOLTIP_STYLE: Partial<CSSStyleDeclaration> = {
 }
 
 export interface RiskMap {
+  /** The effective map view: the user's choice, or automatic (see useRiskMap). */
+  view: MapViewMode
+  /** The choropleth (fills slot, below exposure); hidden in the Hazard view. */
   layers: Layer[]
+  /** The selected block's outline, drawn above everything else. */
+  highlightLayers: Layer[]
   tooltip: (info: PickingInfo) => TooltipContent
   /** Selects the clicked block (true) or clears the selection (false). */
   onClick: (info: PickingInfo) => boolean
   clear: () => void
+  /** Selects a block by id (e.g. from the advisory queue); the caller switches to the Risk view. */
+  select: (blockId: string) => void
+  /** Every scored block, for pickers. */
+  blocks: { block_id: string; block_name: string }[]
   onMapLoad: (map: MapLibreMap) => void
-  panel: { visible: boolean; onToggle: () => void; state: RiskState }
+  panel: { visible: boolean; state: RiskState }
   card: RiskCardProps
 }
 
-/** Risk for the scrubber's timestep. */
-export function useRiskMap(timestepIndex: number): RiskMap {
+/**
+ * Risk for the scrubber's timestep. `chosenView` is the user's explicit Hazard / Risk choice, or
+ * null: then the view is Risk once any block at this timestep scores RISK_VIEW_MIN_SCORE or more
+ * (the advisory threshold), else Hazard. The selection only applies in the Risk view.
+ */
+export function useRiskMap(timestepIndex: number, chosenView: MapViewMode | null): RiskMap {
   const timestep = REPLAY_TIMESTEPS[timestepIndex]
   const { state, shown } = useRisk(timestep)
   const unscored = useUnscoredAreas()
-  const [visible, setVisible] = useState(true)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [map, setMap] = useState<MapLibreMap | null>(null)
 
+  const anyAtRisk = useMemo(
+    () => shown?.scores.features.some((f) => f.properties.score >= RISK_VIEW_MIN_SCORE) ?? false,
+    [shown],
+  )
+  const view: MapViewMode = chosenView ?? (anyAtRisk ? 'risk' : 'hazard')
+  const visible = view === 'risk'
+
   const selected = useMemo(
-    () => shown?.scores.features.find((f) => f.properties.block_id === selectedId) ?? null,
-    [shown, selectedId],
+    () =>
+      visible
+        ? (shown?.scores.features.find((f) => f.properties.block_id === selectedId) ?? null)
+        : null,
+    [shown, selectedId, visible],
   )
   const breakdown = useMemo(
     () => shown?.breakdown?.blocks.find((b) => b.block_id === selectedId) ?? null,
     [shown, selectedId],
   )
 
-  const layers = useMemo(
+  const { layers, highlight: highlightLayers } = useMemo(
     () => buildRiskLayers(shown?.scores ?? null, unscored, selected, visible),
     [shown, unscored, selected, visible],
   )
@@ -66,16 +89,20 @@ export function useRiskMap(timestepIndex: number): RiskMap {
   }, [map, unscored, visible])
 
   const clear = useCallback(() => setSelectedId(null), [])
+  const select = useCallback((blockId: string) => setSelectedId(blockId), [])
+  const blocks = useMemo(
+    () =>
+      shown?.scores.features.map((f) => ({
+        block_id: f.properties.block_id,
+        block_name: f.properties.block_name,
+      })) ?? [],
+    [shown],
+  )
   const onClick = useCallback((info: PickingInfo) => {
     const block = pickedBlock(info)
     setSelectedId(block?.properties.block_id ?? null)
     return block !== null
   }, [])
-  const onToggle = useCallback(() => {
-    setVisible((v) => !v)
-    setSelectedId(null)
-  }, [])
-
   const tooltip = useCallback((info: PickingInfo): TooltipContent => {
     if (pickedUnscored(info)) return { text: 'Municipal area, not scored', style: TOOLTIP_STYLE }
     const block = pickedBlock(info)
@@ -88,12 +115,16 @@ export function useRiskMap(timestepIndex: number): RiskMap {
   }, [])
 
   return {
+    view,
     layers,
+    highlightLayers,
     tooltip,
     onClick,
     clear,
+    select,
+    blocks,
     onMapLoad: setMap,
-    panel: { visible, onToggle, state },
+    panel: { visible, state },
     card: { timestepIndex, selected, breakdown, onClose: clear },
   }
 }

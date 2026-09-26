@@ -13,20 +13,19 @@ from app.core.demo import DEMO_DIR
 from app.exposure import service as exposure
 from app.hazard.models import CycloneTrack
 from app.impact import service as impact
+from app.insurance import engine as insurance_engine
 from app.main import app
 from app.risk import fixtures as risk_fixtures
 from app.risk import service as risk
 from app.risk.blocks import load_blocks
 from app.schemas import (
     REPLAY_TIMESTEPS,
-    Advisory,
-    AdvisoryCollection,
-    DispatchReceipt,
     HazardLayerCollection,
     HazardType,
     ImpactResultCollection,
     InfraFeatureCollection,
     InfraType,
+    InsuranceSummary,
     ReplayTimeline,
     RiskBreakdown,
     RiskScoreCollection,
@@ -44,7 +43,6 @@ def _alternatives(literal) -> str:
     return "|".join(v.replace("_", "-") for v in get_args(literal))
 
 
-ADVISORY_ID = r"(?P<id>[a-z0-9-]+)"
 # module -> [(resource regex, schema, time-dependent, id in the key -> id in the body)]
 ROUTE_SCHEMAS = {
     "hazard": [
@@ -60,12 +58,14 @@ ROUTE_SCHEMAS = {
         (r"breakdown", RiskBreakdown, True, None),
         (r"unscored-areas", UnscoredAreaCollection, False, None),
     ],
-    "advisory": [
-        (r"list", AdvisoryCollection, False, None),
-        (rf"item-{ADVISORY_ID}", Advisory, False, lambda m: m.properties.id),
+    # Advisory state lives in SQLite; its only fixtures are raw gemini-* responses.
+    "advisory": [],
+    # Dispatch receipts live in SQLite (v1.2 change, pending Dev A: receipt fixture dropped).
+    "dispatch": [],
+    "insurance": [
+        (r"triggers", TriggerEventCollection, True, None),
+        (r"summary", InsuranceSummary, False, None),  # v1.2 change, pending Dev A
     ],
-    "dispatch": [(rf"receipt-{ADVISORY_ID}", DispatchReceipt, False, lambda m: m.advisory_id)],
-    "insurance": [(r"triggers", TriggerEventCollection, True, None)],
 }
 FIXTURES = sorted(DEMO_DIR.glob("*.json"))
 
@@ -104,6 +104,12 @@ def test_fixture_matches_contract(path):
         data = json.loads(raw)
         assert all("geometry" not in f for f in data["features"]), "scores store no geometry"
         model = risk_fixtures.from_fixture(data, load_blocks())
+    elif (module, resource) == ("insurance", "triggers"):  # compact, as risk scores (v1.2)
+        data = json.loads(raw)
+        assert all("geometry" not in f for f in data["features"]), "triggers store no geometry"
+        blocks = load_blocks()
+        geometry = dict(zip(blocks.codes, blocks.display, strict=True))
+        model = insurance_engine.collection_from(data["features"], geometry)
     else:
         model = schema.model_validate_json(raw)
     if body_id:
