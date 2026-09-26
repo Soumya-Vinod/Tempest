@@ -17,9 +17,11 @@ import type {
   InfraFeatureCollection,
   InfraType,
   ReplayTimeline,
+  RiskBreakdown,
   RiskScoreCollection,
   TimestepParam,
   TriggerEventCollection,
+  UnscoredAreaCollection,
 } from '../types/contracts'
 
 /** Empty in dev (Vite proxy); set VITE_API_BASE_URL for production builds. */
@@ -92,16 +94,21 @@ export const getInfra = (infra_type?: InfraType) =>
 export const getImpactResults = (
   timestep: TimestepParam,
   filters: { hazard_type?: HazardType; status?: ImpactStatus } = {},
-  // TEMPORARY, dev only (not in the contract): synthetic hazards, DEMO_MODE off. Remove once
-  // Dev A's get_hazard_layer exists.
-  dev: { synthetic?: boolean } = {},
 ) =>
   request<ImpactResultCollection>('GET', '/api/impact/results', {
-    query: { timestep, ...filters, synthetic: dev.synthetic ? 'true' : undefined },
+    query: { timestep, ...filters },
   })
 
 export const getRiskScores = (timestep: TimestepParam) =>
   request<RiskScoreCollection>('GET', '/api/risk/scores', { query: { timestep } })
+
+/** v1.1 change, pending Dev A. */
+export const getRiskBreakdown = (timestep: TimestepParam) =>
+  request<RiskBreakdown>('GET', '/api/risk/breakdown', { query: { timestep } })
+
+/** v1.1 change, pending Dev A. Static: Kolkata and municipal areas outside the CD blocks. */
+export const getUnscoredAreas = () =>
+  request<UnscoredAreaCollection>('GET', '/api/risk/unscored-areas')
 
 export const listAdvisories = (filters: { status?: AdvisoryStatus; block_id?: BlockId } = {}) =>
   request<AdvisoryCollection>('GET', '/api/advisory/', { query: filters })

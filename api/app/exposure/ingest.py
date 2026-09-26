@@ -86,6 +86,16 @@ SHELTER_NAME_PATTERNS: tuple[str, ...] = (
 SHELTER_INDICATOR_KEYS = ("shelter_type", "emergency", "building", "amenity", "social_facility")
 SHELTER_INDICATOR_RE = re.compile(r"cyclone|flood", re.IGNORECASE)
 SHELTER_FLAG_KEYS = ("cyclone_shelter", "flood_shelter")
+# Government buildings that are not places to shelter people: forest department offices, camps
+# and posts (the Sundarbans reserve has many, tagged office=government). Never a
+# public_building_proxy, wherever they are. Matched on name / name:en, case-insensitive.
+PUBLIC_BUILDING_EXCLUDE_PATTERNS: tuple[str, ...] = (
+    r"\b(forest|range|beat)\s+office",
+    r"\bforest\s+camp",
+    r"\bpermissions?\s+counter",
+    r"\bcheck\s*-?\s*post",
+    r"\bwatch\s*-?\s*tower",
+)
 
 # shelter_kind values, highest priority first. An element matching several keeps the first.
 # The *_proxy kinds are stand-ins: buildings that could shelter people, not designated shelters.
@@ -107,7 +117,10 @@ STAND_IN_RULES: tuple[tuple[str, Any], ...] = (
     ("community_proxy", lambda t: t.get("amenity") in {"community_centre", "townhall"}),
     (
         "public_building_proxy",
-        lambda t: t.get("office") == "government" or t.get("building") in {"public", "civic"},
+        lambda t: (
+            (t.get("office") == "government" or t.get("building") in {"public", "civic"})
+            and not _excluded_public_building(t)
+        ),
     ),
 )
 
@@ -117,6 +130,11 @@ def _nfc(text: str) -> str:
 
 
 SHELTER_NAME_RE = re.compile("|".join(_nfc(p) for p in SHELTER_NAME_PATTERNS), re.IGNORECASE)
+PUBLIC_BUILDING_EXCLUDE_RE = re.compile("|".join(PUBLIC_BUILDING_EXCLUDE_PATTERNS), re.IGNORECASE)
+
+
+def _excluded_public_building(tags: dict[str, str]) -> bool:
+    return any(PUBLIC_BUILDING_EXCLUDE_RE.search(n) for n in _names(tags))
 
 
 def _names(tags: dict[str, str]) -> list[str]:
@@ -509,6 +527,55 @@ def dedupe_shelters(records: list[InfraRecord]) -> list[InfraRecord]:
                     a.name = a.name or b.name
                     dropped.add(b.id)
     return [r for r in records if r.id not in dropped]
+
+
+# --- Protected areas ---
+
+
+def protected_areas_query(bbox: tuple[float, float, float, float]) -> str:
+    """OSM protected areas (reserve forest, sanctuaries, national park) in the AOI bbox."""
+    min_lon, min_lat, max_lon, max_lat = bbox
+    return (
+        f"[out:json][timeout:180][bbox:{min_lat},{min_lon},{max_lat},{max_lon}];\n(\n"
+        '  nwr["boundary"="protected_area"];\n'
+        '  nwr["leisure"="nature_reserve"];\n'
+        '  nwr["boundary"="national_park"];\n'
+        ");\nout geom;"
+    )
+
+
+def protected_polygons(data: dict) -> list[tuple[str, BaseGeometry]]:
+    """(label, polygon) for every protected area with an area geometry (closed way / relation)."""
+    out = []
+    for e in data["elements"]:
+        if e["type"] == "relation":
+            geom = relation_area(e.get("members", []))
+        elif e["type"] == "way":
+            coords = _coords(e.get("geometry"))
+            geom = Polygon(coords) if len(coords) >= 4 and coords[0] == coords[-1] else None
+        else:
+            geom = None  # nodes have no area
+        if geom is not None and not geom.is_empty:
+            tags = e.get("tags", {})
+            label = (
+                f"{tags.get('name:en') or tags.get('name') or 'unnamed'} ({e['type']}/{e['id']})"
+            )
+            out.append((label, shapely.make_valid(geom)))
+    return out
+
+
+def drop_protected_stand_ins(
+    records: list[InfraRecord], protected: BaseGeometry
+) -> tuple[list[InfraRecord], list[InfraRecord]]:
+    """(kept, dropped): no stand-in shelter (*_proxy) inside a protected area. The reserve is
+    uninhabited; buildings there are forest department posts, not places to shelter people.
+    Designated shelters, hospitals and health centres are kept."""
+    shapely.prepare(protected)
+    kept, dropped = [], []
+    for r in records:
+        stand_in = r.attributes.get("shelter_kind") in STAND_IN_KINDS
+        (dropped if stand_in and protected.covers(r.geometry) else kept).append(r)
+    return kept, dropped
 
 
 # --- Clipping -----------------------------------------------------------------------------------

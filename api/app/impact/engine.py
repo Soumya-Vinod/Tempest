@@ -1,7 +1,7 @@
 """Impact engine: hazards + infrastructure + road graph -> ImpactResults (contracts.md §4.3).
 
 compute_impacts is pure: hazards are passed in (the route gets them from Dev A's
-get_hazard_layer; tests and development pass synthetic ones). Rules live in thresholds.py.
+get_hazard_layer; tests pass synthetic ones from synthetic.py). Rules live in thresholds.py.
 
 - Roads: surge on each road edge (cut / at_risk); a road takes its worst edge.
 - Flood is static susceptibility: at_risk only, never cut or isolated (FLOOD_CUTS_ROADS).

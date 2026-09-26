@@ -51,6 +51,20 @@ export type Language = "en" | "bn" | "hi";
 export type AdvisoryStatus = "draft" | "approved" | "sent";
 export type TriggerMetric = "wind_speed" | "surge_depth";
 export type BlockSource = "census2011_cd" | "h3_r7";
+/** The largest contributing part of a RiskScore (§4.4, v1.1 change pending Dev A). */
+export type RiskDriver =
+  | "surge"
+  | "wind"
+  | "flood"
+  | "isolated_facilities"
+  | "cut_roads"
+  | "cut_substations"
+  | "population_density"
+  | "hospital_access"
+  | "low_literacy"
+  | "mapped_shelters";
+/** How the cyclone reaches a block (§4.4 risk breakdown, v1.1 change pending Dev A). */
+export type RiskReach = "direct" | "cut_off";
 export type Channel = "telegram" | "email";
 
 /** One of the 25 Amphan replay keys, `YYYY-MM-DDTHH:MM:SSZ`. */
@@ -122,9 +136,51 @@ export interface RiskScoreProperties {
   timestep: Timestep;
   score: number; // [0, 1]
   components: RiskComponents;
+  top_driver?: RiskDriver | null; // v1.1 change pending Dev A; null when score is 0
 }
 export type RiskScore = Feature<AreaGeometry, RiskScoreProperties>;
 export type RiskScoreCollection = FeatureCollection<RiskScore>;
+
+/** Areas inside the AOI clip that no block covers (v1.1 change pending Dev A). */
+export interface UnscoredAreaProperties {
+  id: string;
+  label: string; // "Municipal area, not scored"
+  area_km2: number;
+}
+export type UnscoredArea = Feature<AreaGeometry, UnscoredAreaProperties>;
+export type UnscoredAreaCollection = FeatureCollection<UnscoredArea>;
+
+/** The parts behind each block's score (v1.1 change pending Dev A). Every part is in [0, 1]. */
+export interface RiskHazardParts {
+  surge: number;
+  wind: number;
+  flood: number;
+}
+export interface RiskExposureParts {
+  isolated_facilities: number;
+  cut_roads: number;
+  cut_substations: number;
+}
+export interface RiskVulnerabilityParts {
+  population_density: number;
+  hospital_access: number;
+  low_literacy: number;
+  mapped_shelters: number;
+}
+export interface RiskBlockBreakdown {
+  block_id: BlockId;
+  block_name: string;
+  population_2011: number;
+  hospital_travel_min: number | null; // null: no road node reaches a hospital
+  reach: RiskReach; // direct: hazard on its land; cut_off: exposure (the storm cut it off)
+  hazard: RiskHazardParts;
+  exposure: RiskExposureParts;
+  vulnerability: RiskVulnerabilityParts;
+}
+export interface RiskBreakdown {
+  timestep: Timestep;
+  blocks: RiskBlockBreakdown[];
+}
 
 // ---------- §4.5 Advisory (Dev B) ----------
 

@@ -10,7 +10,7 @@ import type { PathwayCardProps } from './PathwayCard'
 import { aggregate, buildImpactLayers, layerData, pickedAffected } from './layers'
 import { featureName, infraLookup } from './labels'
 import { HAZARD_LABEL, PULSE_MS, STATUS_LABEL } from './style'
-import { useDemoMode, useImpacts, usePulse } from './useImpacts'
+import { useImpacts, usePulse } from './useImpacts'
 
 export { default as ImpactPanel } from './ImpactPanel'
 export { default as PathwayCard } from './PathwayCard'
@@ -35,7 +35,9 @@ export interface ImpactMap {
   active: boolean
   /** Tooltip for impact layers; null elsewhere, so the exposure tooltip can take over. */
   tooltip: (info: PickingInfo) => TooltipContent
-  onClick: (info: PickingInfo) => void
+  /** Selects the clicked affected feature (true) or clears the selection (false). */
+  onClick: (info: PickingInfo) => boolean
+  clear: () => void
   panel: PanelProps
   card: PathwayCardProps
 }
@@ -43,10 +45,7 @@ export interface ImpactMap {
 /** Impact results for the scrubber's timestep as map layers, a tooltip, and panel props. */
 export function useImpactMap(timestepIndex: number, infra: InfraByType): ImpactMap {
   const timestep = REPLAY_TIMESTEPS[timestepIndex]
-  const demoMode = useDemoMode()
-  const [syntheticWanted, setSyntheticWanted] = useState(false)
-  const synthetic = syntheticWanted && demoMode === false // never in DEMO_MODE
-  const { state, shown } = useImpacts(timestep, synthetic)
+  const { state, shown } = useImpacts(timestep)
 
   const affected = useMemo(() => aggregate(shown), [shown])
   const data = useMemo(() => layerData(affected), [affected])
@@ -72,6 +71,7 @@ export function useImpactMap(timestepIndex: number, infra: InfraByType): ImpactM
     const a = pickedAffected(info)
     setSelectedId(a?.id ?? null)
     setHighlightId(a?.id ?? null)
+    return a !== null
   }, [])
 
   const tooltip = useCallback(
@@ -100,14 +100,12 @@ export function useImpactMap(timestepIndex: number, infra: InfraByType): ImpactM
     active: shown.length > 0,
     tooltip,
     onClick,
+    clear,
     panel: {
       timestepIndex,
       state,
       counts,
       affectedCount: state.status === 'ok' ? affected.size : 0,
-      demoMode,
-      synthetic,
-      onSyntheticChange: setSyntheticWanted,
     },
     card: {
       selectedId,

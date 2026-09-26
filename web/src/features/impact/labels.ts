@@ -30,13 +30,20 @@ export function formatDuration(seconds: number): string {
   return `${Math.floor(minutes / 60)} h ${String(minutes % 60).padStart(2, '0')} min`
 }
 
-/** Baseline access for a hospital or shelter, from its InfraFeature attributes; null otherwise. */
-export function baselineAccess(id: string, lookup: InfraLookup): string | null {
-  const a = lookup.get(id)?.properties.attributes
-  if (!a || !('snap_too_far' in a)) return null
+/**
+ * Usual road time to the nearest hospital for a hospital or shelter (hospital_travel_time_s: the
+ * risk engine's hospitals); null for other features. For a hospital it is the time to another
+ * hospital, so it reads "Next hospital".
+ */
+export function hospitalAccess(id: string, lookup: InfraLookup): string | null {
+  const p = lookup.get(id)?.properties
+  const a = p?.attributes
+  if (!p || !a || !('snap_too_far' in a)) return null
   if (a.snap_too_far === true) return 'More than 2 km from the road network'
-  const t = a.baseline_travel_time_s
-  return typeof t === 'number'
-    ? `Usual travel time from Diamond Harbour: ${formatDuration(t)}`
-    : 'No usual road route from Diamond Harbour'
+  const t = a.hospital_travel_time_s
+  const label = p.infra_type === 'hospital' ? 'Next hospital' : 'Nearest hospital'
+  if (typeof t === 'number') return `${label}: ${formatDuration(t)} by road`
+  return p.infra_type === 'hospital'
+    ? 'No road route to another hospital'
+    : 'No road route to a hospital'
 }

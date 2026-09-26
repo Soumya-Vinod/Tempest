@@ -8,9 +8,6 @@ interface Props {
   state: ImpactState
   counts: Record<ImpactStatus, number> | null
   affectedCount: number
-  demoMode: boolean | null
-  synthetic: boolean
-  onSyntheticChange: (on: boolean) => void
 }
 
 /** "Impact" side-panel section: counts per status for the scrubber's timestep. */
@@ -24,18 +21,6 @@ export default function ImpactPanel(props: Props) {
           {relativeLabel(props.timestepIndex)}
         </span>
       </h2>
-
-      {props.demoMode === false && (
-        <label className="mb-2 flex cursor-pointer items-center gap-2 text-xs text-amber-800">
-          <input
-            type="checkbox"
-            checked={props.synthetic}
-            onChange={(e) => props.onSyntheticChange(e.target.checked)}
-            className="accent-amber-600"
-          />
-          Synthetic hazards (dev)
-        </label>
-      )}
 
       {state.status === 'loading' && <p className="text-xs text-slate-500">Loading…</p>}
       {state.status === 'unavailable' && (

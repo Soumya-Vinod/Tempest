@@ -216,7 +216,43 @@ def test_baseline_access_attributes(graph):
         "snap_distance_m": access["far"]["snap_distance_m"],
         "snap_too_far": True,
         "baseline_travel_time_s": None,
+        "hospital_travel_time_s": None,
     }
+    # No access hospitals given: no road route to one.
+    assert all(a["hospital_travel_time_s"] is None for a in access.values())
+
+
+def test_hospital_travel_time_is_to_the_nearest_access_hospital(graph):
+    net = engine.network_for(graph, S.ANCHOR)
+    t = {n: net.dist_s[n] for n in (S.B, S.C, S.D, S.F)}  # from A along the only path
+    points = {
+        "hosp-a": S.XY[S.A],
+        "hosp-c": S.XY[S.C],
+        "clinic": (88.3005, 22.4495),  # at D, on the dead end beyond C
+        "shelter": S.XY[S.F],  # on the island, over the ferry at B
+        "cut-off": (88.52, 22.1005),  # the only hospital in its component
+        "far": (88.9, 22.6),  # more than 2 km from the graph: not a source either
+    }
+    access = baseline_access(
+        graph, points, S.ANCHOR, hospitals=["hosp-a", "hosp-c", "cut-off", "far"]
+    )
+    time = {k: a["hospital_travel_time_s"] for k, a in access.items()}
+    assert time["clinic"] == round(t[S.D] - t[S.C])  # hospital C, not A
+    b_to_nearest = min(t[S.B], t[S.C] - t[S.B])
+    assert time["shelter"] == round(t[S.F] - t[S.B] + b_to_nearest)
+    # A hospital's own time is to the nearest OTHER access hospital, never 0 by itself.
+    assert time["hosp-a"] == time["hosp-c"] == round(t[S.C])
+    assert time["cut-off"] is None and time["far"] is None
+    # The anchor time is kept alongside (internal).
+    assert access["clinic"]["baseline_travel_time_s"] == round(t[S.D])
+
+
+def test_hospitals_on_one_node_are_zero_apart(graph):
+    points = {"one": S.XY[S.A], "two": (88.1001, 22.5001)}
+    access = baseline_access(graph, points, S.ANCHOR, hospitals=["one", "two"])
+    assert [a["hospital_travel_time_s"] for a in access.values()] == [0, 0]
+    alone = baseline_access(graph, {"one": S.XY[S.A]}, S.ANCHOR, hospitals=["one"])
+    assert alone["one"]["hospital_travel_time_s"] is None
 
 
 # --- Compact fixtures ---------------------------------------------------------------------------

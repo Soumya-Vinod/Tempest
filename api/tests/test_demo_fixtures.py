@@ -5,9 +5,18 @@ import re
 from typing import get_args
 
 import pytest
+from fastapi.testclient import TestClient
 
+from app.core import demo as demo_module
+from app.core.config import Settings
 from app.core.demo import DEMO_DIR
+from app.exposure import service as exposure
 from app.hazard.models import CycloneTrack
+from app.impact import service as impact
+from app.main import app
+from app.risk import fixtures as risk_fixtures
+from app.risk import service as risk
+from app.risk.blocks import load_blocks
 from app.schemas import (
     REPLAY_TIMESTEPS,
     Advisory,
@@ -19,8 +28,10 @@ from app.schemas import (
     InfraFeatureCollection,
     InfraType,
     ReplayTimeline,
+    RiskBreakdown,
     RiskScoreCollection,
     TriggerEventCollection,
+    UnscoredAreaCollection,
 )
 
 KEY_RE = re.compile(r"^(?P<module>[a-z]+)__(?P<resource>[a-z0-9-]+)(?:__(?P<ts>\d{8}T\d{4}Z))?$")
@@ -44,7 +55,11 @@ ROUTE_SCHEMAS = {
     # Per type only: the unfiltered route is composed from these (contracts.md §7).
     "exposure": [(rf"infra-({_alternatives(InfraType)})", InfraFeatureCollection, False, None)],
     "impact": [(r"results(-[a-z0-9-]+)?", ImpactResultCollection, True, None)],
-    "risk": [(r"scores", RiskScoreCollection, True, None)],
+    "risk": [
+        (r"scores", RiskScoreCollection, True, None),
+        (r"breakdown", RiskBreakdown, True, None),
+        (r"unscored-areas", UnscoredAreaCollection, False, None),
+    ],
     "advisory": [
         (r"list", AdvisoryCollection, False, None),
         (rf"item-{ADVISORY_ID}", Advisory, False, lambda m: m.properties.id),
@@ -85,10 +100,17 @@ def test_fixture_matches_contract(path):
         pytest.fail(f"no contract schema mapped for {module}__{resource}")
     match, schema, timed, body_id = entry
     assert bool(ts) == timed, "timestep suffix required iff the resource is time-dependent"
-    model = schema.model_validate_json(raw)
+    if (module, resource) == ("risk", "scores"):  # compact: polygons added on load (§7)
+        data = json.loads(raw)
+        assert all("geometry" not in f for f in data["features"]), "scores store no geometry"
+        model = risk_fixtures.from_fixture(data, load_blocks())
+    else:
+        model = schema.model_validate_json(raw)
     if body_id:
         assert body_id(model) == match["id"], "id in the file name must match the body"
     if ts:
+        if isinstance(model, RiskBreakdown):
+            assert model.timestep == _iso(ts), "timestep differs from file name"
         for f in getattr(model, "features", []):
             assert f.properties.timestep == _iso(ts), f"{f.id}: timestep differs from file name"
 
@@ -96,3 +118,31 @@ def test_fixture_matches_contract(path):
 def test_demo_dir_contains_only_fixtures():
     extras = {p.name for p in DEMO_DIR.iterdir()} - {p.name for p in FIXTURES}
     assert extras <= {".gitkeep", "README.md"}, extras
+
+
+@pytest.fixture
+def demo_mode(monkeypatch):
+    """DEMO_MODE on against the committed fixtures, whatever api/.env says."""
+    settings = Settings(_env_file=None, DEMO_MODE=True)
+    for module in (impact, risk, exposure, demo_module):
+        monkeypatch.setattr(module, "get_settings", lambda: settings)
+    for module in (impact, risk, exposure):
+        module.clear_cache()
+    yield
+    for module in (impact, risk, exposure):
+        module.clear_cache()
+
+
+def test_demo_mode_serves_impact_and_risk_at_every_timestep(demo_mode):
+    client = TestClient(app)
+    for ts in REPLAY_TIMESTEPS:
+        for route in ("/api/impact/results", "/api/risk/scores", "/api/risk/breakdown"):
+            r = client.get(route, params={"timestep": ts})
+            assert r.status_code == 200, f"{route} {ts}: {r.status_code} {r.text[:200]}"
+    assert client.get("/api/risk/unscored-areas").status_code == 200
+
+
+def test_real_hazards_t72_scores_about_zero():
+    # 72 h before landfall the cyclone is far out at sea: no block is reached yet.
+    data = json.loads((DEMO_DIR / f"{risk.fixture_key(REPLAY_TIMESTEPS[0])}.json").read_bytes())
+    assert max(f["properties"]["score"] for f in data["features"]) < 0.02

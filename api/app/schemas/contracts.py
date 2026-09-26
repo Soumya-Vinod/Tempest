@@ -15,6 +15,8 @@ from app.schemas.common import (
     ImpactStatus,
     InfraType,
     Language,
+    RiskDriver,
+    RiskReach,
     StepType,
     Timestep,
     TimestepParam,
@@ -186,6 +188,8 @@ class RiskScoreProperties(ContractModel):
     timestep: Timestep
     score: UnitFraction
     components: RiskComponents
+    # v1.1 change pending Dev A: the largest contributing part; null when score is 0.
+    top_driver: RiskDriver | None = None
 
 
 class RiskScore(Feature):
@@ -195,6 +199,58 @@ class RiskScore(Feature):
 
 class RiskScoreCollection(FeatureCollection[RiskScore]):
     pass
+
+
+# Areas inside the AOI clip that no block covers (§4.4, v1.1 change pending Dev A).
+class UnscoredAreaProperties(ContractModel):
+    id: str
+    label: str
+    area_km2: float = Field(ge=0)
+
+
+class UnscoredArea(Feature):
+    geometry: AreaGeometry
+    properties: UnscoredAreaProperties
+
+
+class UnscoredAreaCollection(FeatureCollection[UnscoredArea]):
+    pass
+
+
+# Per-block parts behind a RiskScore (§4.4, v1.1 change pending Dev A). Each part is 0-1.
+class RiskHazardParts(ContractModel):
+    surge: UnitFraction
+    wind: UnitFraction
+    flood: UnitFraction
+
+
+class RiskExposureParts(ContractModel):
+    isolated_facilities: UnitFraction
+    cut_roads: UnitFraction
+    cut_substations: UnitFraction
+
+
+class RiskVulnerabilityParts(ContractModel):
+    population_density: UnitFraction
+    hospital_access: UnitFraction
+    low_literacy: UnitFraction
+    mapped_shelters: UnitFraction
+
+
+class RiskBlockBreakdown(ContractModel):
+    block_id: BlockId
+    block_name: str
+    population_2011: int = Field(ge=0)
+    hospital_travel_min: float | None = Field(ge=0)  # null: no road node reaches a hospital
+    reach: RiskReach  # which of hazard or exposure scaled the score
+    hazard: RiskHazardParts
+    exposure: RiskExposureParts
+    vulnerability: RiskVulnerabilityParts
+
+
+class RiskBreakdown(ContractModel):
+    timestep: Timestep
+    blocks: list[RiskBlockBreakdown]
 
 
 # --- 4.5 Advisory (Dev B) ---
