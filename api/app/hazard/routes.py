@@ -1,5 +1,7 @@
 """Hazard API endpoints for replay timeline and hazard layers (shared/contracts.md §5)."""
 
+from typing import Literal
+
 from fastapi import APIRouter, HTTPException
 
 from app.hazard import service
@@ -29,14 +31,19 @@ def get_track() -> CycloneTrack:
 
 
 @router.get("/validation/sentinel", response_model=SentinelValidationResponse)
-def get_sentinel_validation() -> SentinelValidationResponse:
-    """Return the deterministic Sentinel-1 validation benchmark for Sagar Island.
+def get_sentinel_validation(
+    mode: Literal["demo", "live"] | None = None,
+) -> SentinelValidationResponse:
+    """Return Sentinel-1 validation benchmark for Sagar Island.
 
-    Read-only observational benchmark comparing existing hazard engine outputs
+    Observational benchmark comparing existing hazard engine outputs
     with Copernicus Sentinel-1 SAR observations for Cyclone Amphan.
+    Supports:
+    - mode='demo': returns cached deterministic benchmark
+    - mode='live': performs live GEE acquisition, SAR preprocessing, and validation comparison
     Sync handler by contract so FastAPI runs it in the threadpool.
     """
-    return service.get_sentinel_validation()
+    return service.get_sentinel_validation(mode=mode)
 
 
 @router.get("/layers", response_model=HazardLayerCollection)

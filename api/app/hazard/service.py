@@ -25,7 +25,12 @@ from app.hazard.replay import (
 from app.hazard.replay import (
     get_replay_track as replay_get_track,
 )
-from app.hazard.sentinel import get_sentinel_validation
+from app.hazard.sentinel import (
+    compute_validation_metrics,
+    generate_validation_report,
+    get_sentinel_validation,
+    run_sentinel_validation,
+)
 from app.schemas.common import LIVE
 
 logger = logging.getLogger(__name__)

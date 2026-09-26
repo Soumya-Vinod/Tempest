@@ -43,6 +43,7 @@ class Settings(BaseSettings):
     # Required in the request for every live (non-dry-run) dispatch.
     DISPATCH_PIN: str | None = None
     DEMO_MODE: bool = True
+    VALIDATION_MODE: str = "demo"
     # South 24 Parganas / Sundarbans, EPSG:4326: min_lon,min_lat,max_lon,max_lat
     AOI_BBOX: str = "88.0,21.5,89.1,22.7"
 
