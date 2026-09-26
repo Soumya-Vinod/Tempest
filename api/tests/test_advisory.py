@@ -14,7 +14,13 @@ from app.advisory.prompt import SYSTEM_PROMPT, user_message
 from app.core import demo as demo_module
 from app.core.config import Settings
 from app.main import app
-from app.schemas import LANDFALL_TIMESTEP, AdvisoryTexts, Citation
+from app.schemas import (
+    LANDFALL_TIMESTEP,
+    REPLAY_TIMESTEPS,
+    AdvisoryTexts,
+    Citation,
+    GeneratedBy,
+)
 from tests import impact_scenario as S
 from tests import risk_scenario as R
 
@@ -735,7 +741,7 @@ def fixture_script(env, monkeypatch):
 
     written = []
 
-    def run(todo, max_calls, *responses):
+    def run(todo, max_calls, *responses, allow_groq=False):
         generate(list(responses))
         return script.run(
             todo,
@@ -743,6 +749,7 @@ def fixture_script(env, monkeypatch):
             lambda block_id, ts, payload: written.append((block_id, ts, payload)),
             sleep=sleep,
             clock=lambda: clock["now"],
+            allow_groq=allow_groq,
         )
 
     return type("Script", (), {"run": staticmethod(run), "clock": clock, "written": written})
@@ -796,7 +803,7 @@ def test_script_writes_the_cited_text_with_the_response(fixture_script):
     fixture_script.run([PAIR], 20, CLEAN)
     [(block_id, ts, payload)] = fixture_script.written
     assert (block_id, ts) == (BLOCK, TS)
-    assert payload == service.fixture_payload(CLEAN, FACTS)
+    assert payload == service.fixture_payload(CLEAN, FACTS, providers.GEMINI)
     assert payload[service.CITED_TEXT_KEY]["isolated_1_name"] == "Ward 12 PHC"
     assert service.staleness(payload, FACTS) is None
 
@@ -1157,3 +1164,114 @@ def test_shelter_action_not_required_when_shelters_exist():
     templates = AdvisoryTexts.model_validate(CLEAN)
     assert render.fact_problems(templates, some.citations) == []
     assert "NO mapped stand-in shelters" not in user_message(some)
+
+
+# --- Fixture script: --pairs and --allow-groq-fallback (both providers mocked) -----------------
+
+CODES = ["02413", "02435", "02438", "02439"]
+NAMES = ["Budge Budge-I", "Gosaba", "Sagar", "Namkhana"]
+
+
+def script_module():
+    import importlib
+
+    return importlib.import_module("scripts.build_advisory_fixtures")
+
+
+@pytest.mark.usefixtures("fixture_script")
+def test_parse_pairs_accepts_names_codes_t_labels_and_iso():
+    parse = script_module().parse_pairs
+    got = parse(
+        "Namkhana:T-33, gosaba:t-27 ,02438:T-24,budge budge-i:T-0,Sagar:2020-05-20T09:00:00Z,"
+        "Namkhana:T-33",  # duplicate: dropped
+        CODES,
+        NAMES,
+    )
+    assert got == [
+        ("02439", "Namkhana", "2020-05-19T03:00:00Z"),
+        ("02435", "Gosaba", "2020-05-19T09:00:00Z"),
+        ("02438", "Sagar", "2020-05-19T12:00:00Z"),
+        ("02413", "Budge Budge-I", "2020-05-20T12:00:00Z"),
+        ("02438", "Sagar", "2020-05-20T09:00:00Z"),
+    ]
+
+
+@pytest.mark.usefixtures("fixture_script")
+@pytest.mark.parametrize(
+    ("text", "message"),
+    [
+        ("Kolkata:T-3", "unknown block"),
+        ("Gosaba:T-4", "not a replay step"),
+        ("Gosaba:T-75", "not a replay step"),
+        ("Gosaba", "expected <block>:<time>"),
+        ("Gosaba:", "expected <block>:<time>"),
+        ("Gosaba:tomorrow", "not a T-label or a replay timestep"),
+        ("Gosaba:2020-05-20T10:00:00Z", "not a T-label or a replay timestep"),
+        (" , ", "empty"),
+    ],
+)
+def test_parse_pairs_rejects_bad_input(text, message):
+    with pytest.raises(ValueError, match=message):
+        script_module().parse_pairs(text, CODES, NAMES)
+
+
+def test_script_gemini_success_is_labelled_gemini(env, groq, fixture_script):
+    result = fixture_script.run([PAIR], 20, CLEAN, allow_groq=True)
+    [(_, _, payload)] = fixture_script.written
+    assert payload[service.GENERATED_BY_KEY] == {"provider": "gemini", "model": "gemini-3.7-flash"}
+    assert payload[service.CITED_TEXT_KEY]  # the staleness guard's values are still stored
+    assert [(r.provider, r.ok) for r in result.summary] == [("gemini", True)]
+    assert groq.requests == []
+
+
+def test_script_503_after_the_back_off_goes_to_groq_with_the_flag(env, groq, fixture_script):
+    groq.responses = [CLEAN]
+    result = fixture_script.run([PAIR], 20, OVERLOADED, OVERLOADED, allow_groq=True)
+    assert 60.0 in fixture_script.clock["sleeps"]  # one back-off before giving up on Gemini
+    assert len(fixture_script.clock["calls"]) == 2 and len(groq.requests) == 1
+    [(_, _, payload)] = fixture_script.written
+    assert payload[service.GENERATED_BY_KEY]["provider"] == "groq"
+    assert [(r.provider, r.ok) for r in result.summary] == [("groq", True)]
+    assert result.calls == 3  # every call counts towards --max-calls
+
+
+def test_script_429_switches_every_remaining_pair_to_groq(env, groq, fixture_script):
+    groq.responses = [CLEAN, CLEAN]
+    other = (BLOCK, "Gosaba", REPLAY_TIMESTEPS[-3])
+    result = fixture_script.run([PAIR, other], 20, QUOTA, allow_groq=True)
+    assert len(fixture_script.clock["calls"]) == 1  # Gemini asked once, never again
+    assert len(groq.requests) == 2
+    assert [(r.provider, r.ok) for r in result.summary] == [("groq", True), ("groq", True)]
+    assert not result.remaining
+    assert all(
+        p[service.GENERATED_BY_KEY]["provider"] == "groq" for *_, p in fixture_script.written
+    )
+
+
+def test_script_without_the_flag_never_uses_groq(env, groq, fixture_script):
+    # 503: the back-off repeats on Gemini; 429: the run stops. Groq is never called.
+    result = fixture_script.run([PAIR, PAIR], 20, OVERLOADED, OVERLOADED, CLEAN, QUOTA)
+    assert groq.requests == []
+    assert [(r.provider, r.ok) for r in result.summary] == [
+        ("gemini", True),
+        (None, False),
+    ]
+    assert result.summary[1].reason == "not attempted: Gemini quota (429)"
+
+
+def test_script_groq_failure_is_reported_with_its_reason(env, groq, fixture_script):
+    bad = with_en(headline="Surge of 3 m")
+    groq.responses = [bad, bad]
+    result = fixture_script.run([PAIR], 20, QUOTA, allow_groq=True)
+    [r] = result.summary
+    assert (r.provider, r.ok) == ("groq", False) and "Groq" in r.reason and "digit" in r.reason
+    assert fixture_script.written == []
+
+
+def test_a_groq_fixture_is_served_labelled_groq(env, groq):
+    env.mode(True, key=None, groq_key=GROQ_KEY)
+    groq_by = GeneratedBy(provider="groq", model="openai/gpt-oss-120b")
+    write_cached(env, service.fixture_payload(CLEAN, FACTS, groq_by))
+    resp, fake = create(env)
+    assert resp.status_code == 200 and fake.calls == [] and groq.requests == []
+    assert resp.json()["properties"]["generated_by"] == groq_by.model_dump()

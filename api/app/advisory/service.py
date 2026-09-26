@@ -302,6 +302,21 @@ def _fallback_reason(e: DraftRejected) -> str | None:
     return "gemini " + ", ".join(str(s) for s in statuses)
 
 
+def generate_groq(
+    facts: Facts,
+    actor: str | None = None,
+    max_attempts: int = MAX_ATTEMPTS,
+    before_call: Callable[[], None] | None = None,
+) -> Generated:
+    """Groq only, under the same checks (the fixture script's fallback when Gemini is out)."""
+    settings = get_settings()
+    if not settings.is_configured("GROQ_API_KEY"):
+        raise DraftRejected("GROQ_API_KEY is not set: no Groq fallback", calls=0)
+    groq = providers.groq(settings)
+    templates, raw, calls = _draft(groq, facts, actor, max_attempts, before_call)
+    return Generated(templates, raw, calls, groq.generated_by)
+
+
 def generate_live(
     facts: Facts,
     actor: str | None = None,
@@ -355,11 +370,25 @@ def _used_keys(raw: dict) -> set[str] | None:
     )
 
 
-def fixture_payload(raw: dict, facts: Facts) -> dict:
-    """What the fixture script writes: Gemini's response plus the text values it refers to."""
+GENERATED_BY_KEY = "_generated_by"  # in a fixture: the model that wrote it (default Gemini)
+
+
+def fixture_payload(raw: dict, facts: Facts, generated_by: GeneratedBy | None = None) -> dict:
+    """What the fixture script writes: the model's response, the text values it refers to (for
+    the staleness check) and, when given, the model that wrote it."""
     used = _used_keys(raw) or set()
     cited = {c.key: c.value for c in facts.citations if c.key in used and isinstance(c.value, str)}
-    return {**raw, CITED_TEXT_KEY: dict(sorted(cited.items()))}
+    payload = {**raw, CITED_TEXT_KEY: dict(sorted(cited.items()))}
+    if generated_by is not None:
+        payload[GENERATED_BY_KEY] = generated_by.model_dump()
+    return payload
+
+
+def fixture_generated_by(cached: dict) -> GeneratedBy:
+    """The model a cached response came from: stored by the fixture script, else Gemini (the
+    only model fixtures came from before it was stored)."""
+    stored = cached.get(GENERATED_BY_KEY)
+    return GeneratedBy.model_validate(stored) if isinstance(stored, dict) else providers.GEMINI
 
 
 def staleness(cached: dict, facts: Facts) -> dict | None:
@@ -410,7 +439,7 @@ def _templates_for(facts: Facts, actor: str | None) -> tuple[Generated, str]:
     if cached is not None:
         templates, action, details = evaluate(cached, keys, facts.citations)
         if templates is not None:
-            return Generated(templates, cached, 0, providers.GEMINI), "fixture"
+            return Generated(templates, cached, 0, fixture_generated_by(cached)), "fixture"
         with store.transaction() as conn:
             store.audit(
                 conn,
