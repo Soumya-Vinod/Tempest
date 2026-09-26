@@ -176,11 +176,46 @@ def number_problems(text: str, language: str) -> list[tuple[str, str]]:
     return found
 
 
+_SENTENCE_END = re.compile(r"(?<=[.!?।])\s+")
+COUNT_SUFFIX = "_count"
+STANDIN_COUNT = "standin_count"
+
+
+def fact_problems(templates: AdvisoryTexts, citations: list[Citation]) -> list[Problem]:
+    """Rules that depend on the figures: one count per statement (no sentence with two count
+    placeholders of equal value, e.g. a total and an equal subtotal), and, when the block has no
+    stand-in shelters, an action that says so by citing {{standin_count}}."""
+    values = {c.key: c.value for c in citations}
+    problems = []
+    for lang in LANGUAGES:
+        t = getattr(templates, lang)
+        for field, text in _fields(t):
+            for sentence in _SENTENCE_END.split(text):
+                counts = [
+                    k
+                    for k in dict.fromkeys(PLACEHOLDER.findall(sentence))
+                    if k.endswith(COUNT_SUFFIX) and not isinstance(values.get(k), str)
+                ]
+                for i, a in enumerate(counts):
+                    for b in counts[i + 1 :]:
+                        if a in values and b in values and values[a] == values[b]:
+                            problems.append(Problem(lang, field, "duplicate_count", f"{a}={b}"))
+        if values.get(STANDIN_COUNT) == 0 and not any(
+            STANDIN_COUNT in PLACEHOLDER.findall(a) for a in t.actions
+        ):
+            problems.append(Problem(lang, "actions", "missing_standin_action", STANDIN_COUNT))
+    return problems
+
+
 def check(
-    templates: AdvisoryTexts, keys: set[str], required: dict[str, set[str]] | None = None
+    templates: AdvisoryTexts,
+    keys: set[str],
+    required: dict[str, set[str]] | None = None,
+    citations: list[Citation] | None = None,
 ) -> list[Problem]:
-    """Everything wrong with a set of templates: stray numbers, unknown placeholders and (for
-    edits) placeholders removed from `required` (per language)."""
+    """Everything wrong with a set of templates: stray numbers, unknown placeholders, (for
+    edits) placeholders removed from `required` (per language), and, given the citations, the
+    fact rules (fact_problems)."""
     problems = []
     for lang in LANGUAGES:
         t = getattr(templates, lang)
@@ -194,6 +229,8 @@ def check(
         if required:
             missing = required.get(lang, set()) - placeholder_keys(t)
             problems += [Problem(lang, "*", "removed_placeholder", k) for k in sorted(missing)]
+    if citations is not None:
+        problems += fact_problems(templates, citations)
     return problems
 
 

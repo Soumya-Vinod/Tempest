@@ -67,6 +67,20 @@ def count_citations(citations: list[Citation]) -> list[Citation]:
     return [c for c in citations if c.key.endswith(COUNT_SUFFIX)]
 
 
+# Model scores: cited (the citations table, CAP severity) but never offered to the model as
+# placeholders; the advisory text states physical facts only.
+MODEL_SCORE_KEYS = frozenset({"risk_score", "risk_hazard", "risk_exposure", "risk_vulnerability"})
+
+
+def offered_citations(citations: list[Citation]) -> list[Citation]:
+    """The citations the model may use as {{placeholders}}."""
+    return [c for c in citations if c.key not in MODEL_SCORE_KEYS]
+
+
+def offered_keys(citations: list[Citation]) -> set[str]:
+    return {c.key for c in offered_citations(citations)}
+
+
 class UnknownBlock(LookupError):
     """No CD block with this census code."""
 
@@ -235,7 +249,15 @@ def build_facts(block_id: str, timestep: str) -> Facts:
     for i, (fid, p) in enumerate(sorted(isolated.items(), key=lambda kv: _name(by_id[kv[0]])), 1):
         f = by_id[fid]
         cause, route = cause_of(p.pathway, roads, p.hazard_type)
-        c.append(_cite(f"isolated_{i}_name", "Isolated facility", _name(f), None, "impact"))
+        c.append(
+            _cite(
+                f"isolated_{i}_name",
+                "Isolated facility (already cut off now)",
+                _name(f),
+                None,
+                "impact",
+            )
+        )
         c.append(_cite(f"isolated_{i}_cause", "Cause", cause, None, "impact"))
         if route:
             c.append(

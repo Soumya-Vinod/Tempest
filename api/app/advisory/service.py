@@ -29,7 +29,14 @@ from dataclasses import dataclass
 from pydantic import ValidationError
 
 from app.advisory import gemini, providers, render, store
-from app.advisory.facts import Facts, UnknownBlock, build_facts, count_citations
+from app.advisory.facts import (
+    Facts,
+    UnknownBlock,
+    build_facts,
+    count_citations,
+    offered_citations,
+    offered_keys,
+)
 from app.advisory.prompt import SYSTEM_PROMPT, user_message
 from app.core.config import get_settings
 from app.core.demo import load_fixture
@@ -42,6 +49,7 @@ from app.schemas import (
     AdvisorySuggestion,
     AdvisorySuggestions,
     AdvisoryTexts,
+    Citation,
     GeneratedBy,
 )
 
@@ -118,14 +126,16 @@ def suggestions(timestep: str) -> AdvisorySuggestions:
 # --- Generation --------------------------------------------------------------------------------
 
 
-def evaluate(raw: dict, keys: set[str]) -> tuple[AdvisoryTexts | None, str | None, dict]:
+def evaluate(
+    raw: dict, keys: set[str], citations: list[Citation] | None = None
+) -> tuple[AdvisoryTexts | None, str | None, dict]:
     """(templates, None, {}) if the draft passes; else (None, audit action, details)."""
     try:
         draft = gemini.GeminiDraft.model_validate(raw)
         templates = AdvisoryTexts.model_validate(draft.model_dump())
     except ValidationError as e:
         return None, "invalid_response", {"errors": [err["msg"] for err in e.errors()][:5]}
-    problems = render.check(templates, keys)
+    problems = render.check(templates, keys, citations=citations)
     if not problems:
         return templates, None, {}
     kind = (
@@ -136,13 +146,14 @@ def evaluate(raw: dict, keys: set[str]) -> tuple[AdvisoryTexts | None, str | Non
     offending = {}
     for p in problems:
         t = getattr(templates, p.language)
-        text = (
-            t.headline
-            if p.field == "headline"
-            else t.body
-            if p.field == "body"
-            else t.actions[int(p.field[8:-1])]
-        )
+        if p.field == "headline":
+            text = t.headline
+        elif p.field == "body":
+            text = t.body
+        elif p.field.startswith("actions["):
+            text = t.actions[int(p.field[8:-1])]
+        else:  # "actions" (a rule about the whole list)
+            text = " | ".join(t.actions)
         offending[f"{p.language}.{p.field}"] = text
     found = [
         {"language": p.language, "field": p.field, "kind": p.kind, "text": p.text} for p in problems
@@ -172,6 +183,18 @@ def _retry_note(details: dict, facts: Facts) -> str:
             notes.append(f'"{f["text"]}" in {where} is a digit')
         elif f["kind"] == "unknown_placeholder":
             notes.append(f"{{{{{f['text']}}}}} in {where} is not in the list")
+        elif f["kind"] == "duplicate_count":
+            a, b = f["text"].split("=")
+            notes.append(
+                f"{where} states {{{{{a}}}}} and {{{{{b}}}}} in one sentence, but they are "
+                "equal: state one count only"
+            )
+        elif f["kind"] == "missing_standin_action":
+            notes.append(
+                f"{f['language']} has no action citing {{{{standin_count}}}}: the block has no "
+                "mapped shelters, so one action must say so (with {{standin_count}}) and that "
+                "safe buildings must be identified locally"
+            )
         else:
             notes.append(f"{where}: {f['kind']} {f['text']!r}")
     if not notes:
@@ -219,7 +242,7 @@ def _draft(
     call. Drafts failing the checks are audited (advisory_id null)."""
     settings = get_settings()
     name = provider.generated_by.provider.capitalize()
-    keys = {c.key for c in facts.citations}
+    keys = offered_keys(facts.citations)
     message = user_message(facts)
     last: dict = {}
     calls = 0
@@ -238,7 +261,7 @@ def _draft(
                 continue
             statuses = [503] * retried_503 + [_status(e)]
             raise DraftRejected(str(e), calls=calls, statuses=statuses) from e
-        templates, action, details = evaluate(raw, keys)
+        templates, action, details = evaluate(raw, keys, facts.citations)
         if templates is not None:
             return templates, raw, calls
         last = details
@@ -342,7 +365,7 @@ def staleness(cached: dict, facts: Facts) -> dict | None:
     used = _used_keys(cached)
     if used is None:
         return None
-    current = {c.key: c.value for c in facts.citations}
+    current = {c.key: c.value for c in offered_citations(facts.citations)}
     if missing := sorted(used - current.keys()):
         return {"missing_keys": missing}
     stored = cached.get(CITED_TEXT_KEY)
@@ -363,7 +386,7 @@ def _templates_for(facts: Facts, actor: str | None) -> tuple[Generated, str]:
         cached = load_fixture(fixture_key(facts.block_id, facts.timestep))
     except FileNotFoundError:
         cached = None
-    keys = {c.key for c in facts.citations}
+    keys = offered_keys(facts.citations)
     if cached is not None and (why := staleness(cached, facts)):
         # AuditAction is a contract enum, so staleness is a reason under invalid_response.
         with store.transaction() as conn:
@@ -382,7 +405,7 @@ def _templates_for(facts: Facts, actor: str | None) -> tuple[Generated, str]:
             )
         cached = None
     if cached is not None:
-        templates, action, details = evaluate(cached, keys)
+        templates, action, details = evaluate(cached, keys, facts.citations)
         if templates is not None:
             return Generated(templates, cached, 0, providers.GEMINI), "fixture"
         with store.transaction() as conn:
@@ -466,7 +489,9 @@ def edit(advisory_id: str, templates: AdvisoryTexts, actor: str | None = None) -
         required = {
             lang: render.placeholder_keys(getattr(p.templates, lang)) for lang in render.LANGUAGES
         }
-        problems = render.check(templates, {c.key for c in p.citations}, required)
+        # Offered keys, plus any a draft from before a rule change already uses.
+        keys = offered_keys(p.citations) | set().union(*required.values())
+        problems = render.check(templates, keys, required, p.citations)
         if problems:
             numbers = any(x.kind in ("digit", "number_word") for x in problems)
             action = "number_check_failed" if numbers else "invalid_response"

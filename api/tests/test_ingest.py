@@ -547,3 +547,74 @@ def test_protected_polygons_from_overpass():
     polygons = ingest.protected_polygons(data)
     assert [label for label, _ in polygons] == ["Reserve (way/2)"]
     assert "[bbox:21.5,88.0,22.7,89.1]" in ingest.protected_areas_query((88.0, 21.5, 89.1, 22.7))
+
+
+# --- Unnamed hospital / health centre merged into a named one (outline to outline) --------------
+
+
+def _east(lon: float, lat: float, metres: float) -> tuple[float, float]:
+    from pyproj import Geod
+
+    x, y, _ = Geod(ellps="WGS84").fwd(lon, lat, 90, metres)
+    return x, y
+
+
+def _health(fid: str, name: str | None, level: str, geom, area=None) -> ingest.InfraRecord:
+    return ingest.InfraRecord(
+        fid, "hospital", name, f"way/{fid.rsplit('-', 1)[1]}", {"facility_level": level}, geom, area
+    )
+
+
+BASE = (88.1, 21.65)  # Sagar
+
+
+@pytest.mark.parametrize(("metres", "merged"), [(119, True), (121, False)])
+def test_unnamed_facility_within_120m_merges_into_the_named_one(metres, merged):
+    named = _health("hospital-way-1", "Gangasagar PHC", "health_centre", Point(*BASE))
+    unnamed = _health("hospital-way-2", None, "hospital", Point(*_east(*BASE, metres)))
+    kept, merges = ingest.merge_unnamed_health([named, unnamed])
+    assert [r.id for r in kept] == (
+        ["hospital-way-1"] if merged else ["hospital-way-1", "hospital-way-2"]
+    )
+    if merged:
+        [m] = merges
+        assert (m.dropped, m.kept, m.kept_name) == (
+            "hospital-way-2",
+            "hospital-way-1",
+            "Gangasagar PHC",
+        )
+        assert m.distance_m == pytest.approx(metres, abs=0.5)
+        # The named facility is kept as it is: its name and its own facility_level.
+        assert kept[0].name == "Gangasagar PHC"
+        assert kept[0].attributes["facility_level"] == "health_centre"
+    else:
+        assert merges == []
+
+
+def test_merge_distance_is_outline_to_outline():
+    from shapely.geometry import box
+
+    named = _health("hospital-way-1", "Gangasagar PHC", "health_centre", Point(*BASE))
+    # A 60 m-wide compound whose near edge is 100 m east: centroid ~130 m, outline 100 m.
+    west, south = _east(*BASE, 100)
+    east, _ = _east(*BASE, 160)
+    outline = box(west, BASE[1] - 0.0003, east, BASE[1] + 0.0003)
+    unnamed = _health("hospital-way-2", None, "hospital", outline.centroid, area=outline)
+    kept, merges = ingest.merge_unnamed_health([named, unnamed])
+    assert [r.id for r in kept] == ["hospital-way-1"]
+    assert merges[0].distance_m == pytest.approx(100, abs=1)
+
+
+def test_two_named_facilities_are_never_merged():
+    a = _health("hospital-way-1", "Gangasagar PHC", "health_centre", Point(*BASE))
+    b = _health("hospital-way-2", "Sagar Rural Hospital", "hospital", Point(*_east(*BASE, 10)))
+    kept, merges = ingest.merge_unnamed_health([a, b])
+    assert len(kept) == 2 and merges == []
+
+
+def test_unnamed_merges_into_the_nearest_named():
+    near = _health("hospital-way-1", "Near PHC", "health_centre", Point(*_east(*BASE, 50)))
+    far = _health("hospital-way-3", "Far Hospital", "hospital", Point(*_east(*BASE, -100)))
+    unnamed = _health("hospital-way-2", None, "hospital", Point(*BASE))
+    kept, merges = ingest.merge_unnamed_health([near, far, unnamed])
+    assert [m.kept_name for m in merges] == ["Near PHC"] and len(kept) == 2

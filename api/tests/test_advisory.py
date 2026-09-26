@@ -45,7 +45,7 @@ FACTS = Facts(BLOCK, "Gosaba", TS, CITATIONS)
 
 
 def lang(
-    headline="{{block_name}}: risk {{risk_score}}",
+    headline="{{block_name}}: cut roads {{cut_road_km}}",
     body="Surge up to {{peak_surge_m}} in {{hours_to_landfall}}; {{reach}}.",
     actions=(
         "Move patients from {{isolated_1_name}}.",
@@ -120,18 +120,18 @@ def actions(advisory_id=None):
 
 def test_placeholders_filled_in_all_three_languages():
     texts = render.render(AdvisoryTexts.model_validate(CLEAN), CITATIONS)
-    assert texts.en.headline == "Gosaba: risk 0.27"
+    assert texts.en.headline == "Gosaba: cut roads 24.7 km"
     assert texts.en.body.endswith("Surge up to 1.5 m in 3 hours; cut off by the storm.")
     assert texts.en.actions[0] == "Move patients from Ward 12 PHC."
     # Bengali numerals and units, the block's Bengali name; other names keep their own digits.
-    assert texts.bn.headline == "গোসাবা: risk ০.২৭"
+    assert texts.bn.headline == "গোসাবা: cut roads ২৪.৭ কিমি"
     assert "১.৫ মিটার" in texts.bn.body and "৩ ঘণ্টা" in texts.bn.body
     assert "ঝড়ে বিচ্ছিন্ন" in texts.bn.body
     assert texts.bn.actions[0] == "Move patients from Ward 12 PHC."
     assert texts.bn.actions[2] == "Clear roads (২৪.৭ কিমি)."
     # Hindi: Latin digits, Hindi units.
     assert "1.5 मीटर" in texts.hi.body and "3 घंटे" in texts.hi.body
-    assert texts.hi.headline == "Gosaba: risk 0.27"  # no Hindi label: English name
+    assert texts.hi.headline == "Gosaba: cut roads 24.7 किमी"  # no Hindi label: English name
 
 
 def test_one_hour_is_singular():
@@ -685,6 +685,7 @@ def test_gosaba_facts_from_the_demo_fixtures(monkeypatch):
     assert f.block_name == "Gosaba" and by_key["hours_to_landfall"].value == 3
     assert by_key["reach"].value == "cut off by the storm"
     assert by_key["isolated_count"].value == 2
+    assert by_key["isolated_1_name"].label == "Isolated facility (already cut off now)"
     # A count for every list: per facility type, cut substations, stand-ins (all and named).
     hospitals = by_key["isolated_hospital_count"].value
     assert hospitals + by_key["isolated_shelter_count"].value == 2
@@ -1037,3 +1038,120 @@ def test_prompt_states_the_count_rule_and_lists_the_block_counts():
         "{{isolated_hospital_count}} (Isolated hospitals and health centres), "
         "{{isolated_shelter_count}} (Isolated shelters)."
     ) in message
+
+
+# --- Prompt / data rules: tense, no model scores, one count per statement, shelters -------------
+
+from app.advisory.facts import MODEL_SCORE_KEYS, offered_keys  # noqa: E402
+
+
+def test_model_scores_are_cited_but_not_offered_to_the_model():
+    assert {c.key for c in CITATIONS} >= {"risk_score"}
+    assert "risk_score" not in offered_keys(CITATIONS)
+    message = user_message(FACTS)
+    assert all(f'"{k}"' not in message for k in MODEL_SCORE_KEYS)
+    assert '"peak_surge_m"' in message and '"isolated_1_name"' in message
+    assert "Cite physical facts only" in SYSTEM_PROMPT
+
+
+def test_a_draft_citing_the_risk_score_is_rejected(env):
+    scored = {**CLEAN, "en": lang(headline="{{block_name}}: risk {{risk_score}}")}
+    resp, fake = create(env, scored, CLEAN)
+    assert resp.status_code == 200 and len(fake.calls) == 2
+    assert "{{risk_score}} in en.headline is not in the list" in fake.calls[1]
+    # Still in the citations table.
+    assert "risk_score" in {c["key"] for c in resp.json()["properties"]["citations"]}
+
+
+def test_a_fixture_citing_the_risk_score_is_stale():
+    scored = {**CLEAN, "en": lang(headline="{{block_name}}: risk {{risk_score}}")}
+    cached = service.fixture_payload(scored, FACTS)
+    assert service.staleness(cached, FACTS) == {"missing_keys": ["risk_score"]}
+
+
+def test_old_drafts_using_the_risk_score_can_still_be_edited(env):
+    env.mode(False)
+    resp, _ = create(env, CLEAN)
+    advisory_id = resp.json()["id"]
+    # A draft stored before the rule (templates written directly, as an old row would be).
+    old = with_en(headline="{{block_name}}: risk {{risk_score}}")
+    with store.transaction() as conn:
+        a = store.load(conn, advisory_id)
+        props = a.properties.model_copy(update={"templates": AdvisoryTexts.model_validate(old)})
+        store.save(conn, a.model_copy(update={"properties": props}))
+    edited = with_en(headline="{{block_name}}: still risk {{risk_score}}")
+    assert client.patch(f"{URL}{advisory_id}", json={"templates": edited}).status_code == 200
+
+
+def test_isolated_facilities_are_labelled_already_cut_off():
+    assert "Tense: an isolated facility is already cut off now" in SYSTEM_PROMPT
+    assert 'never "before it is disrupted" or "while routes are open"' in SYSTEM_PROMPT
+    assert "Only things at risk may be" in SYSTEM_PROMPT
+
+
+EQUAL = with_citations(
+    cite_count("isolated_count", "Isolated facilities", 3),
+    cite_count("isolated_hospital_count", "Isolated hospitals and health centres", 3),
+)
+TOTAL_AND_SUBTOTAL = (
+    "{{isolated_count}} facilities are cut off, including {{isolated_hospital_count}} hospitals."
+)
+
+
+def test_equal_total_and_subtotal_in_one_sentence_is_rejected(env, monkeypatch):
+    monkeypatch.setattr(service, "build_facts", lambda block_id, ts: EQUAL)
+    bad = {**CLEAN, "en": lang(body=TOTAL_AND_SUBTOTAL)}
+    resp, fake = create(env, bad, CLEAN)
+    assert resp.status_code == 200 and len(fake.calls) == 2
+    assert (
+        "en.body states {{isolated_count}} and {{isolated_hospital_count}} in one sentence, "
+        "but they are equal: state one count only"
+    ) in fake.calls[1]
+    assert "One count per statement" in SYSTEM_PROMPT
+
+
+@pytest.mark.parametrize(
+    ("hospitals", "body", "ok"),
+    [
+        (2, TOTAL_AND_SUBTOTAL, True),  # a real subtotal
+        (
+            3,
+            "{{isolated_count}} facilities are cut off. {{isolated_hospital_count}} are hospitals.",
+            True,
+        ),
+        (3, TOTAL_AND_SUBTOTAL, False),
+    ],
+)
+def test_duplicate_count_check(hospitals, body, ok):
+    facts = with_citations(
+        cite_count("isolated_count", "Isolated facilities", 3),
+        cite_count("isolated_hospital_count", "Isolated hospitals and health centres", hospitals),
+    )
+    templates = AdvisoryTexts.model_validate({**CLEAN, "en": lang(body=body)})
+    kinds = [p.kind for p in render.fact_problems(templates, facts.citations)]
+    assert ("duplicate_count" not in kinds) is ok
+
+
+NO_SHELTERS = with_citations(cite_count("standin_count", "Stand-in shelters (not designated)", 0))
+SHELTER_ACTION = "No shelters are mapped ({{standin_count}}): identify safe buildings locally."
+
+
+def test_no_shelters_needs_an_action_citing_standin_count(env, monkeypatch):
+    monkeypatch.setattr(service, "build_facts", lambda block_id, ts: NO_SHELTERS)
+    good = {
+        lang_: lang(actions=("Move patients from {{isolated_1_name}}.", SHELTER_ACTION, "c"))
+        for lang_ in ("en", "bn", "hi")
+    }
+    resp, fake = create(env, CLEAN, good)
+    assert resp.status_code == 200 and len(fake.calls) == 2
+    assert "This block has NO mapped stand-in shelters" in fake.calls[0]
+    assert "en has no action citing {{standin_count}}" in fake.calls[1]
+    en = resp.json()["properties"]["texts"]["en"]["actions"][1]
+    assert en == "No shelters are mapped (0): identify safe buildings locally."
+
+
+def test_shelter_action_not_required_when_shelters_exist():
+    some = with_citations(cite_count("standin_count", "Stand-in shelters (not designated)", 4))
+    templates = AdvisoryTexts.model_validate(CLEAN)
+    assert render.fact_problems(templates, some.citations) == []
+    assert "NO mapped stand-in shelters" not in user_message(some)

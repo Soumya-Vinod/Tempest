@@ -3,7 +3,7 @@ the prompt is written; the number rule matches render.NUMBER_WORDS."""
 
 import json
 
-from app.advisory.facts import Facts, count_citations
+from app.advisory.facts import Facts, count_citations, offered_citations
 
 SYSTEM_PROMPT = """\
 You draft cyclone early-warning advisories for local officials in South 24 Parganas, West Bengal,
@@ -36,6 +36,20 @@ THE NUMBER RULE (strict; drafts that break it are rejected):
 - To state how many of something there are, always use the matching {{..._count}} placeholder;
   never write a count in words. The message lists the count placeholders for the block, e.g.
   {{isolated_count}} for the isolated facilities.
+- One count per statement: never state a total and a subtotal that are equal (not
+  "{{isolated_count}} facilities, including {{isolated_hospital_count}} hospitals" when both are
+  the same number).
+
+WHAT TO SAY:
+- Cite physical facts only: storm surge, wind, cut roads, isolated facilities, hours to
+  landfall. There are no model scores in the list; do not describe a risk score or index.
+- Tense: an isolated facility is already cut off now. Describe it in the present or past tense
+  and write actions for the situation as it stands (e.g. "support the cut-off health centre by
+  boat"), never "before it is disrupted" or "while routes are open". Only things at risk may be
+  described as threatened.
+- Shelters: if the message says the block has no mapped stand-in shelters, do not tell people
+  to go to shelters or "safe centres"; include an action, citing {{standin_count}}, saying there
+  are no mapped shelters and safe buildings must be identified locally.
 - In Bengali and Hindi, words for "both" (দুটি, দুই, दोनों) are number words: name the
   facilities with their placeholders, or write "each of these", instead.
 
@@ -45,14 +59,28 @@ be natural, formal language, not word-for-word translations. Do not add a title 
 """
 
 
+NO_SHELTERS = (
+    "This block has NO mapped stand-in shelters ({{standin_count}} is 0): do not tell people to "
+    "go to shelters or safe centres; include an action, citing {{standin_count}}, saying there "
+    "are no mapped shelters and safe buildings must be identified locally.\n"
+)
+
+
+def _shelter_line(facts: Facts) -> str:
+    standins = next((c for c in facts.citations if c.key == "standin_count"), None)
+    return NO_SHELTERS if standins is not None and standins.value == 0 else ""
+
+
 def user_message(facts: Facts) -> str:
     rows = [
-        {"key": c.key, "label": c.label, "value": c.value, "unit": c.unit} for c in facts.citations
+        {"key": c.key, "label": c.label, "value": c.value, "unit": c.unit}
+        for c in offered_citations(facts.citations)
     ]
     counts = ", ".join(f"{{{{{c.key}}}}} ({c.label})" for c in count_citations(facts.citations))
     return (
         f"Block: {{{{block_name}}}} (census code {facts.block_id}).\n"
         f"Count placeholders (use these to say how many): {counts or 'none'}.\n"
+        f"{_shelter_line(facts)}"
         "FACTS (JSON):\n"
         f"{json.dumps(rows, ensure_ascii=False, indent=1)}\n"
         "Return en, bn and hi, each with headline, body and actions."
