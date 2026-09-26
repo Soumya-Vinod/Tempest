@@ -298,6 +298,13 @@ SURFACE_REDUCTION_INLAND: float = 0.82  # 10m wind reduction factor over rough i
 INLAND_THRESHOLD_KM: float = 20.0  # Distance threshold to switch from coastal to inland friction
 MAX_PHYSICAL_WIND_SPEED_MPS: float = 65.0  # Physical upper cutoff for 10m sustained wind speed
 
+# Outer wind envelope parameters (Willoughby et al. 2006 / Emanuel & Rotunno 2011)
+# Beyond the inner core, real tropical cyclones have a broader outer wind field that
+# decays as a power law rather than the Holland exponential.  These parameters control
+# the transition from the inner Holland profile to the outer modified-Rankine profile.
+OUTER_DECAY_EXPONENT: float = 0.4  # Power-law decay exponent for outer wind field (r^{-x})
+
+
 
 def compute_holland_b(
     central_pressure_hpa: float,
@@ -357,7 +364,16 @@ def normalize_wind_severity(wind_speed: float) -> float:
 def compute_wind_metric(cell: GridCell, track_pt: CycloneTrackPoint) -> HazardMetricResult:
     """Compute physical 10m sustained wind speed (m/s) and normalized severity [0, 1].
 
-    Implements the classical Holland (1980) parametric wind field model with:
+    Implements a dual-profile parametric wind field model combining:
+    - Inner core: classical Holland (1980) gradient wind with exponential radial decay
+    - Outer envelope: modified-Rankine power-law decay (Willoughby et al. 2006)
+      that produces a broader, physically realistic extended wind field
+
+    The composite wind at any radius is the maximum of the two profiles,
+    allowing the outer envelope to dominate far from the eye and the Holland
+    inner core to dominate near the radius of maximum wind (RMW).
+
+    Additional physics:
     - Central pressure Pc and ambient environmental pressure P_env
     - Great-circle distance r from cell centroid to cyclone eye center
     - Radius of maximum wind (RMW)
@@ -390,7 +406,7 @@ def compute_wind_metric(cell: GridCell, track_pt: CycloneTrackPoint) -> HazardMe
     # 4. Coriolis parameter at cell latitude
     f_coriolis = 2.0 * OMEGA_EARTH * math.sin(math.radians(cell.centroid_lat))
 
-    # 5. Holland gradient wind formulation:
+    # 5. Holland gradient wind formulation (inner core profile):
     # V_g(r) = sqrt( (B/rho) * (R_max/r)^B * Delta_P * exp(-(R_max/r)^B)
     #                + (r * f / 2)^2 ) - (r * f / 2)
     rmw_km = track_pt.radius_max_wind_km
@@ -398,9 +414,29 @@ def compute_wind_metric(cell: GridCell, track_pt: CycloneTrackPoint) -> HazardMe
     exp_arg = min(ratio**b, 50.0)  # Safeguard against float overflow at tiny r
     term = (b / RHO_AIR) * delta_p_pa * (ratio**b) * math.exp(-exp_arg)
     coriolis_term = dist_m * f_coriolis / 2.0
-    v_gradient = math.sqrt(term + coriolis_term**2) - coriolis_term
+    v_holland = math.sqrt(term + coriolis_term**2) - coriolis_term
 
-    # 6. Forward translation asymmetry:
+    # 6. Outer wind envelope (modified-Rankine power-law decay):
+    # V_outer(r) = V_max * (R_max / r)^x  for r > R_max
+    # Real tropical cyclones have a broader outer wind field than the Holland
+    # exponential predicts.  Following Willoughby et al. (2006), we model the
+    # outer circulation as a power-law decay.  The composite wind at any radius
+    # is max(V_holland, V_outer), which naturally transitions from the outer
+    # envelope (dominant far from the eye) to the Holland inner core (dominant
+    # near the RMW).  This ensures a physically realistic, gradually
+    # strengthening wind field as the storm approaches.
+    v_max_gradient = track_pt.max_wind_mps
+    if dist_km > rmw_km:
+        v_outer = v_max_gradient * (rmw_km / dist_km) ** OUTER_DECAY_EXPONENT
+    else:
+        v_outer = v_max_gradient
+
+    # 7. Composite profile: take the maximum of the two radial profiles.
+    # This avoids blending artifacts and lets each profile dominate where
+    # it is physically appropriate (outer at large r, Holland near RMW).
+    v_gradient = max(v_holland, v_outer)
+
+    # 8. Forward translation asymmetry:
     # Northern hemisphere cyclone winds are enhanced on the forward-right quadrant
     d_lon = cell.centroid_lon - track_pt.lon
     d_lat = cell.centroid_lat - track_pt.lat
@@ -408,7 +444,7 @@ def compute_wind_metric(cell: GridCell, track_pt: CycloneTrackPoint) -> HazardMe
     relative_angle = math.radians(bearing - track_pt.heading_deg)
     asymmetry_factor = 1.0 + 0.18 * math.sin(relative_angle)
 
-    # 7. Surface friction reduction from gradient level to 10m elevation
+    # 9. Surface friction reduction from gradient level to 10m elevation
     friction_factor = (
         SURFACE_REDUCTION_INLAND
         if cell.dist_to_coast_km > INLAND_THRESHOLD_KM
@@ -417,12 +453,12 @@ def compute_wind_metric(cell: GridCell, track_pt: CycloneTrackPoint) -> HazardMe
 
     wind_speed = v_gradient * asymmetry_factor * friction_factor
 
-    # 8. Ambient environmental background wind floor
-    ambient_floor = 6.0 + max(0.0, 14.0 - dist_km / 60.0)
+    # 10. Ambient environmental background wind floor
+    ambient_floor = 6.0
     wind_speed = max(wind_speed, ambient_floor)
     wind_speed = min(round(wind_speed, 1), MAX_PHYSICAL_WIND_SPEED_MPS)
 
-    # 9. Normalized severity mapped to IMD classification
+    # 11. Normalized severity mapped to IMD classification
     severity = normalize_wind_severity(wind_speed)
 
     return HazardMetricResult(value=wind_speed, unit="m/s", severity=severity)
