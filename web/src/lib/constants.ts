@@ -24,6 +24,12 @@ export const REPLAY_TIMESTEPS: readonly Timestep[] = Array.from({ length: REPLAY
 export const LANDFALL_INDEX = REPLAY_STEPS - 1
 export const LANDFALL_TIMESTEP: Timestep = REPLAY_TIMESTEPS[LANDFALL_INDEX]
 
+/**
+ * The map switches from the Hazard to the Risk view (until the user picks one) once any block
+ * scores this much: the advisory suggestion threshold (api/app/advisory/service.py).
+ */
+export const RISK_VIEW_MIN_SCORE = 0.25
+
 /** "T-72" … "T-0" for a replay index. */
 export function relativeLabel(index: number): string {
   return `T-${(LANDFALL_INDEX - index) * 3}`

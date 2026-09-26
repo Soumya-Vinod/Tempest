@@ -309,6 +309,25 @@ export interface DispatchRecipients {
   pin_configured: boolean;
 }
 
+// ---------- Cyclone track (Dev A; GET /api/hazard/track, internal, added in v1.1) ----------
+// Mirrors api/app/hazard/models.py CycloneTrackPoint / CycloneTrack exactly. Closes Dev A's
+// follow-up: the TypeScript mirror of the track route's schema was missing.
+
+export interface CycloneTrackPoint {
+  timestep: Timestep;
+  lat: number; // storm eye, EPSG:4326 [-90, 90]
+  lon: number; // [-180, 180]
+  central_pressure_hpa: number; // (800, 1050)
+  max_wind_mps: number; // max sustained 10 m wind, >= 0
+  radius_max_wind_km: number; // > 0
+  forward_speed_mps: number; // >= 0
+  heading_deg: number; // meteorological, 0 = north, [0, 360)
+}
+export interface CycloneTrack {
+  event: string; // default "amphan"
+  points: CycloneTrackPoint[]; // the 25 replay timesteps, in order
+}
+
 // ---------- §5 Route payloads ----------
 
 export interface ReplayTimeline {

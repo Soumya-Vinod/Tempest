@@ -1,6 +1,7 @@
 // Typed client for the Tempest API. Route shapes: shared/contracts.md §5.
 // Contract types come from ../types/contracts; do not redefine them here.
 import type {
+  CycloneTrack,
   Advisory,
   AdvisoryApprove,
   AdvisoryCollection,
@@ -92,6 +93,9 @@ export const getTimesteps = () => request<ReplayTimeline>('GET', '/api/hazard/ti
 
 export const getHazardLayer = (hazard_type: HazardType, timestep: TimestepParam) =>
   request<HazardLayerCollection>('GET', '/api/hazard/layers', { query: { hazard_type, timestep } })
+
+/** Internal route (contracts.md §5, added in v1.1): the 25-point replay track. */
+export const getHazardTrack = () => request<CycloneTrack>('GET', '/api/hazard/track')
 
 // --- Dev B ---
 

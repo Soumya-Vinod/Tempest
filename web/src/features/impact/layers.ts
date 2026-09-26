@@ -86,12 +86,15 @@ export function layerData(affected: Map<string, Affected>): ImpactLayerData {
 const HIGHLIGHT_LINE: Color = [...IMPACT_COLOR.highlight, 230]
 const AUTO_HIGHLIGHT: number[] = [250, 204, 21, 200]
 
-/** Impact layers, bottom to top: lines, points, isolated rings, then the highlight. */
+/**
+ * Impact layers, bottom to top: lines, points, isolated rings; and, separately, the highlight
+ * (drawn above the storm track with the other selection highlights).
+ */
 export function buildImpactLayers(
   data: ImpactLayerData,
   highlight: InfraGeometry | null,
   pulse: boolean,
-): Layer[] {
+): { layers: Layer[]; highlight: Layer[] } {
   const layers: Layer[] = [
     new GeoJsonLayer<{ affected: Affected }>({
       id: 'impact-lines',
@@ -138,8 +141,9 @@ export function buildImpactLayers(
       transitions: { getRadius: { duration: PULSE_MS } },
     }),
   ]
+  const highlightLayers: Layer[] = []
   if (highlight) {
-    layers.push(
+    highlightLayers.push(
       new GeoJsonLayer({
         id: 'impact-highlight',
         data: { type: 'Feature', geometry: highlight as Geometry, properties: {} },
@@ -155,7 +159,7 @@ export function buildImpactLayers(
       }),
     )
   }
-  return layers
+  return { layers, highlight: highlightLayers }
 }
 
 /** The Affected under a click or hover on an impact layer, if any. */

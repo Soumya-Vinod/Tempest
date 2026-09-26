@@ -17,12 +17,13 @@ type BlockFeature = Feature<Geometry, RiskScoreProperties>
 
 const blockFill = (f: BlockFeature) => riskColor(f.properties.score, FILL_ALPHA)
 
+/** The choropleth (fills slot) and, separately, the selected block's outline (drawn on top). */
 export function buildRiskLayers(
   scores: RiskScoreCollection | null,
   unscored: UnscoredAreaCollection | null,
   selected: RiskScore | null,
   visible: boolean,
-): Layer[] {
+): { layers: Layer[]; highlight: Layer[] } {
   const layers: Layer[] = [
     new GeoJsonLayer<RiskScoreProperties>({
       id: 'risk-blocks',
@@ -46,8 +47,9 @@ export function buildRiskLayers(
       stroked: false,
     }),
   ]
+  const highlight: Layer[] = []
   if (selected && visible) {
-    layers.push(
+    highlight.push(
       new GeoJsonLayer({
         id: 'risk-selected',
         data: selected,
@@ -60,7 +62,7 @@ export function buildRiskLayers(
       }),
     )
   }
-  return layers
+  return { layers, highlight }
 }
 
 /** The block (or unscored area) under a click or hover, if any. */
