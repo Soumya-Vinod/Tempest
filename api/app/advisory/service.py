@@ -29,7 +29,7 @@ from dataclasses import dataclass
 from pydantic import ValidationError
 
 from app.advisory import gemini, providers, render, store
-from app.advisory.facts import Facts, UnknownBlock, build_facts
+from app.advisory.facts import Facts, UnknownBlock, build_facts, count_citations
 from app.advisory.prompt import SYSTEM_PROMPT, user_message
 from app.core.config import get_settings
 from app.core.demo import load_fixture
@@ -144,14 +144,45 @@ def evaluate(raw: dict, keys: set[str]) -> tuple[AdvisoryTexts | None, str | Non
             else t.actions[int(p.field[8:-1])]
         )
         offending[f"{p.language}.{p.field}"] = text
-    return None, kind, {"problems": [str(p) for p in problems], "text": offending}
+    found = [
+        {"language": p.language, "field": p.field, "kind": p.kind, "text": p.text} for p in problems
+    ]
+    return None, kind, {"problems": [str(p) for p in problems], "text": offending, "found": found}
 
 
-def _retry_note(details: dict) -> str:
+def _count_hint(facts: Facts) -> str:
+    counts = count_citations(facts.citations)
+    if not counts:
+        return ""
+    options = ", ".join(
+        f"{{{{{c.key}}}}} ({c.label}: {render.format_value(c, 'en')})" for c in counts
+    )
+    return f" To state how many, use the matching count placeholder: {options}."
+
+
+def _retry_note(details: dict, facts: Facts) -> str:
+    """The correction for the next attempt: each offending item quoted, and for a number (word or
+    digit) the count placeholders this block has."""
+    notes = []
+    for f in details.get("found", []):
+        where = f"{f['language']}.{f['field']}"
+        if f["kind"] == "number_word":
+            notes.append(f'"{f["text"]}" in {where} is a number word')
+        elif f["kind"] == "digit":
+            notes.append(f'"{f["text"]}" in {where} is a digit')
+        elif f["kind"] == "unknown_placeholder":
+            notes.append(f"{{{{{f['text']}}}}} in {where} is not in the list")
+        else:
+            notes.append(f"{where}: {f['kind']} {f['text']!r}")
+    if not notes:
+        notes = details.get("problems") or details.get("errors") or []
+    numbers = any(f["kind"] in ("number_word", "digit") for f in details.get("found", []))
     return (
         "\n\nYour previous draft was rejected: "
-        + "; ".join(details.get("problems") or details.get("errors") or [])
-        + ". Rewrite it following the rules exactly: no digits or number words, and only "
+        + "; ".join(notes)
+        + "."
+        + (_count_hint(facts) if numbers else "")
+        + " Rewrite it following the rules exactly: no digits or number words, and only "
         "placeholders from the list."
     )
 
@@ -225,7 +256,7 @@ def _draft(
                     **details,
                 },
             )
-        message = user_message(facts) + _retry_note(details)
+        message = user_message(facts) + _retry_note(details, facts)
         attempt += 1
     raise DraftRejected(
         f"{name}'s draft for {facts.block_name} at {facts.timestep} failed the checks "

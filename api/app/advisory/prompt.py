@@ -3,7 +3,7 @@ the prompt is written; the number rule matches render.NUMBER_WORDS."""
 
 import json
 
-from app.advisory.facts import Facts
+from app.advisory.facts import Facts, count_citations
 
 SYSTEM_PROMPT = """\
 You draft cyclone early-warning advisories for local officials in South 24 Parganas, West Bengal,
@@ -33,6 +33,9 @@ THE NUMBER RULE (strict; drafts that break it are rejected):
   placeholder, and do not translate or respell names; use their placeholders.
 - Use only keys from the list. Do not invent figures, places, facilities or times.
 - Describe severity in words where you need to ("very high", "rising") rather than figures.
+- To state how many of something there are, always use the matching {{..._count}} placeholder;
+  never write a count in words. The message lists the count placeholders for the block, e.g.
+  {{isolated_count}} for the isolated facilities.
 - In Bengali and Hindi, words for "both" (দুটি, দুই, दोनों) are number words: name the
   facilities with their placeholders, or write "each of these", instead.
 
@@ -46,8 +49,10 @@ def user_message(facts: Facts) -> str:
     rows = [
         {"key": c.key, "label": c.label, "value": c.value, "unit": c.unit} for c in facts.citations
     ]
+    counts = ", ".join(f"{{{{{c.key}}}}} ({c.label})" for c in count_citations(facts.citations))
     return (
         f"Block: {{{{block_name}}}} (census code {facts.block_id}).\n"
+        f"Count placeholders (use these to say how many): {counts or 'none'}.\n"
         "FACTS (JSON):\n"
         f"{json.dumps(rows, ensure_ascii=False, indent=1)}\n"
         "Return en, bn and hi, each with headline, body and actions."

@@ -685,6 +685,13 @@ def test_gosaba_facts_from_the_demo_fixtures(monkeypatch):
     assert f.block_name == "Gosaba" and by_key["hours_to_landfall"].value == 3
     assert by_key["reach"].value == "cut off by the storm"
     assert by_key["isolated_count"].value == 2
+    # A count for every list: per facility type, cut substations, stand-ins (all and named).
+    hospitals = by_key["isolated_hospital_count"].value
+    assert hospitals + by_key["isolated_shelter_count"].value == 2
+    assert "cut_substation_count" in by_key and "cut_substations" not in by_key
+    named = [k for k in by_key if k.startswith("standin_") and k.endswith("_name")]
+    assert by_key["standin_named_count"].value == len(named)
+    assert by_key["standin_count"].value >= len(named)
     names = {by_key[k].value for k in ("isolated_1_name", "isolated_2_name")}
     assert "Gosaba Rural Hospital" in names
     assert by_key["isolated_1_cause"].value == "ferry suspended by wind"
@@ -944,3 +951,89 @@ def test_fixture_script_never_falls_back_to_groq(env, groq, fixture_script):
     result = fixture_script.run([PAIR], 20, QUOTA)
     assert result.remaining == [("Gosaba", TS)] and not result.written
     assert groq.requests == [] and groq.sleeps == []
+
+
+# --- Counts: placeholders, never words ----------------------------------------------------------
+
+
+def cite_count(key: str, label: str, value: int) -> Citation:
+    return Citation(key=key, label=label, value=value, unit=None, source="impact")
+
+
+ISOLATED_COUNT = cite_count("isolated_count", "Isolated facilities", 2)
+COUNTED = with_citations(
+    ISOLATED_COUNT,
+    cite_count("isolated_hospital_count", "Isolated hospitals and health centres", 2),
+    cite_count("isolated_shelter_count", "Isolated shelters", 0),
+)
+COUNT_IN_WORDS = {
+    "en": lang(body="The storm has cut off two health facilities in {{block_name}}."),
+    "bn": lang(body="{{block_name}}-এ দুইটি স্বাস্থ্যকেন্দ্র বিচ্ছিন্ন।"),
+    "hi": lang(body="{{block_name}} में दो स्वास्थ्य केंद्र कट गए हैं।"),
+}
+
+
+def test_counting_in_words_is_rejected_and_the_retry_names_the_count_placeholder(env, monkeypatch):
+    monkeypatch.setattr(service, "build_facts", lambda block_id, ts: COUNTED)
+    resp, fake = create(env, COUNT_IN_WORDS, CLEAN)
+    assert resp.status_code == 200 and len(fake.calls) == 2
+    # The first draft was refused on each count word, and audited with what was found.
+    [failed] = [e for e in store.events() if e.action == "number_check_failed"]
+    found = json.loads(failed.details)["found"]
+    assert [(f["language"], f["field"], f["text"]) for f in found] == [
+        ("en", "body", "two"),
+        ("bn", "body", "দুইটি"),
+        ("hi", "body", "दो"),
+    ]
+    # The correction quotes each word and points at the block's count placeholders.
+    retry = fake.calls[1]
+    assert '"two" in en.body is a number word' in retry
+    assert '"দুইটি" in bn.body is a number word' in retry
+    assert '"दो" in hi.body is a number word' in retry
+    assert "{{isolated_count}} (Isolated facilities: 2)" in retry
+    assert "{{isolated_hospital_count}} (Isolated hospitals and health centres: 2)" in retry
+
+
+def test_counting_in_words_twice_is_refused(env, monkeypatch):
+    monkeypatch.setattr(service, "build_facts", lambda block_id, ts: COUNTED)
+    resp, fake = create(env, COUNT_IN_WORDS, COUNT_IN_WORDS)
+    assert resp.status_code == 502 and len(fake.calls) == 2
+    assert any("'two'" in p for p in resp.json()["detail"]["problems"])
+
+
+def test_retry_note_for_other_problems_has_no_count_hint():
+    details = {
+        "found": [
+            {"language": "en", "field": "headline", "kind": "unknown_placeholder", "text": "x"}
+        ]
+    }
+    note = service._retry_note(details, COUNTED)
+    assert "{{x}} in en.headline is not in the list" in note
+    assert "count placeholder" not in note
+
+
+def test_isolated_count_renders_as_numerals_in_each_language():
+    templates = AdvisoryTexts.model_validate(
+        {
+            lang_: lang(body="{{isolated_count}} facilities are cut off.")
+            for lang_ in ("en", "bn", "hi")
+        }
+    )
+    texts = render.render(templates, [*CITATIONS, ISOLATED_COUNT])
+    bodies = [getattr(texts, lang_).body for lang_ in ("en", "bn", "hi")]
+    assert [b.split("] ", 1)[1] for b in bodies] == [
+        "2 facilities are cut off.",
+        "২ facilities are cut off.",
+        "2 facilities are cut off.",
+    ]
+
+
+def test_prompt_states_the_count_rule_and_lists_the_block_counts():
+    assert "never write a count in words" in SYSTEM_PROMPT
+    assert "{{..._count}}" in SYSTEM_PROMPT
+    message = user_message(COUNTED)
+    assert (
+        "Count placeholders (use these to say how many): {{isolated_count}} (Isolated facilities), "
+        "{{isolated_hospital_count}} (Isolated hospitals and health centres), "
+        "{{isolated_shelter_count}} (Isolated shelters)."
+    ) in message

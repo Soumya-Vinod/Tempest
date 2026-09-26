@@ -58,6 +58,15 @@ CAUSE_TEXT = {
 }
 
 
+# Every list the facts expose has a count, so a draft never needs to count in words (prompt.py).
+# Cut roads are measured in km (cut_road_km): a count would be of OSM road segments.
+COUNT_SUFFIX = "_count"
+
+
+def count_citations(citations: list[Citation]) -> list[Citation]:
+    return [c for c in citations if c.key.endswith(COUNT_SUFFIX)]
+
+
 class UnknownBlock(LookupError):
     """No CD block with this census code."""
 
@@ -209,7 +218,20 @@ def build_facts(block_id: str, timestep: str) -> Facts:
             cut_subs.add(p.infra_id)
         elif p.status == "cut" and p.infra_id in roads:
             cut_roads.add(p.infra_id)
+    kinds = [by_id[fid].properties.infra_type for fid in isolated]
     c.append(_cite("isolated_count", "Isolated facilities", len(isolated), None, "impact"))
+    c.append(
+        _cite(
+            "isolated_hospital_count",
+            "Isolated hospitals and health centres",
+            kinds.count("hospital"),
+            None,
+            "impact",
+        )
+    )
+    c.append(
+        _cite("isolated_shelter_count", "Isolated shelters", kinds.count("shelter"), None, "impact")
+    )
     for i, (fid, p) in enumerate(sorted(isolated.items(), key=lambda kv: _name(by_id[kv[0]])), 1):
         f = by_id[fid]
         cause, route = cause_of(p.pathway, roads, p.hazard_type)
@@ -240,7 +262,7 @@ def build_facts(block_id: str, timestep: str) -> Facts:
             shapely.length(shapely.intersection(lines.to_numpy(), blocks.metric.iloc[b])).sum()
         )
     c.append(_cite("cut_road_km", "Cut road length", round(cut_m / 1000, 1), "km", "impact"))
-    c.append(_cite("cut_substations", "Cut substations", len(cut_subs), None, "impact"))
+    c.append(_cite("cut_substation_count", "Cut substations", len(cut_subs), None, "impact"))
 
     # Stand-in shelters (buildings that could shelter people, not designated shelters).
     stand_ins = [
@@ -253,8 +275,17 @@ def build_facts(block_id: str, timestep: str) -> Facts:
             "standin_count", "Stand-in shelters (not designated)", len(stand_ins), None, "exposure"
         )
     )
-    named = sorted({f.properties.name for f in stand_ins if f.properties.name})
-    for i, n in enumerate(named[:MAX_STAND_INS], 1):
+    named = sorted({f.properties.name for f in stand_ins if f.properties.name})[:MAX_STAND_INS]
+    c.append(
+        _cite(
+            "standin_named_count",
+            "Stand-in shelters named below",
+            len(named),
+            None,
+            "exposure",
+        )
+    )
+    for i, n in enumerate(named, 1):
         c.append(_cite(f"standin_{i}_name", "Stand-in shelter", n, None, "exposure"))
 
     return Facts(block_id, name, timestep, c)
