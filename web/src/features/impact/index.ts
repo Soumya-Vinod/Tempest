@@ -3,7 +3,7 @@ import type { DeckProps, Layer, PickingInfo } from '@deck.gl/core'
 import { useCallback, useMemo, useState } from 'react'
 
 import { REPLAY_TIMESTEPS } from '../../lib/constants'
-import type { ImpactStatus } from '../../types/contracts'
+import type { Horizon, ImpactStatus } from '../../types/contracts'
 import type { InfraByType } from '../exposure'
 import type { default as ImpactPanelComponent } from './ImpactPanel'
 import type { PathwayCardProps } from './PathwayCard'
@@ -45,12 +45,28 @@ export interface ImpactMap {
 }
 
 /** Impact results for the scrubber's timestep as map layers, a tooltip, and panel props. */
-export function useImpactMap(timestepIndex: number, infra: InfraByType): ImpactMap {
+export function useImpactMap(
+  timestepIndex: number,
+  infra: InfraByType,
+  horizon: Horizon = 0,
+): ImpactMap {
   const timestep = REPLAY_TIMESTEPS[timestepIndex]
-  const { state, shown } = useImpacts(timestep)
+  const { state, shown } = useImpacts(timestep, horizon)
+  // At horizon 24, what is isolated now (cached, shared with the Now view): the rest of the
+  // isolated features are only expected, drawn with a dashed ring.
+  const now = useImpacts(timestep, 0)
+  const isolatedNow = useMemo(
+    () =>
+      horizon === 0
+        ? null
+        : new Set(
+            now.shown.filter((r) => r.properties.status === 'isolated').map((r) => r.properties.infra_id),
+          ),
+    [horizon, now.shown],
+  )
 
   const affected = useMemo(() => aggregate(shown), [shown])
-  const data = useMemo(() => layerData(affected), [affected])
+  const data = useMemo(() => layerData(affected, isolatedNow), [affected, isolatedNow])
   const lookup = useMemo(() => infraLookup(infra), [infra])
   const pulse = usePulse(data.isolated.length > 0, PULSE_MS)
 
@@ -83,8 +99,10 @@ export function useImpactMap(timestepIndex: number, infra: InfraByType): ImpactM
     (info: PickingInfo): TooltipContent => {
       const a = pickedAffected(info)
       if (!a) return null
+      const expected = isolatedNow !== null && a.worst === 'isolated' && !isolatedNow.has(a.id)
       const lines = [
         featureName(a.id, lookup),
+        ...(expected ? ['Expected to be cut off within 24 h (not yet)'] : []),
         ...a.rows.map(
           (r) => `${HAZARD_LABEL[r.hazard_type]}: ${STATUS_LABEL[r.status].toLowerCase()}`,
         ),
@@ -92,7 +110,7 @@ export function useImpactMap(timestepIndex: number, infra: InfraByType): ImpactM
       ]
       return { text: lines.join('\n'), style: TOOLTIP_STYLE }
     },
-    [lookup],
+    [lookup, isolatedNow],
   )
 
   const clear = useCallback(() => {
@@ -109,6 +127,8 @@ export function useImpactMap(timestepIndex: number, infra: InfraByType): ImpactM
     clear,
     panel: {
       timestepIndex,
+      horizon,
+      expectedCount: data.expected.length,
       state,
       counts,
       affectedCount: state.status === 'ok' ? affected.size : 0,

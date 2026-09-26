@@ -17,6 +17,7 @@ from app.schemas.common import (
     ChannelStatus,
     ContractModel,
     HazardType,
+    Horizon,
     ImpactStatus,
     InfraType,
     ModelProvider,
@@ -159,6 +160,9 @@ class ImpactResultProperties(ContractModel):
     status: ImpactStatus
     timestep: Timestep
     pathway: list[PathwayStep]
+    # v1.3 change, pending Dev A: 0 = the status now; 24 = expected within 24 h ("isolated" then
+    # means expected to be cut off).
+    horizon_h: Horizon = 0
 
     @model_validator(mode="after")
     def _ok_has_no_pathway(self) -> Self:
@@ -195,6 +199,7 @@ class RiskScoreProperties(ContractModel):
     components: RiskComponents
     # added in v1.1: the largest contributing part; null when score is 0.
     top_driver: RiskDriver | None = None
+    horizon_h: Horizon = 0  # v1.3 change, pending Dev A: 24 = on the expected hazard
 
 
 class RiskScore(Feature):
@@ -256,6 +261,7 @@ class RiskBlockBreakdown(ContractModel):
 class RiskBreakdown(ContractModel):
     timestep: Timestep
     blocks: list[RiskBlockBreakdown]
+    horizon_h: Horizon = 0  # v1.3 change, pending Dev A
 
 
 # --- 4.5 Advisory (Dev B) ---
@@ -353,6 +359,9 @@ class TriggerEventProperties(ContractModel):
     # back): the highest tier reached at any timestep up to this one, and its payout.
     released_tier: int = Field(default=0, ge=0)
     released_payout_inr: float = Field(default=0.0, ge=0)
+    # v1.3 change, pending Dev A: the tier the expected hazard (next 24 h) would reach. For
+    # information only: payouts follow the observed hazard.
+    expected_tier_24h: int = Field(default=0, ge=0)
 
     @model_validator(mode="after")
     def _consistent(self) -> Self:

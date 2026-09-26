@@ -65,7 +65,7 @@ export default function HealthPanel({ children }: { children?: ReactNode }) {
 
   return (
     <aside
-      className="absolute overflow-y-auto rounded-lg bg-white p-4 text-sm text-slate-800 shadow-lg"
+      className="absolute z-20 overflow-y-auto rounded-lg bg-white p-4 text-sm text-slate-800 shadow-lg"
       style={{ top: UI_GAP, right: UI_GAP, bottom: ABOVE_TIMELINE, width: PANEL_WIDTH }}
     >
       <h1 className="text-base font-semibold">Tempest</h1>

@@ -11,6 +11,8 @@ import { HazardPanel, type MapViewMode, StormEdge, useHazardMap } from './featur
 import { ImpactPanel, PathwayCard, useImpactMap } from './features/impact'
 import { InsurancePanel, useInsuranceMap } from './features/insurance'
 import { RiskCard, RiskPanel, useRiskMap } from './features/risk'
+import { LANDFALL_INDEX } from './lib/constants'
+import type { Horizon } from './types/contracts'
 
 export default function App() {
   // Replay index into REPLAY_TIMESTEPS; features will read the timestep from here.
@@ -19,11 +21,15 @@ export default function App() {
   // Hazard until a block reaches the advisory threshold at this timestep, Risk after).
   const [chosenView, setChosenView] = useState<MapViewMode | null>(null)
   const [map, setMap] = useState<MapLibreMap | null>(null)
+  // Now / Next 24 h (v1.3): the user's choice, or null = Next 24 h before landfall (there is
+  // nothing ahead to forecast at landfall itself).
+  const [chosenHorizon, setChosenHorizon] = useState<Horizon | null>(null)
+  const horizon: Horizon = chosenHorizon ?? (timestepIndex < LANDFALL_INDEX ? 24 : 0)
 
   const infra = useInfraMap()
-  const impact = useImpactMap(timestepIndex, infra.state)
-  const risk = useRiskMap(timestepIndex, chosenView)
-  const hazard = useHazardMap(timestepIndex, risk.view, setChosenView, map)
+  const impact = useImpactMap(timestepIndex, infra.state, horizon)
+  const risk = useRiskMap(timestepIndex, chosenView, horizon)
+  const hazard = useHazardMap(timestepIndex, risk.view, setChosenView, map, horizon, setChosenHorizon)
   const insurance = useInsuranceMap(timestepIndex, risk.view === 'risk')
   // Red and orange mean impact only: exposure mutes its colours while impact results show.
   const infraLayers = useInfraLayers(infra, impact.active)

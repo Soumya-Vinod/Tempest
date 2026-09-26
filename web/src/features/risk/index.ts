@@ -4,6 +4,7 @@ import type { Map as MapLibreMap } from 'maplibre-gl'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { REPLAY_TIMESTEPS, RISK_VIEW_MIN_SCORE } from '../../lib/constants'
+import type { Horizon } from '../../types/contracts'
 import type { MapViewMode } from '../hazard'
 import { syncUnscored } from './hatch'
 import { buildRiskLayers, pickedBlock, pickedUnscored } from './layers'
@@ -52,9 +53,15 @@ export interface RiskMap {
  * null: then the view is Risk once any block at this timestep scores RISK_VIEW_MIN_SCORE or more
  * (the advisory threshold), else Hazard. The selection only applies in the Risk view.
  */
-export function useRiskMap(timestepIndex: number, chosenView: MapViewMode | null): RiskMap {
+export function useRiskMap(
+  timestepIndex: number,
+  chosenView: MapViewMode | null,
+  horizon: Horizon = 0,
+): RiskMap {
   const timestep = REPLAY_TIMESTEPS[timestepIndex]
-  const { state, shown } = useRisk(timestep)
+  // v1.3: at horizon 24 the scores are on the expected hazard (the next 24 h), so the Risk view
+  // turns on (automatically) as soon as a block is expected to reach the threshold.
+  const { state, shown } = useRisk(timestep, horizon)
   const unscored = useUnscoredAreas()
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [map, setMap] = useState<MapLibreMap | null>(null)

@@ -6,8 +6,9 @@ headline, description = body, instruction = the actions, one per line. <area> ho
 name in that language, the block polygon (simplified) and a geocode with the Census 2011 code.
 
 Risk -> CAP mapping (contracts.md §4.7), from the figures the advisory cites:
-- severity, from the block risk score (0-1): >= 0.6 Extreme, >= 0.4 Severe, >= 0.25 Moderate
-  (the advisory suggestion threshold), else Minor.
+- severity, from the block risk score (0-1; the higher of now and expected within 24 h):
+  >= 0.6 Extreme, >= 0.4 Severe, >= 0.25 Moderate (the advisory suggestion threshold), else
+  Minor.
 - urgency, from hours to landfall: <= 12 h Immediate, else Future. CAP's "Expected" means
   "responsive action should be taken soon (within next hour)", which doesn't fit cyclone lead
   times: at 12 h or less, preparation has to start now; before that it is Future.
@@ -116,7 +117,11 @@ def build(advisory: Advisory, sent: datetime) -> str:
         raise ValueError(f"unknown block {p.block_id!r}")
     polygons = block_polygons(blocks.geometry.iloc[blocks.codes.index(p.block_id)])
     names = block_data.local_names().get(p.block_name, {})
-    score = _citation(advisory, "risk_score") or 0.0
+    # The higher of the score now and the one expected within 24 h (v1.3; older advisories
+    # have only the first).
+    score = max(
+        _citation(advisory, "risk_score") or 0.0, _citation(advisory, "risk_score_24h") or 0.0
+    )
     hours = _citation(advisory, "hours_to_landfall")
     if hours is None:
         from app.advisory.facts import hours_to_landfall

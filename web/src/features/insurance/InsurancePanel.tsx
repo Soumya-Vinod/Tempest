@@ -29,6 +29,10 @@ export default function InsurancePanel(props: InsurancePanelProps) {
     .filter((f) => f.properties.released_tier > 0)
     .sort((a, b) => b.properties.released_payout_inr - a.properties.released_payout_inr)
   const released = paying.reduce((sum, f) => sum + f.properties.released_payout_inr, 0)
+  // Blocks the expected hazard (next 24 h) would trigger that haven't been paid yet (v1.3).
+  const upcoming = props.shown
+    .filter((f) => f.properties.released_tier === 0 && (f.properties.expected_tier_24h ?? 0) > 0)
+    .sort((a, b) => (b.properties.expected_tier_24h ?? 0) - (a.properties.expected_tier_24h ?? 0))
   const zones = props.summary.status === 'ok' ? props.summary.data.zones : []
   const firstBy = new Map(zones.map((z) => [z.zone_id, z]))
   // Anticipatory headlines: blocks whose first trigger is at or before this timestep.
@@ -67,6 +71,22 @@ export default function InsurancePanel(props: InsurancePanelProps) {
         </ul>
       )}
 
+      {upcoming.length > 0 && (
+        <div className="mt-2 text-xs">
+          <p className="text-slate-500">
+            Expected in the next 24 h (forecast; payouts follow the observed hazard only):
+          </p>
+          <ul className="mt-0.5 space-y-0.5 text-sky-800">
+            {upcoming.map((f) => (
+              <li key={f.properties.zone_id}>
+                {f.properties.zone_name}: tier {f.properties.expected_tier_24h} (
+                {TIER_PERCENT[f.properties.expected_tier_24h ?? 0]}), nothing released yet
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {paying.length > 0 && (
         <ul className="mt-2 space-y-1.5 text-xs">
           {paying.map((f) => {
@@ -85,6 +105,12 @@ export default function InsurancePanel(props: InsurancePanelProps) {
                   Released so far: tier {p.released_tier} ({TIER_PERCENT[p.released_tier]}) ·{' '}
                   <span className="font-medium tabular-nums">{crore(p.released_payout_inr)}</span>
                 </p>
+                {(p.expected_tier_24h ?? 0) > p.released_tier && (
+                  <p className="text-sky-800">
+                    Expected tier in the next 24 h: {p.expected_tier_24h} (
+                    {TIER_PERCENT[p.expected_tier_24h ?? 0]})
+                  </p>
+                )}
                 {first?.first_trigger_timestep && first.first_trigger_metric && (
                   <p className="text-slate-500">
                     First triggered {hoursLabel(first.hours_before_landfall ?? 0)} (

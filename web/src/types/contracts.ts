@@ -81,6 +81,11 @@ export type RiskReach = "direct" | "cut_off";
 export type Channel = "telegram" | "email";
 /** dry_run: built and validated, not sent (added in v1.2). */
 export type ChannelStatus = "sent" | "failed" | "dry_run";
+/**
+ * Forecast horizon in hours (v1.3 change pending Dev A): 0 = now, 24 = expected within 24 h
+ * (the cell-wise max of the hazard over the next 24 h; a perfect-forecast replay).
+ */
+export type Horizon = 0 | 24;
 /** added in v1.2. */
 export type ModelProvider = "gemini" | "groq";
 /** The model that wrote an advisory draft (added in v1.2). */
@@ -139,6 +144,7 @@ export interface ImpactResultProperties {
   status: ImpactStatus;
   timestep: Timestep;
   pathway: PathwayStep[]; // ordered, cause first; empty when status is "ok"
+  horizon_h?: Horizon; // v1.3 change pending Dev A: 24 = expected within 24 h
 }
 export type ImpactResult = Feature<InfraGeometry, ImpactResultProperties>;
 export type ImpactResultCollection = FeatureCollection<ImpactResult>;
@@ -159,6 +165,7 @@ export interface RiskScoreProperties {
   score: number; // [0, 1]
   components: RiskComponents;
   top_driver?: RiskDriver | null; // added in v1.1; null when score is 0
+  horizon_h?: Horizon; // v1.3 change pending Dev A
 }
 export type RiskScore = Feature<AreaGeometry, RiskScoreProperties>;
 export type RiskScoreCollection = FeatureCollection<RiskScore>;
@@ -202,6 +209,7 @@ export interface RiskBlockBreakdown {
 export interface RiskBreakdown {
   timestep: Timestep;
   blocks: RiskBlockBreakdown[];
+  horizon_h?: Horizon; // v1.3 change pending Dev A
 }
 
 // ---------- §4.5 Advisory (Dev B) ----------
@@ -282,6 +290,9 @@ export interface TriggerEventProperties {
   sum_insured_inr: number;
   released_tier: number; // highest tier up to this timestep (never taken back)
   released_payout_inr: number;
+  // v1.3 change pending Dev A: the tier the expected hazard (next 24 h) would reach; information
+  // only (payouts follow the observed hazard).
+  expected_tier_24h?: number;
 }
 export type TriggerEvent = Feature<AreaGeometry, TriggerEventProperties>;
 export type TriggerEventCollection = FeatureCollection<TriggerEvent>;

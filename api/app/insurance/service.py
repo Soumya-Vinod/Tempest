@@ -3,6 +3,8 @@ summary route, tiers and released amounts: added in v1.2). ILLUSTRATIVE terms.
 
 Live: readings per timestep from Dev A's hazard layers (the impact service's cache), each
 computed once; a timestep's released amounts need every timestep up to it.
+Payouts follow the observed hazard only; each trigger also reports the tier the expected hazard
+(the next 24 h, app/impact/horizon.py) would reach, for information (v1.3 change, pending Dev A).
 DEMO_MODE: the fixtures insurance__triggers__<ts> (compact: no block polygons, added back here,
 as for risk scores) and insurance__summary, built by scripts/build_insurance_fixtures.py.
 """
@@ -12,6 +14,7 @@ from app.core.config import get_settings
 from app.core.demo import load_fixture
 from app.impact import service as impact
 from app.impact.fixtures import compact_timestep
+from app.impact.horizon import FORECAST_HORIZON_H
 from app.insurance import engine
 from app.risk import blocks as block_data
 from app.schemas import (
@@ -29,6 +32,12 @@ SUMMARY_FIXTURE_KEY = "insurance__summary"
 _readings_cache = SingleFlightLRU(
     lambda ts: engine.readings(impact.hazard_layers(ts), block_data.load_blocks()),
     maxsize=len(REPLAY_TIMESTEPS),
+)
+_expected_cache = SingleFlightLRU(
+    lambda ts: engine.readings(
+        impact.hazard_layers(ts, FORECAST_HORIZON_H), block_data.load_blocks()
+    ),
+    maxsize=8,
 )
 
 
@@ -67,7 +76,9 @@ def compact_triggers(timestep: str) -> dict:
     released = engine.released(readings)
     return {
         "type": "FeatureCollection",
-        "features": engine.features(readings[-1], released[-1], timestep),
+        "features": engine.features(
+            readings[-1], released[-1], timestep, _expected_cache.get(timestep)
+        ),
     }
 
 
@@ -84,3 +95,4 @@ def get_summary() -> InsuranceSummary:
 
 def clear_cache() -> None:
     _readings_cache.clear()
+    _expected_cache.clear()

@@ -86,7 +86,7 @@ export default function MapView({ layers = [], getTooltip, onClick, onMapLoad }:
   // lives on the wrapper and the container only fills it.
   return (
     <div
-      className="absolute inset-0"
+      className="absolute inset-0 isolate"
       style={{ '--map-ctrl-bottom': `${ABOVE_TIMELINE}px` } as CSSProperties}
     >
       <div ref={containerRef} className="h-full w-full" />

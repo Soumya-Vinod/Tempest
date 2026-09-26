@@ -3,7 +3,7 @@
 from datetime import UTC, datetime, timedelta
 from typing import Annotated, Literal
 
-from pydantic import AfterValidator, BaseModel, ConfigDict, Field
+from pydantic import AfterValidator, BaseModel, BeforeValidator, ConfigDict, Field
 
 HazardType = Literal["wind", "surge", "flood"]
 InfraType = Literal["substation", "power_line", "road", "hospital", "shelter"]
@@ -44,6 +44,19 @@ RiskDriver = Literal[
 # (§4.4 risk breakdown, added in v1.1).
 RiskReach = Literal["direct", "cut_off"]
 Channel = Literal["telegram", "email"]
+# Forecast horizon in hours (v1.3 change, pending Dev A): 0 = now (the observed hazard), 24 =
+# expected within 24 h (the cell-wise max of the hazard over the next 24 h; a perfect-forecast
+# replay, see app/impact/horizon.py).
+Horizon = Literal[0, 24]
+
+
+def _int_from_query(value: object) -> object:
+    """Query strings arrive as text; a Literal of ints doesn't coerce "24" on its own."""
+    return int(value) if isinstance(value, str) and value.isdigit() else value
+
+
+# The `horizon` query parameter: "0" or "24" (anything else: 422).
+HorizonParam = Annotated[Horizon, BeforeValidator(_int_from_query)]
 # The model that wrote an advisory draft (added in v1.2).
 ModelProvider = Literal["gemini", "groq"]
 # dry_run: built and validated, not sent (added in v1.2).

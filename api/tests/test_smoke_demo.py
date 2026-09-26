@@ -171,6 +171,10 @@ def test_every_route_in_demo_mode_without_raw_or_processed_data(container, tmp_p
             "/api/advisory/suggestions",
         ):
             get(path, timestep=ts)
+        # Both forecast horizons (v1.3): now and expected within 24 h.
+        for path in ("/api/impact/results", "/api/risk/scores", "/api/risk/breakdown"):
+            for horizon in ("0", "24"):
+                get(path, timestep=ts, horizon=horizon)
 
     # Advisory generation with no key and no valid cached response: 503, never a live call.
     r = client.post("/api/advisory/", json={"block_id": "02435", "timestep": REPLAY_TIMESTEPS[-1]})

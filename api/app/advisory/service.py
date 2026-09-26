@@ -41,6 +41,7 @@ from app.advisory.prompt import SYSTEM_PROMPT, user_message
 from app.core.config import get_settings
 from app.core.demo import load_fixture
 from app.impact.fixtures import compact_timestep
+from app.impact.horizon import FORECAST_HORIZON_H
 from app.risk import service as risk
 from app.schemas import (
     LIVE,
@@ -111,7 +112,9 @@ def fixture_key(block_id: str, timestep: str) -> str:
 def suggestions(timestep: str) -> AdvisorySuggestions:
     if timestep == LIVE:
         raise NotImplementedError("timestep=live is not implemented yet")
-    scores = [f.properties for f in risk.get_scores(timestep).features]
+    # On the expected hazard (v1.3 change, pending Dev A): suggest a block while there is still
+    # time to act, not once it is hit.
+    scores = [f.properties for f in risk.get_scores(timestep, FORECAST_HORIZON_H).features]
     picked = sorted((p for p in scores if p.score >= SUGGEST_MIN_SCORE), key=lambda p: -p.score)
     return AdvisorySuggestions(
         timestep=timestep,

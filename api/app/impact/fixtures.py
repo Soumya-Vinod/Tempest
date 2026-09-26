@@ -30,7 +30,7 @@ def to_fixture(results: ImpactResultCollection) -> dict:
 
 
 def from_fixture(
-    fixture: dict, infra: InfraFeatureCollection, timestep: str
+    fixture: dict, infra: InfraFeatureCollection, timestep: str, horizon_h: int = 0
 ) -> ImpactResultCollection:
     """Rebuild the full collection: fixture rows plus ok rows for everything else."""
     stored = {row["id"]: row for row in fixture["features"]}
@@ -52,6 +52,7 @@ def from_fixture(
                         status="ok",
                         timestep=timestep,
                         pathway=[],
+                        horizon_h=horizon_h,
                     ),
                 )
             )

@@ -15,7 +15,7 @@ export default function TimelineScrubber({ index, onChange }: Props) {
 
   return (
     <div
-      className="absolute flex flex-col justify-center rounded-lg bg-white px-4 text-sm text-slate-800 shadow-lg"
+      className="absolute z-20 flex flex-col justify-center rounded-lg bg-white px-4 text-sm text-slate-800 shadow-lg"
       style={{ left: UI_GAP, right: UI_GAP, bottom: UI_GAP, height: TIMELINE_HEIGHT }}
     >
       <div className="mb-2 flex items-center gap-3">

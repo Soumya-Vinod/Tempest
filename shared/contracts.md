@@ -46,6 +46,17 @@ Dev A* (or *Dev B*) until both devs sign off and the version is bumped.
 
 Live mode is reserved but not implemented in v1.1. See the `"live"` value above.
 
+### Forecast horizon (*v1.3 change, pending Dev A*)
+`Horizon = 0 | 24` (hours). `FORECAST_HORIZON_H = 24`. The **expected hazard** at timestep t is,
+per hazard type and grid cell, the maximum `value` (and `severity`) over the replay timesteps
+from t to t + 24 h, capped at landfall. Impact and risk accept `horizon` (default 0 = now, on the
+observed hazard); with 24 they run unchanged on the expected hazard, so their results mean
+"expected within 24 h": `isolated` at horizon 24 means *expected* to be cut off. This is a
+**perfect-forecast replay** (the "forecast" is the replay's own future); operationally the same
+hazard model would run on IMD's forecast track. The per-cell maximum over the window is
+conservative: wind and surge peaks that never coincide are both kept. Hazard layers
+(`/api/hazard/layers`) are unchanged. Insurance payouts stay on the observed hazard.
+
 ## 3. Shared types
 
 ```ts
@@ -159,6 +170,7 @@ One feature per (infra, hazard, timestep). Geometry: same as the referenced Infr
 | `status` | ImpactStatus | |
 | `timestep` | Timestep | |
 | `pathway` | PathwayStep[] | Ordered, cause first. Empty when `status = "ok"`. |
+| `horizon_h` | Horizon | *v1.3 change, pending Dev A.* 0 = the status now; 24 = expected within 24 h. Default 0. |
 
 `PathwayStep = { id: string, label: string, type: StepType }`
 - `hazard` step: `id = "hazard:<hazard_type>"`, e.g. `{"id":"hazard:surge","label":"Surge 2.4 m","type":"hazard"}`
@@ -192,6 +204,7 @@ aren't available, an H3 resolution-7 cell. Geometry: block `Polygon | MultiPolyg
 | `score` | float [0, 1] | |
 | `components` | `{ hazard, exposure, vulnerability }` | Each a float in [0, 1]. The formula belongs to the risk engine, not this contract. |
 | `top_driver` | RiskDriver \| null, optional | *added in v1.1.* The largest contributing part: `surge`, `wind`, `flood`, `isolated_facilities`, `cut_roads`, `cut_substations`, `population_density`, `hospital_access`, `low_literacy`, `mapped_shelters`. Null when `score` is 0. |
+| `horizon_h` | Horizon | *v1.3 change, pending Dev A.* 24 = on the expected hazard. Default 0. |
 
 **Unscored areas** *(added in v1.1)*: parts of the AOI clip that no block covers
 (Kolkata, and South 24 Parganas municipal areas outside the CD blocks) get no RiskScore. They are
@@ -199,7 +212,8 @@ served as FC&lt;UnscoredArea&gt;: geometry `Polygon | MultiPolygon`, properties 
 label: string, area_km2: number }`, with `label` "Municipal area, not scored".
 
 **Risk breakdown** *(added in v1.1)*: the parts behind each block's score, for
-explaining it. `RiskBreakdown = { timestep, blocks: RiskBlockBreakdown[] }` with
+explaining it. `RiskBreakdown = { timestep, blocks: RiskBlockBreakdown[], horizon_h }` (`horizon_h`:
+*v1.3 change, pending Dev A*) with
 `RiskBlockBreakdown = { block_id, block_name, population_2011: int, hospital_travel_min:
 number | null, reach: RiskReach, hazard: { surge, wind, flood }, exposure: { isolated_facilities, cut_roads,
 cut_substations }, vulnerability: { population_density, hospital_access, low_literacy,
@@ -280,6 +294,7 @@ pay 25 / 50 / 100 % of a sum insured of ₹1,000 per resident (2011 population).
 | `sum_insured_inr` | float | *added in v1.2.* |
 | `released_tier` | int ≥ `tier` | *added in v1.2.* The highest tier at any timestep up to this one: released money is never taken back. |
 | `released_payout_inr` | float ≥ `payout_estimate_inr` | *added in v1.2.* The payout for `released_tier`. |
+| `expected_tier_24h` | int ≥ 0 | *v1.3 change, pending Dev A.* The tier the expected hazard (next 24 h) would reach. Information only: payouts follow the observed hazard. |
 
 **InsuranceSummary** (*added in v1.2*), `GET /api/insurance/summary`:
 `{ district: [{ timestep, released_payout_inr, triggered_zones, released_zones }] (25, never
@@ -337,9 +352,9 @@ stated; `timestep=live` returns `501` in v1.1. FC = FeatureCollection.
 | A | GET | `/api/hazard/timesteps` | — | `{ event: "amphan", landfall: Timestep, timesteps: Timestep[] }` |
 | A | GET | `/api/hazard/layers` | `hazard_type: HazardType`, `timestep` | FC&lt;HazardLayer&gt; |
 | B | GET | `/api/exposure/infra` | `infra_type?: InfraType` | FC&lt;InfraFeature&gt; (not time-dependent) |
-| B | GET | `/api/impact/results` | `timestep`, `hazard_type?`, `status?: ImpactStatus` | FC&lt;ImpactResult&gt; |
-| B | GET | `/api/risk/scores` | `timestep` | FC&lt;RiskScore&gt; |
-| B | GET | `/api/risk/breakdown` | `timestep` | RiskBreakdown. *added in v1.1.* |
+| B | GET | `/api/impact/results` | `timestep`, `hazard_type?`, `status?: ImpactStatus`, `horizon?: 0 \| 24` (*v1.3 change, pending Dev A*; other values `422`) | FC&lt;ImpactResult&gt; |
+| B | GET | `/api/risk/scores` | `timestep`, `horizon?: 0 \| 24` (*v1.3 change, pending Dev A*) | FC&lt;RiskScore&gt; |
+| B | GET | `/api/risk/breakdown` | `timestep`, `horizon?: 0 \| 24` (*v1.3 change, pending Dev A*) | RiskBreakdown. *added in v1.1.* |
 | B | GET | `/api/risk/unscored-areas` | — | FC&lt;UnscoredArea&gt; (static; live from reference data, DEMO_MODE from the `unscored-areas` fixture). *added in v1.1.* |
 | B | GET | `/api/advisory/` | `status?`, `block_id?`, `timestep?` (*added in v1.2*) | FC&lt;Advisory&gt;, newest first |
 | B | POST | `/api/advisory/` | `{ block_id, timestep }` (*added in v1.2*: no `language`) | Advisory (`draft`). `502` if Gemini's draft fails the numbers rule twice; `503` with no cached response and no Gemini key. |
@@ -446,4 +461,12 @@ stored as is.
 *Exception (added in v1.2):* `insurance__triggers__<ts>` stores each TriggerEvent
 without its `geometry`, which the route adds back from the same block reference file, as for
 `risk__scores__<ts>`.
+*Exception (v1.3 change, pending Dev A):* results at `horizon=24` are deduplicated, since the
+expected hazard is the same at many timesteps. Each distinct result is stored once as
+`<module>__<resource>-h24-<hash>` (`impact__results-h24-…`, `risk__scores-h24-…`,
+`risk__breakdown-h24-…`; hash = the first 12 hex digits of the SHA-256 of the result with its
+timestep replaced by `{{timestep}}`), in the same compact form as at horizon 0, plus
+`<module>__<resource>-h24-index` = `{ horizon_h: 24, files: { <timestep>: <fixture key> } }` for
+all 25 timesteps. Loading substitutes the timestep back, so the response is exactly the contract
+collection.
 Keep each file under ~2 MB, roads up to 5 MB (`exposure__infra-road`) *(added in v0.9)*. Anything larger or regenerable goes in `api/data/cache/` (ignored).

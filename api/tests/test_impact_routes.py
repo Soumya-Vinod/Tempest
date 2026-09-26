@@ -156,10 +156,10 @@ def counted(synth, monkeypatch):
     calls: list[str] = []
     compute = service._compute
 
-    def counting(timestep):
+    def counting(timestep, horizon_h=0):
         calls.append(timestep)
         time.sleep(0.2)  # long enough for concurrent requests to overlap
-        return compute(timestep)
+        return compute(timestep, horizon_h)
 
     monkeypatch.setattr(service, "_compute", counting)
     return calls
@@ -193,7 +193,7 @@ def test_cache_is_lru_with_eight_entries(counted):
 def test_failures_are_not_cached(live, monkeypatch):
     calls = []
 
-    def failing(timestep):
+    def failing(timestep, horizon_h=0):
         calls.append(timestep)
         raise NotImplementedError("get_hazard_layer: not implemented")
 

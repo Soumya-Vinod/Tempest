@@ -20,6 +20,7 @@ import type {
   DispatchRequest,
   HazardLayerCollection,
   HazardType,
+  Horizon,
   ImpactResultCollection,
   ImpactStatus,
   InfraFeatureCollection,
@@ -106,17 +107,18 @@ export const getInfra = (infra_type?: InfraType) =>
 export const getImpactResults = (
   timestep: TimestepParam,
   filters: { hazard_type?: HazardType; status?: ImpactStatus } = {},
+  horizon: Horizon = 0, // v1.3 change, pending Dev A
 ) =>
   request<ImpactResultCollection>('GET', '/api/impact/results', {
-    query: { timestep, ...filters },
+    query: { timestep, ...filters, horizon: String(horizon) },
   })
 
-export const getRiskScores = (timestep: TimestepParam) =>
-  request<RiskScoreCollection>('GET', '/api/risk/scores', { query: { timestep } })
+export const getRiskScores = (timestep: TimestepParam, horizon: Horizon = 0) =>
+  request<RiskScoreCollection>('GET', '/api/risk/scores', { query: { timestep, horizon: String(horizon) } })
 
 /** added in v1.1. */
-export const getRiskBreakdown = (timestep: TimestepParam) =>
-  request<RiskBreakdown>('GET', '/api/risk/breakdown', { query: { timestep } })
+export const getRiskBreakdown = (timestep: TimestepParam, horizon: Horizon = 0) =>
+  request<RiskBreakdown>('GET', '/api/risk/breakdown', { query: { timestep, horizon: String(horizon) } })
 
 /** added in v1.1. Static: Kolkata and municipal areas outside the CD blocks. */
 export const getUnscoredAreas = () =>

@@ -11,7 +11,7 @@ import {
 
 function Modal({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <div className="fixed inset-0 z-20 flex items-center justify-center bg-slate-900/30">
+    <div className="fixed inset-0 z-30 flex items-center justify-center bg-slate-900/30">
       <div
         role="dialog"
         aria-label={title}

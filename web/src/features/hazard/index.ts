@@ -7,11 +7,11 @@ import { useCallback, useMemo, useState } from 'react'
 
 import { LANDFALL_INDEX, REPLAY_TIMESTEPS } from '../../lib/constants'
 import { fitAoi, fitPadded } from '../../lib/mapFit'
-import type { CycloneTrackPoint } from '../../types/contracts'
+import type { CycloneTrackPoint, Horizon } from '../../types/contracts'
 import type { HazardPanelProps } from './HazardPanel'
 import { buildHazardFills, buildTrackLayers, hazardTooltip } from './layers'
 import { imdCategory, toKmh } from './style'
-import { type MapViewMode, useHazardLayer, useTrack } from './useHazard'
+import { type MapViewMode, useExpectedLayer, useHazardLayer, useTrack } from './useHazard'
 
 export { default as HazardPanel } from './HazardPanel'
 export { default as StormEdge } from './StormEdge'
@@ -36,6 +36,8 @@ export function useHazardMap(
   view: MapViewMode,
   onView: (view: MapViewMode) => void,
   map: MapLibreMap | null,
+  horizon: Horizon = 0,
+  onHorizon: (horizon: Horizon) => void = () => {},
 ): HazardMap {
   const timestep = REPLAY_TIMESTEPS[timestepIndex]
   const hazardView = view === 'hazard'
@@ -43,8 +45,15 @@ export function useHazardMap(
   const [floodOn, setFloodOn] = useState(false)
   const [fullTrack, setFullTrack] = useState(false)
 
-  const surge = useHazardLayer('surge', timestep, hazardView)
-  const wind = useHazardLayer('wind', timestep, hazardView && windOn)
+  // Now: the observed layers. Next 24 h (v1.3): the cell-wise max over the next 24 h, composited
+  // from the same cached layers (useExpectedLayer), so it matches impact and risk at horizon 24.
+  const expected = horizon === 24
+  const surgeNow = useHazardLayer('surge', timestep, hazardView && !expected)
+  const windNow = useHazardLayer('wind', timestep, hazardView && windOn && !expected)
+  const surgeNext = useExpectedLayer('surge', timestepIndex, hazardView && expected)
+  const windNext = useExpectedLayer('wind', timestepIndex, hazardView && windOn && expected)
+  const surge = expected ? surgeNext : surgeNow
+  const wind = expected ? windNext : windNow
   const flood = useHazardLayer('flood', timestep, hazardView && floodOn)
   const track = useTrack()
   const points: CycloneTrackPoint[] = useMemo(
@@ -97,6 +106,8 @@ export function useHazardMap(
     panel: {
       view,
       onView,
+      horizon,
+      onHorizon,
       surge: surge.state,
       wind: { on: windOn, onToggle: () => setWindOn((v) => !v), state: wind.state },
       flood: { on: floodOn, onToggle: () => setFloodOn((v) => !v), state: flood.state },
