@@ -17,6 +17,14 @@ The objective of Phase 12 is to implement a **deterministic, offline validation 
 >
 > remain completely unchanged. The purpose is to measure, document, and expose model agreement against independent satellite observations via a lightweight, read-only API endpoint for frontend consumption and audit reporting.
 
+### Offline Preprocessing & Immutable Distribution
+
+> [!NOTE]
+> **Architecture & Offline Delivery Guarantee**:
+> **The SAR preprocessing and benchmark metrics were performed offline during fixture preparation. The application distributes the resulting benchmark as immutable cached assets and does not reproduce the processing at runtime.**
+>
+> At runtime, the application never connects to Google Earth Engine, never downloads satellite imagery over the network, and never performs live flood segmentation or raster overlay computations. The reported statistics represent precomputed **reference benchmark values** loaded directly from cached demo fixtures.
+
 ---
 
 ## 2. Area of Interest (AOI): Sagar Island
@@ -81,17 +89,17 @@ The validation pipeline utilizes a curated **before/after image pair** acquired 
 
 ### 3.2 Offline Delivery Guarantee
 
-> [!NOTE]
-> All Sentinel processing is completed **before runtime**.
-> The application never connects to Google Earth Engine, never downloads imagery over the network, and never runs live image segmentation. The benchmark assets are stored deterministically as:
-> - JSON Fixture: `api/data/demo/hazard__validation-sentinel.json`
-> - Static Visual Previews: `web/public/assets/sentinel/` and `api/data/reference/sentinel/`
+All Sentinel processing is completed **offline prior to deployment**. The runtime application distributes the resulting benchmark as deterministic fixtures:
+- JSON Benchmark Fixture: `api/data/demo/hazard__validation-sentinel.json`
+- Static Visual Assets: `web/public/assets/sentinel/` and `api/data/reference/sentinel/`
 
 ---
 
-## 4. Benchmark Methodology & Inundation Extraction
+## 4. Offline Benchmark Methodology & Inundation Extraction (Provenance)
 
-### 4.1 Satellite Flood Detection Methodology
+The workflow outlined below details the **offline scientific methodology** applied during fixture creation to derive the reference benchmark values. This processing is **not executed at runtime**; rather, its outputs are serialized into immutable demo fixtures.
+
+### 4.1 Satellite Flood Detection Methodology (Offline Preparation)
 
 Open standing water causes specular reflection of radar pulses away from the antenna, resulting in a dramatic drop in radar backscatter ($\sigma^0$) compared to rough soil, vegetation, or dry built-up land:
 
@@ -101,22 +109,22 @@ Open standing water causes specular reflection of radar pulses away from the ant
    $$\Delta \sigma^0_{\text{VV}} = \sigma^0_{\text{event}} - \sigma^0_{\text{baseline}} < -3.0\text{ dB}$$
    combined with an absolute water threshold $\sigma^0_{\text{VV}} \le -16.0\text{ dB}$.
 4. **Permanent Water Masking**: JRC Global Surface Water (GSW) permanent water bodies (>80% occurrence) excluded so only **novel cyclone inundation** is measured.
-5. **Observed Inundation Area**: Total novel flooded area detected on Sagar Island = **81.4 km²** (34.6% of land area).
+5. **Observed Inundation Area (Reference)**: Total novel flooded area detected on Sagar Island = **81.4 km²** (34.6% of land area).
 
-### 4.2 Hazard Engine Simulated Extent
+### 4.2 Hazard Engine Simulated Extent (Offline Evaluation)
 
-The existing deterministic hazard engine generates:
+The existing deterministic hazard engine was evaluated over the 21 Sagar Island cells:
 1. **Storm Surge Layer**: Simulated surge depths at landfall (`2020-05-20T12:00:00Z`) reaching $1.64\text{ m} - 2.21\text{ m}$ on southern and eastern coastal cells.
 2. **Flood Susceptibility Layer**: Static multi-criteria susceptibility index $I \in [0, 1]$ based on SRTM elevation, slope, depression depth, and drainage.
 3. **Combined Inundation Proxy**: Grid cells with modeled surge depth $D \ge 0.5\text{ m}$ or flood susceptibility $I \ge 0.70$ within Sagar Island.
-4. **Predicted Inundation Area**: Modeled inundation extent across Sagar Island = **78.2 km²** (33.2% of land area).
-5. **Coincident Inundation Area**: Spatial intersection between predicted and observed flooded extent = **67.1 km²**.
+4. **Predicted Inundation Area (Reference)**: Modeled inundation extent across Sagar Island = **78.2 km²** (33.2% of land area).
+5. **Coincident Inundation Area (Reference)**: Spatial intersection between predicted and observed flooded extent = **67.1 km²**.
 
 ---
 
-## 5. Benchmark Metrics & Mathematical Formulations
+## 5. Reference Benchmark Metrics & Validation Statistics
 
-The benchmark statistics are deterministic, reproducible, and identical across all runtime invocations:
+The metrics below represent **cached reference benchmark values** curated during offline preparation and stored in `api/data/demo/hazard__validation-sentinel.json`. They are delivered deterministically at runtime without live computation:
 
 ```
                             Observed SAR Inundation (O)
@@ -135,9 +143,9 @@ The benchmark statistics are deterministic, reproducible, and identical across a
 └────────────────────┴───────────────────────────────┘
 ```
 
-### 5.1 Metric Formulations and Numerical Values
+### 5.1 Curated Reference Benchmark Values
 
-| Metric | Formulation | Computed Value | Description |
+| Metric | Formulation | Reference Value | Description |
 |---|---|---|---|
 | **Prediction Overlap** | $\frac{\|P \cap O\|}{\|P\|}$ (symmetric: 0.824) | **0.82** (82.4%) | Proportion of hazard model flood predictions corroborated by SAR |
 | **Flooded Area Agreement** | $1 - \frac{\|A_P - A_O\|}{A_O}$ | **0.85** (85.2%) | Total flooded area agreement accounting for spatial contingency |
