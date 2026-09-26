@@ -10,9 +10,11 @@ import logging
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from app.hazard.gee import is_ee_available
+# Avoid circular import by referencing gee module dynamically
+def _is_ee_available() -> bool:
+    from app.hazard.gee import is_ee_available
 
-logger = logging.getLogger(__name__)
+    return is_ee_available()
 
 SENTINEL1_COLLECTION_ID = "COPERNICUS/S1_GRD"
 
@@ -57,7 +59,7 @@ def load_sentinel_collection(
     Returns:
         ee.ImageCollection or None if GEE is unavailable.
     """
-    if not is_ee_available():
+    if not _is_ee_available():
         logger.warning("Earth Engine is not initialized; cannot load Sentinel collection.")
         return None
 
@@ -97,7 +99,7 @@ def get_sentinel_image_metadata(ee_image: Any) -> dict[str, Any] | None:
         Dictionary containing image ID, acquisition timestamp, orbit direction,
         relative orbit number, instrument mode, and available bands.
     """
-    if ee_image is None or not is_ee_available():
+    if ee_image is None or not _is_ee_available():
         return None
 
     try:
@@ -149,7 +151,7 @@ def find_pre_landfall_image(
     Returns:
         (ee.Image, metadata_dict) or (None, None) if not found.
     """
-    if not is_ee_available():
+    if not _is_ee_available():
         return None, None
 
     try:
@@ -203,7 +205,7 @@ def find_post_landfall_image(
     Returns:
         (ee.Image, metadata_dict) or (None, None) if not found.
     """
-    if not is_ee_available():
+    if not _is_ee_available():
         return None, None
 
     try:
@@ -261,7 +263,7 @@ def load_sentinel_pair(
         - 'matched_orbit': bool
         Or None if images cannot be retrieved.
     """
-    if not is_ee_available():
+    if not _is_ee_available():
         return None
 
     # Step 1: Find pre-landfall scene
