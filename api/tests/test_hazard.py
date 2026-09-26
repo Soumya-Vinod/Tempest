@@ -52,6 +52,17 @@ from app.hazard.service import (
     get_replay_timeline,
     get_replay_track,
 )
+from app.hazard.validation import (
+    check_flood_calibration,
+    check_surge_calibration,
+    check_wind_calibration,
+    run_full_hazard_calibration,
+    validate_all_replay_timesteps,
+    validate_demo_fixtures,
+    validate_hazard_collection,
+    validate_hazard_consistency,
+    validate_hazard_layer,
+)
 from app.main import app
 from app.schemas import LANDFALL_TIMESTEP, REPLAY_TIMESTEPS
 
@@ -1374,5 +1385,234 @@ def test_regression_audit_grid_and_dem_consistency():
         s_id = s_feat.id.split("__")[1]
         f_id = f_feat.id.split("__")[1]
         assert w_id == s_id == f_id
+
+
+# ===========================================================================
+# 9. Phase 7 — Hazard Validation, Calibration & Engine Integration Tests
+# ===========================================================================
+def test_phase7_validate_hazard_layer_contract():
+    """Verify validate_hazard_layer strictly enforces contract constraints and error modes."""
+    wind_col = generate_wind_layer(TS_LANDFALL)
+    surge_col = generate_surge_layer(TS_LANDFALL)
+    flood_col = generate_flood_layer(TS_LANDFALL)
+
+    # 1. Valid layers pass
+    assert validate_hazard_layer(wind_col.features[0]) is True
+    assert validate_hazard_layer(surge_col.features[0]) is True
+    assert validate_hazard_layer(flood_col.features[0]) is True
+
+    valid_feat = wind_col.features[0]
+
+    # 2. ID mismatch
+    bad_id = valid_feat.model_copy(update={"id": "tampered_id"})
+    assert validate_hazard_layer(bad_id) is False
+    with pytest.raises(ValueError, match="Feature ID mismatch"):
+        validate_hazard_layer(bad_id, raise_exc=True)
+
+    # 3. Invalid unit
+    bad_unit_props = valid_feat.properties.model_copy(update={"unit": "m"})
+    bad_unit = valid_feat.model_copy(update={"properties": bad_unit_props})
+    assert validate_hazard_layer(bad_unit) is False
+
+    # 4. Out-of-bounds severity
+    bad_sev_props = valid_feat.properties.model_copy(update={"severity": 1.25})
+    bad_sev = valid_feat.model_copy(update={"properties": bad_sev_props})
+    assert validate_hazard_layer(bad_sev) is False
+
+    # 5. Out-of-bounds physical value
+    bad_val_props = valid_feat.properties.model_copy(update={"value": 150.0})
+    bad_val = valid_feat.model_copy(update={"properties": bad_val_props})
+    assert validate_hazard_layer(bad_val) is False
+
+    # 6. Unclosed polygon ring
+    unclosed_ring = [[88.0, 21.5], [88.1, 21.5], [88.1, 21.6], [88.0, 21.6]]
+    bad_geom = valid_feat.model_copy(update={"geometry": Polygon(coordinates=[unclosed_ring])})
+    assert validate_hazard_layer(bad_geom) is False
+    with pytest.raises(ValueError, match="Linear ring is not closed"):
+        validate_hazard_layer(bad_geom, raise_exc=True)
+
+
+def test_phase7_validate_hazard_collection_contract():
+    """Verify validate_hazard_collection verifies completeness, types, and uniqueness."""
+    wind_col = generate_wind_layer(TS_LANDFALL)
+
+    # 1. Valid collection passes
+    assert (
+        validate_hazard_collection(
+            wind_col, expected_type="wind", expected_timestep=TS_LANDFALL
+        )
+        is True
+    )
+
+    # 2. Count mismatch
+    truncated_col = HazardLayerCollection(
+        type="FeatureCollection", features=wind_col.features[:500]
+    )
+    assert validate_hazard_collection(truncated_col) is False
+    with pytest.raises(ValueError, match="Feature count mismatch"):
+        validate_hazard_collection(truncated_col, raise_exc=True)
+
+    # 3. Duplicate feature IDs
+    duped_features = list(wind_col.features)
+    duped_features[1] = duped_features[0]
+    duped_col = HazardLayerCollection(type="FeatureCollection", features=duped_features)
+    assert validate_hazard_collection(duped_col) is False
+    with pytest.raises(ValueError, match="Duplicate feature ID detected"):
+        validate_hazard_collection(duped_col, raise_exc=True)
+
+    # 4. Unexpected hazard type
+    assert (
+        validate_hazard_collection(
+            wind_col, expected_type="surge", expected_timestep=TS_LANDFALL
+        )
+        is False
+    )
+
+
+def test_phase7_cross_hazard_consistency():
+    """Verify validate_hazard_consistency detects cross-hazard spatial or alignment drift."""
+    wind_col = generate_wind_layer(TS_LANDFALL)
+    surge_col = generate_surge_layer(TS_LANDFALL)
+    flood_col = generate_flood_layer(TS_LANDFALL)
+
+    # 1. Genuine layers are consistent
+    assert validate_hazard_consistency(wind_col, surge_col, flood_col) is True
+
+    # 2. Inconsistent cell order
+    shuffled_wind_features = list(reversed(wind_col.features))
+    shuffled_wind = HazardLayerCollection(
+        type="FeatureCollection", features=shuffled_wind_features
+    )
+    assert validate_hazard_consistency(shuffled_wind, surge_col, flood_col) is False
+    with pytest.raises(ValueError, match="Cell ID mismatch"):
+        validate_hazard_consistency(shuffled_wind, surge_col, flood_col, raise_exc=True)
+
+    # 3. Altered geometry
+    altered_features = list(wind_col.features)
+    altered_ring = [
+        [88.01, 21.51],
+        [88.06, 21.51],
+        [88.06, 21.56],
+        [88.01, 21.56],
+        [88.01, 21.51],
+    ]
+    altered_poly = Polygon(coordinates=[altered_ring])
+    altered_features[0] = altered_features[0].model_copy(update={"geometry": altered_poly})
+    altered_wind = HazardLayerCollection(type="FeatureCollection", features=altered_features)
+    assert validate_hazard_consistency(altered_wind, surge_col, flood_col) is False
+
+
+def test_phase7_calibration_utilities():
+    """Verify calibration checks across wind, surge, and flood execute and pass."""
+    # 1. Individual checks
+    wind_cal = check_wind_calibration()
+    assert wind_cal["all_passed"] is True
+    assert wind_cal["ceiling_enforced"] is True
+    assert wind_cal["floor_enforced"] is True
+
+    surge_cal = check_surge_calibration()
+    assert surge_cal["all_passed"] is True
+    assert surge_cal["non_negative"] is True
+    assert surge_cal["ceiling_enforced"] is True
+
+    flood_cal = check_flood_calibration()
+    assert flood_cal["all_passed"] is True
+    assert flood_cal["weights_valid"] is True
+    assert flood_cal["bounded"] is True
+
+    # 2. Full engine calibration suite
+    full_report = run_full_hazard_calibration()
+    assert full_report["all_passed"] is True
+    assert full_report["wind"]["all_passed"] is True
+    assert full_report["surge"]["all_passed"] is True
+    assert full_report["flood"]["all_passed"] is True
+
+
+def test_phase7_all_25_replay_timesteps_validation():
+    """Verify all 25 replay timesteps across 3 hazard types are contract-compliant."""
+    report = validate_all_replay_timesteps()
+    assert report["all_valid"] is True
+    assert report["timesteps_checked"] == 25
+    assert report["layers_validated"] == 75
+    assert report["features_validated"] == 75 * 528
+
+
+def test_phase7_demo_fixtures_validation():
+    """Verify all 75 static DEMO_MODE fixtures exist, parse, and match contract schemas."""
+    report = validate_demo_fixtures()
+    assert report["all_valid"] is True
+    assert report["checked_fixtures"] == 75
+    assert report["expected_fixtures"] == 75
+
+
+def test_phase7_service_engine_dispatch_and_modes(monkeypatch):
+    """Verify service dispatch across wind, surge, flood in both DEMO_MODE and computed mode."""
+    # 1. DEMO_MODE = True
+    monkeypatch.setattr("app.hazard.service.get_settings", lambda: Settings(DEMO_MODE=True))
+    for h_type in ("wind", "surge", "flood"):
+        col = get_hazard_layer(h_type, TS_LANDFALL)
+        assert len(col.features) == 528
+        assert col.features[0].properties.hazard_type == h_type
+
+    # 2. DEMO_MODE = False (dynamic computed mode)
+    monkeypatch.setattr("app.hazard.service.get_settings", lambda: Settings(DEMO_MODE=False))
+    for h_type in ("wind", "surge", "flood"):
+        col = get_hazard_layer(h_type, TS_LANDFALL)
+        assert len(col.features) == 528
+        assert col.features[0].properties.hazard_type == h_type
+
+    # 3. Live mode raises NotImplementedError
+    with pytest.raises(NotImplementedError):
+        get_hazard_layer("wind", "live")
+    with pytest.raises(NotImplementedError):
+        get_hazard_layer("surge", "live")
+    with pytest.raises(NotImplementedError):
+        get_hazard_layer("flood", "live")
+
+    # 4. Invalid timestep raises ValueError
+    with pytest.raises(ValueError):
+        get_hazard_layer("wind", "invalid-ts")
+
+
+def test_phase7_cross_hazard_api_contract():
+    """Verify HTTP API endpoints for wind, surge, and flood return matching grids and schemas."""
+    resp_w = client.get(f"/api/hazard/layers?hazard_type=wind&timestep={TS_LANDFALL}")
+    resp_s = client.get(f"/api/hazard/layers?hazard_type=surge&timestep={TS_LANDFALL}")
+    resp_f = client.get(f"/api/hazard/layers?hazard_type=flood&timestep={TS_LANDFALL}")
+
+    assert resp_w.status_code == 200
+    assert resp_s.status_code == 200
+    assert resp_f.status_code == 200
+
+    data_w = resp_w.json()
+    data_s = resp_s.json()
+    data_f = resp_f.json()
+
+    assert len(data_w["features"]) == len(data_s["features"]) == len(data_f["features"]) == 528
+
+    # Verify matching cell IDs and geometries across all three endpoints
+    for i in range(528):
+        fw = data_w["features"][i]
+        fs = data_s["features"][i]
+        ff = data_f["features"][i]
+
+        w_cid = fw["properties"]["id"].split("__")[1]
+        s_cid = fs["properties"]["id"].split("__")[1]
+        f_cid = ff["properties"]["id"].split("__")[1]
+        assert w_cid == s_cid == f_cid
+
+        assert fw["geometry"]["coordinates"] == fs["geometry"]["coordinates"]
+        assert fw["geometry"]["coordinates"] == ff["geometry"]["coordinates"]
+
+    # Verify units
+    assert data_w["features"][0]["properties"]["unit"] == "m/s"
+    assert data_s["features"][0]["properties"]["unit"] == "m"
+    assert data_f["features"][0]["properties"]["unit"] == "index"
+
+    # Verify live mode returns 501 for all three
+    for ht in ("wind", "surge", "flood"):
+        res_live = client.get(f"/api/hazard/layers?hazard_type={ht}&timestep=live")
+        assert res_live.status_code == 501
+
 
 

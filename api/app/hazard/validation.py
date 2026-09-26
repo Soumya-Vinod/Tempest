@@ -56,7 +56,8 @@ from app.hazard.replay import (
     normalize_wind_severity,
     validate_timestep,
 )
-from app.schemas import HAZARD_UNITS, REPLAY_TIMESTEPS
+from app.schemas.common import REPLAY_TIMESTEPS
+from app.schemas.contracts import HAZARD_UNITS
 
 logger = logging.getLogger(__name__)
 
