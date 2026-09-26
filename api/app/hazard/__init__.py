@@ -3,11 +3,19 @@
 from app.hazard.models import (
     CycloneTrack,
     CycloneTrackPoint,
+    FloodedRegion,
+    GeminiAnalysisResponse,
+    GeminiAnalysisSource,
+    GeminiFinding,
+    GeminiGeneratedFrom,
     HazardLayer,
     HazardLayerCollection,
     HazardLayerProperties,
     HazardType,
     ReplayTimeline,
+    SentinelValidationAOI,
+    SentinelValidationMetrics,
+    SentinelValidationResponse,
 )
 from app.hazard.replay import (
     EVENT_NAME,
@@ -32,9 +40,11 @@ from app.hazard.replay import (
 )
 from app.hazard.routes import router
 from app.hazard.service import (
+    get_gemini_analysis,
     get_hazard_layer,
     get_replay_timeline,
     get_replay_track,
+    get_sentinel_validation,
 )
 from app.hazard.validation import (
     check_flood_calibration,
@@ -43,9 +53,11 @@ from app.hazard.validation import (
     run_full_hazard_calibration,
     validate_all_replay_timesteps,
     validate_demo_fixtures,
+    validate_gemini_analysis_fixture,
     validate_hazard_collection,
     validate_hazard_consistency,
     validate_hazard_layer,
+    validate_sentinel_fixture,
 )
 
 __all__ = [
@@ -56,11 +68,19 @@ __all__ = [
     "TOTAL_TIMESTEPS",
     "CycloneTrack",
     "CycloneTrackPoint",
+    "FloodedRegion",
+    "GeminiAnalysisResponse",
+    "GeminiAnalysisSource",
+    "GeminiFinding",
+    "GeminiGeneratedFrom",
     "HazardLayer",
     "HazardLayerCollection",
     "HazardLayerProperties",
     "HazardType",
     "ReplayTimeline",
+    "SentinelValidationAOI",
+    "SentinelValidationMetrics",
+    "SentinelValidationResponse",
     "check_flood_calibration",
     "check_surge_calibration",
     "check_wind_calibration",
@@ -74,9 +94,11 @@ __all__ = [
     "generate_hazard_layer",
     "generate_surge_layer",
     "generate_wind_layer",
+    "get_gemini_analysis",
     "get_hazard_layer",
     "get_replay_timeline",
     "get_replay_track",
+    "get_sentinel_validation",
     "normalize_flood_severity",
     "normalize_surge_severity",
     "normalize_wind_severity",
@@ -84,8 +106,10 @@ __all__ = [
     "run_full_hazard_calibration",
     "validate_all_replay_timesteps",
     "validate_demo_fixtures",
+    "validate_gemini_analysis_fixture",
     "validate_hazard_collection",
     "validate_hazard_consistency",
     "validate_hazard_layer",
+    "validate_sentinel_fixture",
     "validate_timestep",
 ]

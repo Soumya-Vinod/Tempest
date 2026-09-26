@@ -20,6 +20,7 @@ from app.risk import service as risk
 from app.risk.blocks import load_blocks
 from app.schemas import (
     REPLAY_TIMESTEPS,
+    GeminiAnalysisResponse,
     HazardLayerCollection,
     HazardType,
     ImpactResultCollection,
@@ -51,6 +52,7 @@ ROUTE_SCHEMAS = {
         (r"track", CycloneTrack, False, None),
         (rf"layers-({_alternatives(HazardType)})", HazardLayerCollection, True, None),
         (r"validation-sentinel", SentinelValidationResponse, False, None),
+        (r"gemini-analysis", GeminiAnalysisResponse, False, None),
     ],
     # Per type only: the unfiltered route is composed from these (contracts.md §7).
     "exposure": [(rf"infra-({_alternatives(InfraType)})", InfraFeatureCollection, False, None)],
@@ -94,10 +96,10 @@ def test_fixture_matches_contract(path):
         assert _iso(ts) in REPLAY_TIMESTEPS, f"{ts} is not a replay timestep"
     raw = path.read_bytes()
     assert b"\r\n" not in raw, "fixtures must be LF"
-    if resource.startswith(RAW_PREFIXES):
+    entry = _route_schema(module, resource)
+    if entry is None and resource.startswith(RAW_PREFIXES):
         json.loads(raw)  # raw upstream body: no contract schema, just valid JSON
         return
-    entry = _route_schema(module, resource)
     if entry is None:
         pytest.fail(f"no contract schema mapped for {module}__{resource}")
     match, schema, timed, body_id = entry

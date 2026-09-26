@@ -1,0 +1,44 @@
+{
+  "location": "Sagar Island",
+  "confidence": 0.91,
+  "summary": "Multimodal AI visual interpretation comparing pre-landfall (2020-05-14) and post-landfall (2020-05-22) Copernicus Sentinel-1 Synthetic Aperture Radar (SAR) orthorectified imagery over Sagar Island following Cyclone Amphan landfall. Visual analysis confirms widespread storm surge inundation and low-lying agricultural polder flooding across southern and eastern coastlines, highly congruent with hydrodynamic model predictions.",
+  "observations": [
+    "Significant surface water expansion detected across southern coastal polders (Gangasagar, Dhablat) characterized by sharp SAR backscatter attenuation (specular reflection over standing floodwaters).",
+    "Severe coastal breach and estuarine flooding evident along the eastern embankment bordering the Muriganga River, corroborating hydrodynamic surge estimates exceeding 1.8m.",
+    "Interior agricultural drainage networks in southern Sagar demonstrate prolonged waterlogging, with drainage impeded by elevated sea levels post-landfall.",
+    "Northern elevated mudflats and mangrove fringes near Kachuberia exhibited localized inundation but rapid tidal drawdown compared to enclosed southern containment zones."
+  ],
+  "flooded_regions": [
+    {
+      "name": "Gangasagar Coastal Embankment & Beachfront",
+      "confidence": 0.94,
+      "description": "Direct coastal inundation driven by 2.1m storm surge overtopping earthen dikes, submerging pilgrimage infrastructure and coastal tourist accommodations."
+    },
+    {
+      "name": "Muriganga Riverbank Polders (Bamour & Sibpur)",
+      "confidence": 0.91,
+      "description": "Extensive estuarine surge penetration causing salinization of low-elevation betel vine nurseries and paddy cultivation fields."
+    },
+    {
+      "name": "Dhablat South Agricultural Tracts",
+      "confidence": 0.89,
+      "description": "Impounded standing water across low-gradient polders where drainage sluice gates were damaged or overwhelmed during peak storm tide."
+    },
+    {
+      "name": "Boatkhali & Chemaguri Estuarine Flank",
+      "confidence": 0.88,
+      "description": "Compound estuarine surge backwater inundating fish aquaculture ponds (gher) and intertidal settlements."
+    }
+  ],
+  "limitations": [
+    "SAR C-band backscatter cannot differentiate deep floodwater (>1.5m) from shallow sheet flow (<0.2m) once specular reflection conditions are met.",
+    "Dense mangrove canopy in southwestern patches causes volume scattering that can obscure underlying ground-surface flood water.",
+    "Temporal latency between landfall (2020-05-20) and satellite pass (2020-05-22) means short-duration pluvial flash ponding on higher ridges had already receded.",
+    "Interpretation is descriptive and qualitative; it does not replace physical hydrodynamic boundary modeling or field ground-truth surveys."
+  ],
+  "generated_from": {
+    "before_image": "/assets/sentinel/sentinel1_sagar_20200514_pre.jpg",
+    "after_image": "/assets/sentinel/sentinel1_sagar_20200522_post.jpg",
+    "baseline_event": "Cyclone Amphan (Landfall 2020-05-20T12:00:00Z)"
+  }
+}

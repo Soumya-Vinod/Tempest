@@ -433,3 +433,28 @@ export interface SentinelValidationResponse {
   satellite: string;
   baseline_event: string;
 }
+
+// ---------- Gemini Multimodal Validation (Dev A; GET /api/hazard/validation/gemini, Phase 13) ----------
+
+export interface GeminiFinding {
+  name: string;
+  confidence: number;
+  description: string;
+}
+
+export interface GeminiGeneratedFrom {
+  before_image: string;
+  after_image: string;
+  baseline_event: string;
+}
+
+export interface GeminiAnalysisResponse {
+  location: string;
+  confidence: number;
+  summary: string;
+  observations: string[];
+  flooded_regions: GeminiFinding[];
+  limitations: string[];
+  generated_from: GeminiGeneratedFrom;
+}
+

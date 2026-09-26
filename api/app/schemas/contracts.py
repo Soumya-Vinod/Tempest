@@ -587,3 +587,40 @@ class SentinelValidationResponse(ContractModel):
     satellite: str = "Sentinel-1 (Copernicus SAR)"
     baseline_event: str = "Cyclone Amphan Landfall (2020-05-20T12:00:00Z)"
 
+
+# --- 4.9 GeminiAnalysis (Dev A, added in Phase 13) ---
+
+
+class GeminiFinding(ContractModel):
+    """Specific localized flood observation identified via multimodal interpretation."""
+
+    name: str
+    confidence: UnitFraction
+    description: str
+
+
+class GeminiGeneratedFrom(ContractModel):
+    """Provenance and source imagery metadata for multimodal analysis."""
+
+    before_image: str
+    after_image: str
+    baseline_event: str
+
+
+# Aliases for domain and migration flexibility
+GeminiAnalysisSource = GeminiGeneratedFrom
+FloodedRegion = GeminiFinding
+
+
+class GeminiAnalysisResponse(ContractModel):
+    """Response schema for GET /api/hazard/validation/gemini (shared/contracts.md §4.9)."""
+
+    location: str
+    confidence: UnitFraction
+    summary: str
+    observations: list[str]
+    flooded_regions: list[GeminiFinding]
+    limitations: list[str]
+    generated_from: GeminiGeneratedFrom
+
+

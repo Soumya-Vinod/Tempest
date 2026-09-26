@@ -22,6 +22,7 @@ import type {
   HazardType,
   ImpactResultCollection,
   ImpactStatus,
+  GeminiAnalysisResponse,
   InfraFeatureCollection,
   InfraType,
   ReplayTimeline,
@@ -102,6 +103,10 @@ export const getHazardTrack = () => request<CycloneTrack>('GET', '/api/hazard/tr
 /** Sentinel-1 SAR validation benchmark for Sagar Island (contracts.md §5, added in Phase 12). */
 export const getSentinelValidation = () =>
   request<SentinelValidationResponse>('GET', '/api/hazard/validation/sentinel')
+
+/** Gemini multimodal interpretation for Sentinel-1 validation (contracts.md §5, added in Phase 13). */
+export const getGeminiAnalysis = () =>
+  request<GeminiAnalysisResponse>('GET', '/api/hazard/validation/gemini')
 
 // --- Dev B ---
 

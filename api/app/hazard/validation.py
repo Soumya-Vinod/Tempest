@@ -625,3 +625,32 @@ def validate_sentinel_fixture(fixture_dir: Path | None = None) -> dict[str, Any]
         "flooded_area_agreement": validated.flooded_area_agreement,
         "confidence": validated.confidence,
     }
+
+
+def validate_gemini_analysis_fixture(fixture_dir: Path | None = None) -> dict[str, Any]:
+    """Validate the cached Gemini analysis fixture for existence, LF endings, and contract schema."""
+    from app.hazard.gemini import GEMINI_ANALYSIS_FIXTURE_KEY
+    from app.schemas.contracts import GeminiAnalysisResponse
+
+    out_dir = fixture_dir or DEMO_DIR
+    path = out_dir / f"{GEMINI_ANALYSIS_FIXTURE_KEY}.json"
+
+    if not path.is_file():
+        raise FileNotFoundError(f"Missing required fixture: {path.name}")
+
+    raw = path.read_bytes()
+    if b"\r\n" in raw:
+        raise ValueError(f"Fixture {path.name} contains CRLF line endings; must be LF only")
+
+    text = raw.decode("utf-8")
+    data = json.loads(text)
+    validated = GeminiAnalysisResponse.model_validate(data)
+
+    return {
+        "valid": True,
+        "location": validated.location,
+        "confidence": validated.confidence,
+        "observations_count": len(validated.observations),
+        "flooded_regions_count": len(validated.flooded_regions),
+    }
+

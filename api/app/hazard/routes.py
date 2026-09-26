@@ -5,6 +5,7 @@ from fastapi import APIRouter, HTTPException
 from app.hazard import service
 from app.hazard.models import (
     CycloneTrack,
+    GeminiAnalysisResponse,
     HazardLayerCollection,
     HazardType,
     ReplayTimeline,
@@ -37,6 +38,18 @@ def get_sentinel_validation() -> SentinelValidationResponse:
     Sync handler by contract so FastAPI runs it in the threadpool.
     """
     return service.get_sentinel_validation()
+
+
+@router.get("/validation/gemini", response_model=GeminiAnalysisResponse)
+def get_gemini_analysis() -> GeminiAnalysisResponse:
+    """Return the cached multimodal Gemini analysis for Sentinel-1 validation.
+
+    Provides AI-generated observations, flooded regions, and qualitative interpretation
+    from curated Sentinel-1 SAR before/after imagery over Sagar Island (Cyclone Amphan).
+    Deterministic and offline: served from cached fixtures without runtime LLM or external calls.
+    Sync handler by contract so FastAPI runs it in the threadpool.
+    """
+    return service.get_gemini_analysis()
 
 
 @router.get("/layers", response_model=HazardLayerCollection)

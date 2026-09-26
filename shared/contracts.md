@@ -371,6 +371,31 @@ interface SentinelValidationResponse {
 }
 ```
 
+### 4.9 GeminiAnalysis (Dev A, added in Phase 13)
+Multimodal AI interpretation layer over the curated Sentinel-1 SAR validation imagery and cyclone event context for Sagar Island. Read-only, deterministic, and served from cached fixtures without runtime LLM or external network invocation.
+
+```ts
+interface GeminiFinding {
+  name: string;
+  confidence: UnitFraction;
+  description: string;
+}
+interface GeminiGeneratedFrom {
+  before_image: string;
+  after_image: string;
+  baseline_event: string;
+}
+interface GeminiAnalysisResponse {
+  location: string;
+  confidence: UnitFraction;
+  summary: string;
+  observations: string[];
+  flooded_regions: GeminiFinding[];
+  limitations: string[];
+  generated_from: GeminiGeneratedFrom;
+}
+```
+
 ## 5. Routes
 
 All under `/api`. `timestep` is always a query param of type `TimestepParam`, required unless
@@ -382,6 +407,7 @@ stated; `timestep=live` returns `501` in v1.1. FC = FeatureCollection.
 | A | GET | `/api/hazard/track` | — | CycloneTrack *(added in v1.1)* |
 | A | GET | `/api/hazard/layers` | `hazard_type: HazardType`, `timestep` | FC&lt;HazardLayer&gt; |
 | A | GET | `/api/hazard/validation/sentinel` | — | SentinelValidationResponse *(added in Phase 12)* |
+| A | GET | `/api/hazard/validation/gemini` | — | GeminiAnalysisResponse *(added in Phase 13)* |
 | B | GET | `/api/exposure/infra` | `infra_type?: InfraType` | FC&lt;InfraFeature&gt; (not time-dependent) |
 | B | GET | `/api/impact/results` | `timestep`, `hazard_type?`, `status?: ImpactStatus` | FC&lt;ImpactResult&gt; |
 | B | GET | `/api/risk/scores` | `timestep` | FC&lt;RiskScore&gt; |
@@ -451,6 +477,7 @@ the schema listed here, and fails on any route resource not in this table.
 | `GET /api/hazard/track` (internal) | `track` | no | CycloneTrack *(added in v1.1)* |
 | `GET /api/hazard/layers` | `layers-<hazard_type>` | yes | FC&lt;HazardLayer&gt; |
 | `GET /api/hazard/validation/sentinel` | `validation-sentinel` *(added in Phase 12)* | no | SentinelValidationResponse |
+| `GET /api/hazard/validation/gemini` | `gemini-analysis` *(added in Phase 13)* | no | GeminiAnalysisResponse |
 | `GET /api/exposure/infra` | `infra-<infra_type>`, one per type. Unfiltered: no fixture of its own; composed from the per-type files *(added in v0.9)* | no | FC&lt;InfraFeature&gt; |
 | `GET /api/impact/results` | `results`, or `results-<filter>` with `[a-z0-9-]` filter values | yes | FC&lt;ImpactResult&gt; |
 | `GET /api/risk/scores` | `scores` | yes | FC&lt;RiskScore&gt; |
@@ -468,6 +495,7 @@ hazard__timesteps.json
 hazard__track.json *(added in v1.1)*
 hazard__layers-surge__20200520T1200Z.json
 hazard__validation-sentinel.json *(added in Phase 12)*
+hazard__gemini-analysis.json *(added in Phase 13)*
 hazard__gee-flood-susceptibility.json
 exposure__infra-power-line.json
 exposure__overpass-substations.json
