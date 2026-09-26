@@ -827,6 +827,20 @@ def test_hazard_routes_wind_endpoint():
     assert resp_bad.status_code == 422
 
 
+def test_hazard_routes_track_endpoint():
+    """Verify GET /api/hazard/track returns a valid 25-point CycloneTrack."""
+    resp = client.get("/api/hazard/track")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["event"] == "amphan"
+    assert len(data["points"]) == 25
+    assert [p["timestep"] for p in data["points"]] == list(REPLAY_TIMESTEPS)
+    for pt in data["points"]:
+        assert 10.0 <= pt["lat"] <= 23.0
+        assert 85.0 <= pt["lon"] <= 90.0
+        assert pt["radius_max_wind_km"] > 0
+
+
 def test_replay_consistency_across_all_25_timesteps():
     """Verify wind hazard layers across all 25 timesteps demonstrate continuity and bounds."""
     peak_winds_over_time: list[float] = []

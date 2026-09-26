@@ -4,6 +4,7 @@ from fastapi import APIRouter, HTTPException
 
 from app.hazard import service
 from app.hazard.models import (
+    CycloneTrack,
     HazardLayerCollection,
     HazardType,
     ReplayTimeline,
@@ -18,6 +19,12 @@ router = APIRouter(prefix="/hazard", tags=["hazard"])
 def get_timesteps() -> ReplayTimeline:
     """Return the Cyclone Amphan replay timeline and landfall timestamp."""
     return service.get_replay_timeline()
+
+
+@router.get("/track", response_model=CycloneTrack)
+def get_track() -> CycloneTrack:
+    """The 25-point Amphan replay track (contracts.md §5, internal)."""
+    return CycloneTrack(points=list(service.get_replay_track()))
 
 
 @router.get("/layers", response_model=HazardLayerCollection)
@@ -36,3 +43,4 @@ def get_layers(hazard_type: HazardType, timestep: TimestepParam) -> HazardLayerC
         raise HTTPException(status_code=501, detail=str(e)) from e
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e)) from e
+
