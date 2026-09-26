@@ -1,0 +1,5 @@
+# What `gcloud builds submit api` uploads: the same exclusions as the Docker build context.
+.gcloudignore
+.git
+.gitignore
+#!include:.dockerignore

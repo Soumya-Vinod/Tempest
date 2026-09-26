@@ -11,10 +11,20 @@ from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 
-from app.core.config import API_DIR
+from app.core.config import API_DIR, get_settings
 from app.schemas import Advisory, AuditEvent
 
-DB_PATH: Path = API_DIR / "data" / "state" / "tempest.db"  # tests point this at tmp_path
+DEFAULT_DB_PATH = API_DIR / "data" / "state" / "tempest.db"
+DB_PATH: Path | None = None  # set to override (tests point this at tmp_path)
+
+
+def db_path() -> Path:
+    """DB_PATH if set, else the STATE_DB_PATH setting, else api/data/state/tempest.db."""
+    if DB_PATH is not None:
+        return DB_PATH
+    configured = get_settings().STATE_DB_PATH
+    return Path(configured) if configured else DEFAULT_DB_PATH
+
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS advisories (
@@ -54,8 +64,9 @@ def now() -> datetime:
 
 
 def _connect() -> sqlite3.Connection:
-    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(DB_PATH, timeout=10, isolation_level=None)
+    path = db_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(path, timeout=10, isolation_level=None)
     conn.row_factory = sqlite3.Row
     return conn
 

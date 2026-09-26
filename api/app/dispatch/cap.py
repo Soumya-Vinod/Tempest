@@ -18,9 +18,11 @@ A block with several parts (islands) gets one <polygon> per part; CAP has no hol
 rings are dropped. The identifier is unique per dispatch (advisory id + dispatch time), as CAP
 requires for a new message; `sent` carries the IST offset (CAP forbids "Z").
 
-The XSD is downloaded once from OASIS to api/data/raw/ (git-ignored) and reused.
+The XSD is downloaded once from OASIS to api/data/raw/ (git-ignored), checked against a pinned
+SHA-256, and reused; the API image downloads it at build time (CAP_XSD_PATH).
 """
 
+import hashlib
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta, timezone
 from functools import lru_cache
@@ -31,14 +33,16 @@ import httpx
 import shapely
 from shapely.geometry.base import BaseGeometry
 
-from app.core.config import API_DIR
+from app.core.config import API_DIR, get_settings
 from app.exposure.ingest import METRIC_CRS
 from app.risk import blocks as block_data
 from app.schemas import Advisory
 
 CAP_NS = "urn:oasis:names:tc:emergency:cap:1.2"
 XSD_URL = "https://docs.oasis-open.org/emergency/cap/v1.2/CAP-v1.2.xsd"
-XSD_PATH = API_DIR / "data" / "raw" / "CAP-v1.2.xsd"
+DEFAULT_XSD_PATH = API_DIR / "data" / "raw" / "CAP-v1.2.xsd"
+# SHA-256 of the official file; a download that doesn't match is refused (also in api/Dockerfile).
+XSD_SHA256 = "b7798ef25868b068c97b268bda02d067c7d4ba9373adc5638bf37105804ee723"
 SENDER = "tempest-s24p-exercise@invalid"
 SENDER_NAME = "Tempest exercise, South 24 Parganas"
 IST = timezone(timedelta(hours=5, minutes=30), "IST")
@@ -154,11 +158,18 @@ def build(advisory: Advisory, sent: datetime) -> str:
     )
 
 
-def xsd_path(path: Path = XSD_PATH) -> Path:
-    """The cached OASIS CAP 1.2 XSD, downloaded on first use."""
+def xsd_path(path: Path | None = None) -> Path:
+    """The OASIS CAP 1.2 XSD: `path`, else the CAP_XSD_PATH setting, else the git-ignored cache
+    in api/data/raw/, downloaded on first use and checked against XSD_SHA256."""
+    if path is None:
+        configured = get_settings().CAP_XSD_PATH
+        path = Path(configured) if configured else DEFAULT_XSD_PATH
     if not path.is_file():
         r = httpx.get(XSD_URL, follow_redirects=True, timeout=60)
         r.raise_for_status()
+        digest = hashlib.sha256(r.content).hexdigest()
+        if digest != XSD_SHA256:
+            raise CapInvalid(f"downloaded CAP XSD has SHA-256 {digest}, expected {XSD_SHA256}")
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(r.content)
     return path

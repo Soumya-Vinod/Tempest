@@ -43,6 +43,13 @@ class Settings(BaseSettings):
     # Required in the request for every live (non-dry-run) dispatch.
     DISPATCH_PIN: str | None = None
     DEMO_MODE: bool = True
+    # SQLite state (advisories, audit log, dispatch receipts). Unset: api/data/state/tempest.db.
+    # On Cloud Run: /tmp/tempest.db, the only writable path; it is lost on every restart, so run
+    # one instance (--max-instances=1) for a single shared queue.
+    STATE_DB_PATH: str | None = None
+    # The OASIS CAP 1.2 XSD. Unset: api/data/raw/CAP-v1.2.xsd, downloaded on first use; the API
+    # image downloads and checks it at build time (api/Dockerfile).
+    CAP_XSD_PATH: str | None = None
     # South 24 Parganas / Sundarbans, EPSG:4326: min_lon,min_lat,max_lon,max_lat
     AOI_BBOX: str = "88.0,21.5,89.1,22.7"
 
