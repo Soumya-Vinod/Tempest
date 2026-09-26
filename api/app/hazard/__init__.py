@@ -36,6 +36,17 @@ from app.hazard.service import (
     get_replay_timeline,
     get_replay_track,
 )
+from app.hazard.validation import (
+    check_flood_calibration,
+    check_surge_calibration,
+    check_wind_calibration,
+    run_full_hazard_calibration,
+    validate_all_replay_timesteps,
+    validate_demo_fixtures,
+    validate_hazard_collection,
+    validate_hazard_consistency,
+    validate_hazard_layer,
+)
 
 __all__ = [
     "EVENT_NAME",
@@ -50,6 +61,9 @@ __all__ = [
     "HazardLayerProperties",
     "HazardType",
     "ReplayTimeline",
+    "check_flood_calibration",
+    "check_surge_calibration",
+    "check_wind_calibration",
     "compute_flood_metric",
     "compute_flood_susceptibility_metric",
     "compute_holland_b",
@@ -67,5 +81,11 @@ __all__ = [
     "normalize_surge_severity",
     "normalize_wind_severity",
     "router",
+    "run_full_hazard_calibration",
+    "validate_all_replay_timesteps",
+    "validate_demo_fixtures",
+    "validate_hazard_collection",
+    "validate_hazard_consistency",
+    "validate_hazard_layer",
     "validate_timestep",
 ]
