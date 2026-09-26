@@ -246,13 +246,16 @@ def load_sentinel_pair(
     polarization: str = "VV",
     match_relative_orbit: bool = True,
     preferred_pass: str | None = None,
+    strategy: str = "post_first",
 ) -> dict[str, Any] | None:
     """Acquire a geometrically consistent pre- and post-landfall Sentinel-1 image pair.
 
-    To maximize backscatter coherence and minimize viewing angle distortions, this function:
-    1. Identifies the closest pre-landfall baseline scene (optionally with preferred_pass).
-    2. Retrieves the matching post-landfall scene with the identical orbit pass and relative orbit number.
-    3. Falls back to best available post-landfall scene if strict relative orbit match is unavailable.
+    To maximize backscatter coherence and capture rapid post-landfall flood inundation,
+    this function supports two pairing strategies:
+    - 'post_first' (default): Finds the earliest available post-landfall SAR overpass immediately
+      following landfall, then retrieves the geometrically matching pre-landfall baseline scene
+      sharing the same orbit pass and relative orbit.
+    - 'pre_first': Finds the closest pre-landfall baseline, then retrieves the matching post scene.
 
     Returns:
         Dictionary containing:
@@ -266,7 +269,74 @@ def load_sentinel_pair(
     if not _is_ee_available():
         return None
 
-    # Step 1: Find pre-landfall scene
+    if strategy == "post_first":
+        # Step 1: Find earliest post-landfall scene (closest to landfall event)
+        post_img, post_meta = find_post_landfall_image(
+            aoi_bbox=aoi_bbox,
+            landfall_time=landfall_time,
+            search_window_days=post_window_days,
+            polarization=polarization,
+            orbit_pass=preferred_pass,
+        )
+        if post_img is None or post_meta is None:
+            logger.warning("Failed to locate post-landfall Sentinel-1 scene.")
+            return None
+
+        orbit_pass = post_meta.get("orbit_pass")
+        rel_orbit = post_meta.get("relative_orbit") if match_relative_orbit else None
+
+        # Step 2: Find matching pre-landfall baseline scene
+        pre_img, pre_meta = find_pre_landfall_image(
+            aoi_bbox=aoi_bbox,
+            landfall_time=landfall_time,
+            search_window_days=pre_window_days,
+            polarization=polarization,
+            orbit_pass=orbit_pass,
+            relative_orbit=rel_orbit,
+        )
+
+        matched_orbit = True
+        if pre_img is None and rel_orbit is not None:
+            logger.info(
+                "Strict relative orbit %s match not found for pre-landfall; falling back to orbit pass %s",
+                rel_orbit,
+                orbit_pass,
+            )
+            pre_img, pre_meta = find_pre_landfall_image(
+                aoi_bbox=aoi_bbox,
+                landfall_time=landfall_time,
+                search_window_days=pre_window_days,
+                polarization=polarization,
+                orbit_pass=orbit_pass,
+                relative_orbit=None,
+            )
+            matched_orbit = False
+
+        if pre_img is None:
+            logger.info("Orbit-matched pre-landfall scene not found; querying any available baseline.")
+            pre_img, pre_meta = find_pre_landfall_image(
+                aoi_bbox=aoi_bbox,
+                landfall_time=landfall_time,
+                search_window_days=pre_window_days,
+                polarization=polarization,
+                orbit_pass=None,
+                relative_orbit=None,
+            )
+            matched_orbit = False
+
+        if pre_img is None or pre_meta is None:
+            logger.warning("Failed to locate matching pre-landfall Sentinel-1 baseline scene.")
+            return None
+
+        return {
+            "before_image": pre_img,
+            "after_image": post_img,
+            "before_meta": pre_meta,
+            "after_meta": post_meta,
+            "matched_orbit": matched_orbit,
+        }
+
+    # Step 1: Find pre-landfall scene ('pre_first' strategy)
     pre_img, pre_meta = find_pre_landfall_image(
         aoi_bbox=aoi_bbox,
         landfall_time=landfall_time,

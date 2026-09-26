@@ -136,11 +136,13 @@ def terrain_correct(
     try:
         import ee
 
-        dem = dem_image or load_dem(aoi_bbox=aoi_bbox)
+        # Prefer USGS SRTM single asset for reliable spatial gradient computation
+        dem = dem_image or load_dem(aoi_bbox=aoi_bbox, dem_source="srtm")
         if dem is None:
-            return ee_image
+            dem = ee.Image("USGS/SRTMGL1_003").select("elevation")
 
-        slope = ee.Terrain.slope(dem)
+        elev_band = dem.select([0]).rename("elevation")
+        slope = ee.Terrain.slope(elev_band)
         flat_mask = slope.lte(max_slope_deg)
         return ee_image.updateMask(flat_mask)
     except Exception as e:
@@ -157,6 +159,7 @@ def preprocess_sentinel(
     max_slope_deg: float = 5.0,
     target_crs: str = "EPSG:4326",
     target_scale: float = 30.0,
+    apply_terrain: bool = True,
 ) -> Any:
     """Execute complete SAR preprocessing pipeline on an Earth Engine Sentinel-1 GRD image.
 
@@ -165,7 +168,7 @@ def preprocess_sentinel(
     2. Border noise removal.
     3. Multiplicative speckle filtering in linear power domain.
     4. Topographic slope masking via DEM.
-    5. Standardize projection and spatial resolution.
+    5. Retain common target CRS metadata.
 
     Args:
         ee_image: Raw Earth Engine Sentinel-1 Image.
@@ -176,6 +179,7 @@ def preprocess_sentinel(
         max_slope_deg: Slope ceiling in degrees to suppress topographic radar shadows.
         target_crs: Output coordinate reference system (default 'EPSG:4326').
         target_scale: Spatial resolution in meters (default 30m).
+        apply_terrain: Whether to apply slope terrain masking.
 
     Returns:
         Preprocessed ee.Image ready for change detection and flood extraction.
@@ -204,19 +208,16 @@ def preprocess_sentinel(
         )
 
         # 4. Topographic terrain slope correction
-        terrain_cleaned = terrain_correct(
-            despeckled,
-            aoi_bbox=aoi_bbox,
-            max_slope_deg=max_slope_deg,
-        )
+        if apply_terrain:
+            terrain_cleaned = terrain_correct(
+                despeckled,
+                aoi_bbox=aoi_bbox,
+                max_slope_deg=max_slope_deg,
+            )
+        else:
+            terrain_cleaned = despeckled
 
-        # 5. Standardize CRS and scale
-        standardized = terrain_cleaned.reproject(
-            crs=target_crs,
-            scale=target_scale,
-        )
-
-        return standardized
+        return terrain_cleaned
     except Exception as e:
         logger.warning("Error in Sentinel-1 preprocessing pipeline: %s", e)
         return ee_image
