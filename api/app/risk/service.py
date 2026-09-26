@@ -70,7 +70,7 @@ def _demo_fixture(key: str) -> dict:
 
 
 def _demo(timestep: str | None = None) -> bool:
-    """True in DEMO_MODE; raises for the reserved "live" timestep (501 in v1.0)."""
+    """True in DEMO_MODE; raises for the reserved "live" timestep (501 in v1.1)."""
     if timestep == LIVE:
         raise NotImplementedError("timestep=live is not implemented yet")
     return get_settings().DEMO_MODE
@@ -92,7 +92,7 @@ def get_scores(timestep: str) -> RiskScoreCollection:
 
 
 def get_breakdown(timestep: str) -> RiskBreakdown:
-    """Every part per block (v1.1 change, pending Dev A); same cache as get_scores."""
+    """Every part per block (added in v1.1); same cache as get_scores."""
     if _demo(timestep):
         return RiskBreakdown.model_validate(_demo_fixture(breakdown_fixture_key(timestep)))
     return to_breakdown(_risk_cache.get(timestep), context(), timestep)

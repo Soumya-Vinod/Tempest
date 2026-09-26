@@ -1,11 +1,11 @@
 """Impact thresholds. Every value here is an ASSUMPTION for the Amphan replay, not a standard or a
 calibrated model; change them here only. Comparisons are inclusive (value >= threshold).
 
-Hazard metrics (contracts.md §4.1, v1.1 change pending Dev A): surge and wind use the physical
+Hazard metrics (contracts.md §4.1, added in v1.1): surge and wind use the physical
 `value` (m, m/s); flood uses `severity` (0-1).
 """
 
-# --- Flood: static susceptibility, not an event (contracts.md §4.1, v1.1 change pending Dev A) ---
+# --- Flood: static susceptibility, not an event (contracts.md §4.1, added in v1.1) ---
 # The flood layer is the same at every timestep, so it never cuts a road, a substation or an
 # isolation path: it only marks roads, substations, hospitals and shelters at_risk.
 # Enable FLOOD_CUTS_ROADS only if the flood layer becomes time-varying (for example,

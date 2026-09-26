@@ -1,4 +1,4 @@
-"""Compact DEMO_MODE fixtures for risk scores (contracts.md §7, v1.1 change pending Dev A).
+"""Compact DEMO_MODE fixtures for risk scores (contracts.md §7, added in v1.1).
 
 A risk__scores__<ts> fixture stores each RiskScore without its block polygon, which is the same
 at every timestep. Loading adds the geometry back from s24p_blocks.geojson (the same display

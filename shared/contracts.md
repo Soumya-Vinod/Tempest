@@ -1,12 +1,12 @@
-# Tempest contracts — v1.0 (FROZEN)
+# Tempest contracts — v1.1 (FROZEN)
 
 The interface between **Dev A (hazard)** and **Dev B (exposure, impact, risk, advisory, dispatch,
 insurance)**. This file is the source of truth. `api/app/schemas/` (Pydantic) and
 `web/src/types/contracts.ts` (TypeScript) mirror it exactly.
 
 **Change rule (active):** any change needs sign-off from both devs, a version bump here, and the
-matching Pydantic + TS edits in the same commit. Proposed changes are marked *v1.1 change, pending
-Dev A* until both devs sign off and the version is bumped.
+matching Pydantic + TS edits in the same commit. Proposed changes are marked *v1.2 change, pending
+Dev A* (or *Dev B*) until both devs sign off and the version is bumped.
 
 ---
 
@@ -33,7 +33,7 @@ Dev A* until both devs sign off and the version is bumped.
 - **Step:** 3 hours → **25 timesteps**, T-72h … T-0 inclusive.
 - **Timestep key:** the ISO string itself, e.g. `2020-05-18T03:00:00Z`.
 - **Reserved value `"live"`:** every `timestep` parameter (HTTP query param or Python argument) also
-  accepts `"live"`. In v1.0, `"live"` returns `501` from routes and raises `NotImplementedError` from
+  accepts `"live"`. In v1.1, `"live"` returns `501` from routes and raises `NotImplementedError` from
   Python functions. `"live"` never appears in a response's `timestep` property.
 - Any other `timestep` value not in the list returns `422`.
 
@@ -44,7 +44,7 @@ Dev A* until both devs sign off and the version is bumped.
 2020-05-18T12:00:00Z  T-48     2020-05-20T12:00:00Z  T-0 (landfall)
 ```
 
-Live mode is reserved but not implemented in v1.0. See the `"live"` value above.
+Live mode is reserved but not implemented in v1.1. See the `"live"` value above.
 
 ## 3. Shared types
 
@@ -77,17 +77,17 @@ One feature per hazard cell/polygon. Geometry: `Polygon | MultiPolygon`.
 | `timestep` | Timestep | Flood susceptibility is static; Dev A repeats it at every timestep. |
 | `value` | float | Physical value in `unit`. |
 | `unit` | `"m/s" \| "m" \| "index"` | wind → `m/s`, surge → `m`, flood → `index` (0–1). |
-| `severity` | float [0, 1] | Normalised by Dev A. *v1.1 change, pending Dev A:* impact and insurance use `value` for physical thresholds (surge in m, wind in m/s); flood uses `severity`. |
+| `severity` | float [0, 1] | Normalised by Dev A. *added in v1.1:* impact and insurance use `value` for physical thresholds (surge in m, wind in m/s); flood uses `severity`. |
 
-*v1.1 change, pending Dev B:* Grid resolution is 0.05° (~5.5 km, 24 rows × 22 columns = 528 cells)
+*added in v1.1:* Grid resolution is 0.05° (~5.5 km, 24 rows × 22 columns = 528 cells)
 spanning the AOI bbox. Terrain elevation per cell is sampled from NASA SRTM GL1 30m / Copernicus DEM
 once via GEE and committed as `api/data/reference/hazard_elevation_grid.json` to ensure realistic
 coastal surge and flood susceptibility modeling while remaining deterministic offline.
 
-*v1.1 change, pending Dev B:* HazardLayer Pydantic model provides hybrid attribute access (e.g.
+*added in v1.1:* HazardLayer Pydantic model provides hybrid attribute access (e.g.
 `layer.hazard_type`, `layer.value`) mirroring `layer.properties` for caller convenience.
 
-*v1.1 change, pending Dev A:* flood `severity` is treated as susceptibility (static, repeated at
+*added in v1.1:* flood `severity` is treated as susceptibility (static, repeated at
 every timestep), not as an event, so flood never cuts roads and never makes a feature `isolated`;
 it only marks roads, substations, hospitals and shelters `at_risk` (severity >= 0.7).
 
@@ -113,7 +113,7 @@ OSM ingest attributes and scope *(added in v0.9)*:
 | `hospital` | `amenity=hospital\|clinic`, `healthcare=hospital\|clinic\|centre` | `facility_level`: `"hospital"` \| `"health_centre"`; plus the access keys below |
 | `shelter` | cyclone/flood shelters, assembly points and stand-in buildings (see below) | `shelter_kind` (see below); plus the access keys below |
 
-Access keys on hospitals and shelters *(v1.1 change, pending Dev A)*, from the impact engine's
+Access keys on hospitals and shelters *(added in v1.1)*, from the impact engine's
 road network: `snap_distance_m` (float, to the nearest graph node), `snap_too_far` (boolean,
 more than 2 km: such a facility is never marked `isolated`), `hospital_travel_time_s`
 (number \| null: usual road travel time to the nearest access hospital, the same sources as the
@@ -186,14 +186,14 @@ aren't available, an H3 resolution-7 cell. Geometry: block `Polygon | MultiPolyg
 | `timestep` | Timestep | |
 | `score` | float [0, 1] | |
 | `components` | `{ hazard, exposure, vulnerability }` | Each a float in [0, 1]. The formula belongs to the risk engine, not this contract. |
-| `top_driver` | RiskDriver \| null, optional | *v1.1 change, pending Dev A.* The largest contributing part: `surge`, `wind`, `flood`, `isolated_facilities`, `cut_roads`, `cut_substations`, `population_density`, `hospital_access`, `low_literacy`, `mapped_shelters`. Null when `score` is 0. |
+| `top_driver` | RiskDriver \| null, optional | *added in v1.1.* The largest contributing part: `surge`, `wind`, `flood`, `isolated_facilities`, `cut_roads`, `cut_substations`, `population_density`, `hospital_access`, `low_literacy`, `mapped_shelters`. Null when `score` is 0. |
 
-**Unscored areas** *(v1.1 change, pending Dev A)*: parts of the AOI clip that no block covers
+**Unscored areas** *(added in v1.1)*: parts of the AOI clip that no block covers
 (Kolkata, and South 24 Parganas municipal areas outside the CD blocks) get no RiskScore. They are
 served as FC&lt;UnscoredArea&gt;: geometry `Polygon | MultiPolygon`, properties `{ id: string,
 label: string, area_km2: number }`, with `label` "Municipal area, not scored".
 
-**Risk breakdown** *(v1.1 change, pending Dev A)*: the parts behind each block's score, for
+**Risk breakdown** *(added in v1.1)*: the parts behind each block's score, for
 explaining it. `RiskBreakdown = { timestep, blocks: RiskBlockBreakdown[] }` with
 `RiskBlockBreakdown = { block_id, block_name, population_2011: int, hospital_travel_min:
 number | null, reach: RiskReach, hazard: { surge, wind, flood }, exposure: { isolated_facilities, cut_roads,
@@ -245,7 +245,7 @@ One feature per insurance zone per timestep. Geometry: zone `Polygon | MultiPoly
 ## 5. Routes
 
 All under `/api`. `timestep` is always a query param of type `TimestepParam`, required unless
-stated; `timestep=live` returns `501` in v1.0. FC = FeatureCollection.
+stated; `timestep=live` returns `501` in v1.1. FC = FeatureCollection.
 
 | Owner | Method | Path | Params / body | Response |
 |---|---|---|---|---|
@@ -254,8 +254,8 @@ stated; `timestep=live` returns `501` in v1.0. FC = FeatureCollection.
 | B | GET | `/api/exposure/infra` | `infra_type?: InfraType` | FC&lt;InfraFeature&gt; (not time-dependent) |
 | B | GET | `/api/impact/results` | `timestep`, `hazard_type?`, `status?: ImpactStatus` | FC&lt;ImpactResult&gt; |
 | B | GET | `/api/risk/scores` | `timestep` | FC&lt;RiskScore&gt; |
-| B | GET | `/api/risk/breakdown` | `timestep` | RiskBreakdown. *v1.1 change, pending Dev A.* |
-| B | GET | `/api/risk/unscored-areas` | — | FC&lt;UnscoredArea&gt; (static; live from reference data, DEMO_MODE from the `unscored-areas` fixture). *v1.1 change, pending Dev A.* |
+| B | GET | `/api/risk/breakdown` | `timestep` | RiskBreakdown. *added in v1.1.* |
+| B | GET | `/api/risk/unscored-areas` | — | FC&lt;UnscoredArea&gt; (static; live from reference data, DEMO_MODE from the `unscored-areas` fixture). *added in v1.1.* |
 | B | GET | `/api/advisory/` | `status?`, `block_id?` | FC&lt;Advisory&gt; |
 | B | POST | `/api/advisory/` | `{ block_id, timestep, language }` | Advisory (`draft`) |
 | B | GET | `/api/advisory/{advisory_id}` | — | Advisory |
@@ -280,7 +280,7 @@ def get_hazard_layer(hazard_type: HazardType, timestep: str) -> HazardLayerColle
 | Aspect | Rule |
 |---|---|
 | `hazard_type` | `"wind" \| "surge" \| "flood"` |
-| `timestep` | A `TimestepParam`. `"live"` raises `NotImplementedError` in v1.0; any other value not in the replay list raises `ValueError`. |
+| `timestep` | A `TimestepParam`. `"live"` raises `NotImplementedError` in v1.1; any other value not in the replay list raises `ValueError`. |
 | Returns | `HazardLayerCollection` = FeatureCollection&lt;HazardLayer&gt; (Pydantic model from `app.schemas`), same content as `GET /api/hazard/layers`. |
 | DEMO_MODE | Served from Dev A's `hazard__layers-<hazard_type>__<ts>` fixture. |
 | Calling | Synchronous. Callers may cache results per (hazard_type, timestep). |
@@ -308,13 +308,13 @@ the schema listed here, and fails on any route resource not in this table.
 | Route | Resource | Timestep suffix | Schema |
 |---|---|---|---|
 | `GET /api/hazard/timesteps` | `timesteps` | no | ReplayTimeline |
-| `GET /api/hazard/track` (internal) | `track` | no | CycloneTrack *(v1.1 change, pending Dev B)* |
+| `GET /api/hazard/track` (internal) | `track` | no | CycloneTrack *(added in v1.1)* |
 | `GET /api/hazard/layers` | `layers-<hazard_type>` | yes | FC&lt;HazardLayer&gt; |
 | `GET /api/exposure/infra` | `infra-<infra_type>`, one per type. Unfiltered: no fixture of its own; composed from the per-type files *(added in v0.9)* | no | FC&lt;InfraFeature&gt; |
 | `GET /api/impact/results` | `results`, or `results-<filter>` with `[a-z0-9-]` filter values | yes | FC&lt;ImpactResult&gt; |
 | `GET /api/risk/scores` | `scores` | yes | FC&lt;RiskScore&gt; |
-| `GET /api/risk/breakdown` | `breakdown` *(v1.1 change, pending Dev A)* | yes | RiskBreakdown |
-| `GET /api/risk/unscored-areas` | `unscored-areas` *(v1.1 change, pending Dev A)* | no | FC&lt;UnscoredArea&gt; |
+| `GET /api/risk/breakdown` | `breakdown` *(added in v1.1)* | yes | RiskBreakdown |
+| `GET /api/risk/unscored-areas` | `unscored-areas` *(added in v1.1)* | no | FC&lt;UnscoredArea&gt; |
 | `GET /api/advisory/` | `list` | no | FC&lt;Advisory&gt; |
 | `GET /api/advisory/{advisory_id}` | `item-<advisory_id>` | no | Advisory |
 | `POST /api/dispatch/{advisory_id}` | `receipt-<advisory_id>` | no | DispatchReceipt |
@@ -326,7 +326,7 @@ Enum values containing `_` (e.g. `power_line`) are written with `-` in resource 
 Examples:
 ```
 hazard__timesteps.json
-hazard__track.json *(v1.1 change, pending Dev B)*
+hazard__track.json *(added in v1.1)*
 hazard__layers-surge__20200520T1200Z.json
 hazard__gee-flood-susceptibility.json
 exposure__infra-power-line.json
@@ -341,10 +341,10 @@ insurance__triggers__20200520T1200Z.json
 ```
 
 Fixture content is exactly the route response (or the raw upstream body) as JSON, UTF-8, LF.
-*Exception (v1.1 change, pending Dev A):* `impact__results__<ts>` stores only the non-`ok` rows.
+*Exception (added in v1.1):* `impact__results__<ts>` stores only the non-`ok` rows.
 When loading it, the route adds an `ok` row (empty `pathway`) for every InfraFeature and hazard
 type not present, so the response is exactly the full contract collection.
-*Exception (v1.1 change, pending Dev A):* `risk__scores__<ts>` stores each RiskScore without its
+*Exception (added in v1.1):* `risk__scores__<ts>` stores each RiskScore without its
 `geometry` (the block polygon, the same at every timestep). When loading it, the route adds the
 geometry back from the block reference file (`api/data/reference/s24p_blocks.geojson`), so the
 response is exactly the full contract collection. `risk__breakdown__<ts>` has no geometry and is

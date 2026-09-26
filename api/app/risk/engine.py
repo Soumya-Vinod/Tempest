@@ -358,7 +358,7 @@ def to_collection(risks: list[BlockRisk], ctx: RiskContext, timestep: str) -> Ri
 
 
 def to_breakdown(risks: list[BlockRisk], ctx: RiskContext, timestep: str) -> RiskBreakdown:
-    """Every part per block, plus population and hospital travel time (v1.1, pending Dev A)."""
+    """Every part per block, plus population and hospital travel time (added in v1.1)."""
 
     def rounded(parts: dict[str, float]) -> dict[str, float]:
         return {k: round(v, DECIMALS) for k, v in parts.items()}

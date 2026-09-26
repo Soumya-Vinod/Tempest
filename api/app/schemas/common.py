@@ -13,7 +13,7 @@ Language = Literal["en", "bn", "hi"]
 AdvisoryStatus = Literal["draft", "approved", "sent"]
 TriggerMetric = Literal["wind_speed", "surge_depth"]
 BlockSource = Literal["census2011_cd", "h3_r7"]
-# The largest contributing part of a RiskScore (§4.4, v1.1 change pending Dev A).
+# The largest contributing part of a RiskScore (§4.4, added in v1.1).
 RiskDriver = Literal[
     "surge",
     "wind",
@@ -27,7 +27,7 @@ RiskDriver = Literal[
     "mapped_shelters",
 ]
 # How the cyclone reaches a block: hazard on its inhabited land, or cut off (exposure)
-# (§4.4 risk breakdown, v1.1 change pending Dev A).
+# (§4.4 risk breakdown, added in v1.1).
 RiskReach = Literal["direct", "cut_off"]
 Channel = Literal["telegram", "email"]
 
@@ -56,7 +56,7 @@ def _check_timestep_param(value: str) -> str:
 
 # In responses: a replay key only.
 Timestep = Annotated[str, AfterValidator(_check_timestep)]
-# In parameters: a replay key or "live" (501 / NotImplementedError in v1.0).
+# In parameters: a replay key or "live" (501 / NotImplementedError in v1.1).
 TimestepParam = Annotated[str, AfterValidator(_check_timestep_param)]
 
 BlockId = Annotated[str, Field(pattern=r"^[a-z0-9-]+$")]

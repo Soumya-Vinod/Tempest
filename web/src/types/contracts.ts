@@ -1,4 +1,4 @@
-// TypeScript mirror of shared/contracts.md v1.0 (FROZEN).
+// TypeScript mirror of shared/contracts.md v1.1 (FROZEN).
 // Keep in sync with api/app/schemas/. Changing anything here breaks the other dev: flag it.
 
 // ---------- GeoJSON (EPSG:4326, [lon, lat]) ----------
@@ -51,7 +51,7 @@ export type Language = "en" | "bn" | "hi";
 export type AdvisoryStatus = "draft" | "approved" | "sent";
 export type TriggerMetric = "wind_speed" | "surge_depth";
 export type BlockSource = "census2011_cd" | "h3_r7";
-/** The largest contributing part of a RiskScore (§4.4, v1.1 change pending Dev A). */
+/** The largest contributing part of a RiskScore (§4.4, added in v1.1). */
 export type RiskDriver =
   | "surge"
   | "wind"
@@ -63,13 +63,13 @@ export type RiskDriver =
   | "hospital_access"
   | "low_literacy"
   | "mapped_shelters";
-/** How the cyclone reaches a block (§4.4 risk breakdown, v1.1 change pending Dev A). */
+/** How the cyclone reaches a block (§4.4 risk breakdown, added in v1.1). */
 export type RiskReach = "direct" | "cut_off";
 export type Channel = "telegram" | "email";
 
 /** One of the 25 Amphan replay keys, `YYYY-MM-DDTHH:MM:SSZ`. */
 export type Timestep = string;
-/** Accepted by every timestep parameter; "live" returns 501 in v1.0. */
+/** Accepted by every timestep parameter; "live" returns 501 in v1.1. */
 export type TimestepParam = Timestep | "live";
 /** ISO 8601 UTC datetime. */
 export type IsoDateTime = string;
@@ -136,12 +136,12 @@ export interface RiskScoreProperties {
   timestep: Timestep;
   score: number; // [0, 1]
   components: RiskComponents;
-  top_driver?: RiskDriver | null; // v1.1 change pending Dev A; null when score is 0
+  top_driver?: RiskDriver | null; // added in v1.1; null when score is 0
 }
 export type RiskScore = Feature<AreaGeometry, RiskScoreProperties>;
 export type RiskScoreCollection = FeatureCollection<RiskScore>;
 
-/** Areas inside the AOI clip that no block covers (v1.1 change pending Dev A). */
+/** Areas inside the AOI clip that no block covers (added in v1.1). */
 export interface UnscoredAreaProperties {
   id: string;
   label: string; // "Municipal area, not scored"
@@ -150,7 +150,7 @@ export interface UnscoredAreaProperties {
 export type UnscoredArea = Feature<AreaGeometry, UnscoredAreaProperties>;
 export type UnscoredAreaCollection = FeatureCollection<UnscoredArea>;
 
-/** The parts behind each block's score (v1.1 change pending Dev A). Every part is in [0, 1]. */
+/** The parts behind each block's score (added in v1.1). Every part is in [0, 1]. */
 export interface RiskHazardParts {
   surge: number;
   wind: number;

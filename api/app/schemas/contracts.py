@@ -1,4 +1,7 @@
-"""Pydantic mirror of shared/contracts.md v1.0. Keep in sync with web/src/types/contracts.ts."""
+"""Pydantic mirror of shared/contracts.md v1.1 (FROZEN).
+
+Keep in sync with web/src/types/contracts.ts.
+"""
 
 from typing import Any, Literal, Self
 
@@ -188,7 +191,7 @@ class RiskScoreProperties(ContractModel):
     timestep: Timestep
     score: UnitFraction
     components: RiskComponents
-    # v1.1 change pending Dev A: the largest contributing part; null when score is 0.
+    # added in v1.1: the largest contributing part; null when score is 0.
     top_driver: RiskDriver | None = None
 
 
@@ -201,7 +204,7 @@ class RiskScoreCollection(FeatureCollection[RiskScore]):
     pass
 
 
-# Areas inside the AOI clip that no block covers (§4.4, v1.1 change pending Dev A).
+# Areas inside the AOI clip that no block covers (§4.4, added in v1.1).
 class UnscoredAreaProperties(ContractModel):
     id: str
     label: str
@@ -217,7 +220,7 @@ class UnscoredAreaCollection(FeatureCollection[UnscoredArea]):
     pass
 
 
-# Per-block parts behind a RiskScore (§4.4, v1.1 change pending Dev A). Each part is 0-1.
+# Per-block parts behind a RiskScore (§4.4, added in v1.1). Each part is 0-1.
 class RiskHazardParts(ContractModel):
     surge: UnitFraction
     wind: UnitFraction

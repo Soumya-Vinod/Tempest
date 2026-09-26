@@ -102,11 +102,11 @@ export const getImpactResults = (
 export const getRiskScores = (timestep: TimestepParam) =>
   request<RiskScoreCollection>('GET', '/api/risk/scores', { query: { timestep } })
 
-/** v1.1 change, pending Dev A. */
+/** added in v1.1. */
 export const getRiskBreakdown = (timestep: TimestepParam) =>
   request<RiskBreakdown>('GET', '/api/risk/breakdown', { query: { timestep } })
 
-/** v1.1 change, pending Dev A. Static: Kolkata and municipal areas outside the CD blocks. */
+/** added in v1.1. Static: Kolkata and municipal areas outside the CD blocks. */
 export const getUnscoredAreas = () =>
   request<UnscoredAreaCollection>('GET', '/api/risk/unscored-areas')
 

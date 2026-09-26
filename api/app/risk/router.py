@@ -35,11 +35,11 @@ def get_scores(timestep: TimestepParam) -> RiskScoreCollection:
 
 @router.get("/breakdown")
 def get_breakdown(timestep: TimestepParam) -> RiskBreakdown:
-    """Per-block parts, population and hospital travel time (v1.1 change, pending Dev A)."""
+    """Per-block parts, population and hospital travel time (added in v1.1)."""
     return _call(service.get_breakdown, timestep)
 
 
 @router.get("/unscored-areas")
 def get_unscored_areas() -> UnscoredAreaCollection:
-    """Kolkata and municipal areas outside the CD blocks (v1.1 change, pending Dev A)."""
+    """Kolkata and municipal areas outside the CD blocks (added in v1.1)."""
     return _call(service.get_unscored_areas)

@@ -1,4 +1,4 @@
-"""Compact DEMO_MODE fixtures for impact results (contracts.md §7, v1.1 change pending Dev A).
+"""Compact DEMO_MODE fixtures for impact results (contracts.md §7, added in v1.1).
 
 A fixture stores only the non-ok rows. Loading adds an ok row (empty pathway) for every infra
 feature and hazard type not present, in compute_impacts order, so the response is exactly what
