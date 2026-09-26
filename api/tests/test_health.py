@@ -6,6 +6,7 @@ from app.main import app
 
 ENV_VARS = (
     "GEMINI_API_KEY",
+    "GROQ_API_KEY",
     "GEE_SERVICE_ACCOUNT",
     "GEE_KEY_PATH",
     "TELEGRAM_BOT_TOKEN",
@@ -17,11 +18,12 @@ ENV_VARS = (
     "DEMO_MODE",
 )
 FLAGS = {v.lower() for v in ENV_VARS if v != "DEMO_MODE"}
+OTHER_VARS = ("GROQ_MODEL",)  # settings, not keys: reported by value, not as a flag
 
 
 @pytest.fixture
 def client(monkeypatch):
-    for var in ENV_VARS:
+    for var in (*ENV_VARS, *OTHER_VARS):
         monkeypatch.delenv(var, raising=False)
     # Fresh settings per request from env vars only; never touches a real api/.env.
     monkeypatch.setattr("app.main.get_settings", lambda: Settings(_env_file=None))
@@ -34,6 +36,7 @@ def test_health_defaults(client):
     body = resp.json()
     assert body["status"] == "ok"
     assert body["demo_mode"] is True
+    assert body["groq_model"] == "openai/gpt-oss-120b"
     assert set(body["configured"]) == FLAGS
     assert not any(body["configured"].values())
 

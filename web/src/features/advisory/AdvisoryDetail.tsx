@@ -7,7 +7,13 @@ import {
   rejectAdvisory,
   updateAdvisory,
 } from '../../lib/api'
-import type { Advisory, AdvisoryText, Citation, Language } from '../../types/contracts'
+import type {
+  Advisory,
+  AdvisoryText,
+  Citation,
+  GeneratedBy,
+  Language,
+} from '../../types/contracts'
 import { DispatchDialog, ReceiptList } from '../dispatch'
 import { ApproveDialog, RejectDialog } from './Dialogs'
 import { errorText } from './errors'
@@ -19,6 +25,27 @@ const LANGUAGES: { id: Language; label: string }[] = [
   { id: 'bn', label: 'বাংলা' },
   { id: 'hi', label: 'हिन्दी' },
 ]
+
+const MODEL_NAMES: Record<string, string> = { 'gemini-3.7-flash': 'Gemini 3.7 Flash' }
+
+/** "Gemini 3.7 Flash", or "Fallback: Groq / <model>" (v1.2 change pending Dev A). */
+function generatedByLabel(g: GeneratedBy): string {
+  return g.provider === 'gemini'
+    ? (MODEL_NAMES[g.model] ?? `Gemini / ${g.model}`)
+    : `Fallback: Groq / ${g.model}`
+}
+
+/** The model named in a "generated" audit entry's details, with the fallback's reason. */
+function auditModel(details: string | null): string | null {
+  try {
+    const d = JSON.parse(details ?? '') as { generated_by?: GeneratedBy; fallback_reason?: string }
+    if (!d.generated_by) return null
+    const label = generatedByLabel(d.generated_by)
+    return d.fallback_reason ? `${label} (${d.fallback_reason})` : label
+  } catch {
+    return null
+  }
+}
 
 /** Wind in km/h to the nearest 5, as the advisory text states it (api render.py). */
 const KMH_STEP = 5
@@ -149,6 +176,13 @@ export default function AdvisoryDetail(props: {
           {p.status}
         </span>
       </div>
+      {p.generated_by && (
+        <p
+          className={`text-xs ${p.generated_by.provider === 'groq' ? 'text-amber-700' : 'text-slate-500'}`}
+        >
+          Drafted by {generatedByLabel(p.generated_by)}
+        </p>
+      )}
       {p.approved_by && (
         <p className="text-xs text-slate-500">Approved by {p.approved_by}</p>
       )}
@@ -288,6 +322,7 @@ export default function AdvisoryDetail(props: {
               {e.at.slice(0, 16).replace('T', ' ')}
             </span>{' '}
             {e.action.replace(/_/g, ' ')}
+            {e.action === 'generated' && auditModel(e.details) && <> · {auditModel(e.details)}</>}
             {e.actor && <> · {e.actor}</>}
           </li>
         ))}

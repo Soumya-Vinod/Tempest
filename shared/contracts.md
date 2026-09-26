@@ -59,6 +59,7 @@ type AuditAction = "generated" | "number_check_failed" | "invalid_response" | "e
   | "approved" | "rejected" | "new_draft" | "copied" | "sent"
   | "dispatched";  // v1.2 change, pending Dev A (dispatched: one per channel attempt)
 type ChannelStatus = "sent" | "failed" | "dry_run";  // v1.2 change, pending Dev A
+type ModelProvider = "gemini" | "groq";  // v1.2 change, pending Dev A
 type TriggerMetric  = "wind_speed" | "surge_depth";
 type BlockSource    = "census2011_cd" | "h3_r7";
 type Timestep = string;       // one of the 25 replay keys (in responses)
@@ -229,6 +230,7 @@ one `body` per record).
 | `rejected_at` | ISO datetime \| null | *v1.2 change, pending Dev A* Required once `rejected`. |
 | `created_from` | AdvisoryId \| null | *v1.2 change, pending Dev A* The advisory this draft was copied from ("New draft from this"). |
 | `created_at` | ISO datetime | |
+| `generated_by` | `{ provider: ModelProvider, model: string }` \| null | *v1.2 change, pending Dev A* The model that wrote the draft: Gemini (`gemini-3.7-flash`), or the Groq fallback (`GROQ_MODEL`) when Gemini answered 429, or 503 twice (one retry ~2 s later). The same checks (schema, placeholders, numbers rule, staleness) apply to both. Copied by "New draft from this"; null on advisories stored before v1.2. The `generated` audit entry records it, plus `fallback_reason` (`"gemini 429"`, `"gemini 503 x2"`) when the fallback wrote it. Demo fixtures are Gemini's only. |
 
 `AdvisoryText = { headline: string, body: string, actions: string[] }` (*v1.2 change, pending Dev A*): `actions` has 3 to 5
 lines for local officials.

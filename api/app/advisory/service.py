@@ -9,7 +9,10 @@ name, cause or route, stored with it under CITED_TEXT_KEY) differs now, or it ha
 values. A stale response is audited and the live / 503 path is used. Numbers may change: they
 are filled at render time.
 A draft failing the number check is retried once, then refused (502); each failure is written to
-the audit log.
+the audit log. If Gemini answers 429 (quota) or, after one retry ~2 s later, 503 (overloaded),
+the draft comes from the Groq fallback instead (providers.py; only with GROQ_API_KEY), under the
+same checks; every draft records generated_by, and the fallback's reason is audited. The fixture
+script never falls back: demo fixtures are Gemini's only.
 
 Rules: only drafts can be edited, approved or rejected (else 409). Edits are checked like
 Gemini's drafts, and can't remove a placeholder. Approval needs "Name (Designation)"; rejection
@@ -18,12 +21,14 @@ is audited.
 """
 
 import re
+import time
 import uuid
 from collections.abc import Callable
+from dataclasses import dataclass
 
 from pydantic import ValidationError
 
-from app.advisory import gemini, render, store
+from app.advisory import gemini, providers, render, store
 from app.advisory.facts import Facts, UnknownBlock, build_facts
 from app.advisory.prompt import SYSTEM_PROMPT, user_message
 from app.core.config import get_settings
@@ -37,6 +42,7 @@ from app.schemas import (
     AdvisorySuggestion,
     AdvisorySuggestions,
     AdvisoryTexts,
+    GeneratedBy,
 )
 
 SUGGEST_MIN_SCORE = 0.25  # blocks at or above this risk score are suggested for an advisory
@@ -72,12 +78,19 @@ class GeminiUnavailable(RuntimeError):
 
 
 class DraftRejected(RuntimeError):
-    """Gemini's drafts failed the checks on every attempt, or the call failed (502)."""
+    """The model's drafts failed the checks on every attempt, or the call failed (502)."""
 
-    def __init__(self, message: str, problems: list[str] | None = None, calls: int = 0):
+    def __init__(
+        self,
+        message: str,
+        problems: list[str] | None = None,
+        calls: int = 0,
+        statuses: list[int | None] | None = None,
+    ):
         super().__init__(message)
         self.problems = problems or []
-        self.calls = calls  # Gemini calls made before giving up
+        self.calls = calls  # model calls made before giving up
+        self.statuses = statuses or []  # HTTP statuses of the failed calls (e.g. [503, 503])
 
 
 def fixture_key(block_id: str, timestep: str) -> str:
@@ -143,34 +156,60 @@ def _retry_note(details: dict) -> str:
     )
 
 
-def generate_live(
+FALLBACK_STATUS = {429, 503}
+RETRY_503_AFTER_S = 2.0
+sleep = time.sleep  # tests replace this
+
+
+@dataclass(frozen=True)
+class Generated:
+    templates: AdvisoryTexts
+    raw: dict  # the structured response that passed
+    calls: int  # model calls made, all providers
+    generated_by: GeneratedBy
+    fallback_reason: str | None = None  # e.g. "gemini 429", "gemini 503 x2"
+
+
+def _status(e: BaseException | None) -> int | None:
+    return getattr(e, "status", None)
+
+
+def _draft(
+    provider: providers.Provider,
     facts: Facts,
-    actor: str | None = None,
-    max_attempts: int = MAX_ATTEMPTS,
-    before_call: Callable[[], None] | None = None,
+    actor: str | None,
+    max_attempts: int,
+    before_call: Callable[[], None] | None,
+    retry_503: bool = False,
 ) -> tuple[AdvisoryTexts, dict, int]:
-    """Call Gemini until a draft passes (at most `max_attempts`). Returns (templates, raw,
-    calls). Failures are audited (advisory_id null) and raise DraftRejected. `before_call` runs
-    before every call (the fixture script paces calls with it)."""
+    """Call one provider until a draft passes the checks (at most `max_attempts` drafts). With
+    `retry_503`, a 503 is retried once after RETRY_503_AFTER_S (that call counts too). A failed
+    call raises DraftRejected from the provider's error (its .status); `calls` counts every
+    call. Drafts failing the checks are audited (advisory_id null)."""
     settings = get_settings()
-    if not settings.is_configured("GEMINI_API_KEY"):
-        raise GeminiUnavailable(
-            f"No cached Gemini response for {facts.block_name} ({facts.block_id}) at "
-            f"{facts.timestep}, and GEMINI_API_KEY is not set"
-        )
+    name = provider.generated_by.provider.capitalize()
     keys = {c.key for c in facts.citations}
     message = user_message(facts)
     last: dict = {}
-    for attempt in range(1, max_attempts + 1):
+    calls = 0
+    retried_503 = False
+    attempt = 1
+    while attempt <= max_attempts:
         if before_call is not None:
             before_call()
+        calls += 1
         try:
-            raw = gemini.generate(SYSTEM_PROMPT, message, settings.GEMINI_API_KEY)
-        except gemini.GeminiError as e:
-            raise DraftRejected(str(e), calls=attempt) from e
+            raw = providers.call(provider, SYSTEM_PROMPT, message, settings)
+        except provider.error as e:
+            if retry_503 and _status(e) == 503 and not retried_503:
+                retried_503 = True
+                sleep(RETRY_503_AFTER_S)
+                continue
+            statuses = [503] * retried_503 + [_status(e)]
+            raise DraftRejected(str(e), calls=calls, statuses=statuses) from e
         templates, action, details = evaluate(raw, keys)
         if templates is not None:
-            return templates, raw, attempt
+            return templates, raw, calls
         last = details
         with store.transaction() as conn:
             store.audit(
@@ -182,16 +221,65 @@ def generate_live(
                     "block_id": facts.block_id,
                     "timestep": facts.timestep,
                     "attempt": attempt,
+                    "generated_by": provider.generated_by.model_dump(),
                     **details,
                 },
             )
         message = user_message(facts) + _retry_note(details)
+        attempt += 1
     raise DraftRejected(
-        f"Gemini's draft for {facts.block_name} at {facts.timestep} failed the checks "
+        f"{name}'s draft for {facts.block_name} at {facts.timestep} failed the checks "
         f"{max_attempts} times",
         last.get("problems") or last.get("errors"),
-        calls=max_attempts,
+        calls=calls,
     )
+
+
+def _fallback_reason(e: DraftRejected) -> str | None:
+    """ "gemini 429" / "gemini 503 x2" when Gemini's failure allows the fallback, else None."""
+    statuses = getattr(e, "statuses", [])
+    if not statuses or statuses[-1] not in FALLBACK_STATUS:
+        return None
+    if statuses == [503, 503]:
+        return "gemini 503 x2"
+    return "gemini " + ", ".join(str(s) for s in statuses)
+
+
+def generate_live(
+    facts: Facts,
+    actor: str | None = None,
+    max_attempts: int = MAX_ATTEMPTS,
+    before_call: Callable[[], None] | None = None,
+    fallback: bool = True,
+) -> Generated:
+    """Gemini, until a draft passes (at most `max_attempts` drafts). With `fallback` (the app,
+    not the fixture script): a 503 is retried once after ~2 s, and if Gemini still answers 503,
+    or answers 429, Groq writes the draft instead under the same checks (if GROQ_API_KEY is
+    set; else the Gemini error stands). Failures raise DraftRejected (502). `before_call` runs
+    before every Gemini call (the fixture script paces calls with it)."""
+    settings = get_settings()
+    if not settings.is_configured("GEMINI_API_KEY"):
+        raise GeminiUnavailable(
+            f"No cached Gemini response for {facts.block_name} ({facts.block_id}) at "
+            f"{facts.timestep}, and GEMINI_API_KEY is not set"
+        )
+    try:
+        templates, raw, calls = _draft(
+            providers.GEMINI_PROVIDER, facts, actor, max_attempts, before_call, retry_503=fallback
+        )
+        return Generated(templates, raw, calls, providers.GEMINI)
+    except DraftRejected as e:
+        reason = _fallback_reason(e)
+        if not fallback or reason is None or not settings.is_configured("GROQ_API_KEY"):
+            raise
+        gemini_calls = e.calls
+    groq = providers.groq(settings)
+    try:
+        templates, raw, calls = _draft(groq, facts, actor, max_attempts, None)
+    except DraftRejected as e:
+        e.calls += gemini_calls
+        raise DraftRejected(f"{e} (Groq fallback after {reason})", e.problems, calls=e.calls) from e
+    return Generated(templates, raw, gemini_calls + calls, groq.generated_by, reason)
 
 
 CITED_TEXT_KEY = "_cited_text"  # in a Gemini fixture: {key: text value} its templates used
@@ -237,7 +325,7 @@ def staleness(cached: dict, facts: Facts) -> dict | None:
     return {"changed_text": changed} if changed else None
 
 
-def _templates_for(facts: Facts, actor: str | None) -> tuple[AdvisoryTexts, str, int]:
+def _templates_for(facts: Facts, actor: str | None) -> tuple[Generated, str]:
     """(templates, source, attempts): the cached response in DEMO_MODE if present, valid and not
     stale, else a live call (503 without a key)."""
     try:
@@ -265,7 +353,7 @@ def _templates_for(facts: Facts, actor: str | None) -> tuple[AdvisoryTexts, str,
     if cached is not None:
         templates, action, details = evaluate(cached, keys)
         if templates is not None:
-            return templates, "fixture", 0
+            return Generated(templates, cached, 0, providers.GEMINI), "fixture"
         with store.transaction() as conn:
             store.audit(
                 conn,
@@ -279,15 +367,16 @@ def _templates_for(facts: Facts, actor: str | None) -> tuple[AdvisoryTexts, str,
                     **details,
                 },
             )
-    templates, _, attempts = generate_live(facts, actor)
-    return templates, "gemini", attempts
+    generated = generate_live(facts, actor)
+    return generated, generated.generated_by.provider
 
 
 def create(block_id: str, timestep: str, actor: str | None = None) -> Advisory:
     if timestep == LIVE:
         raise NotImplementedError("timestep=live is not implemented yet")
     facts = build_facts(block_id, timestep)
-    templates, source, attempts = _templates_for(facts, actor)
+    generated, source = _templates_for(facts, actor)
+    templates = generated.templates
     props = AdvisoryProperties(
         id=str(uuid.uuid4()),
         block_id=block_id,
@@ -298,11 +387,19 @@ def create(block_id: str, timestep: str, actor: str | None = None) -> Advisory:
         citations=facts.citations,
         status="draft",
         created_at=store.now(),
+        generated_by=generated.generated_by,
     )
     advisory = Advisory(id=props.id, properties=props)
+    details = {
+        "source": source,
+        "attempts": generated.calls,
+        "generated_by": generated.generated_by.model_dump(),
+    }
+    if generated.fallback_reason:
+        details["fallback_reason"] = generated.fallback_reason
     with store.transaction() as conn:
         store.save(conn, advisory)
-        store.audit(conn, props.id, "generated", actor, {"source": source, "attempts": attempts})
+        store.audit(conn, props.id, "generated", actor, details)
     return advisory
 
 
@@ -421,6 +518,7 @@ def new_draft(advisory_id: str, actor: str | None = None) -> Advisory:
             citations=p.citations,
             status="draft",
             created_from=p.id,
+            generated_by=p.generated_by,
             created_at=store.now(),
         )
         advisory = Advisory(id=props.id, properties=props)

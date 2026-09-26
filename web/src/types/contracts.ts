@@ -81,6 +81,13 @@ export type RiskReach = "direct" | "cut_off";
 export type Channel = "telegram" | "email";
 /** dry_run: built and validated, not sent (v1.2 change pending Dev A). */
 export type ChannelStatus = "sent" | "failed" | "dry_run";
+/** v1.2 change pending Dev A. */
+export type ModelProvider = "gemini" | "groq";
+/** The model that wrote an advisory draft (v1.2 change pending Dev A). */
+export interface GeneratedBy {
+  provider: ModelProvider;
+  model: string;
+}
 
 /** One of the 25 Amphan replay keys, `YYYY-MM-DDTHH:MM:SSZ`. */
 export type Timestep = string;
@@ -228,6 +235,7 @@ export interface AdvisoryProperties {
   rejected_at: IsoDateTime | null; // required once rejected
   created_from: AdvisoryId | null; // "New draft from this" (v1.2 change pending Dev A)
   created_at: IsoDateTime;
+  generated_by?: GeneratedBy | null; // v1.2 change pending Dev A; null on older advisories
 }
 /** v1.2 change pending Dev A. advisory_id null: a generation that produced no advisory. */
 export interface AuditEvent {

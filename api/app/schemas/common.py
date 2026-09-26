@@ -44,6 +44,8 @@ RiskDriver = Literal[
 # (§4.4 risk breakdown, added in v1.1).
 RiskReach = Literal["direct", "cut_off"]
 Channel = Literal["telegram", "email"]
+# The model that wrote an advisory draft (v1.2 change, pending Dev A).
+ModelProvider = Literal["gemini", "groq"]
 # dry_run: built and validated, not sent (v1.2 change, pending Dev A).
 ChannelStatus = Literal["sent", "failed", "dry_run"]
 

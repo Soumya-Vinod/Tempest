@@ -9,6 +9,7 @@ API_DIR = Path(__file__).resolve().parents[2]
 # configured. tests/test_health.py checks that .env.example matches this dict.
 PLACEHOLDERS: dict[str, str] = {
     "GEMINI_API_KEY": "your-gemini-api-key",
+    "GROQ_API_KEY": "your-groq-api-key",
     "GEE_SERVICE_ACCOUNT": "your-sa@your-project.iam.gserviceaccount.com",
     "TELEGRAM_BOT_TOKEN": "123456:your-telegram-bot-token",
     "TELEGRAM_CHAT_ID": "-1001234567890",
@@ -27,6 +28,10 @@ class Settings(BaseSettings):
     )
 
     GEMINI_API_KEY: str | None = None
+    # Fallback advisory model, only when Gemini fails with 429 / 503 (app/advisory/providers.py).
+    # GROQ_MODEL is a plain setting, not a secret: its .env.example value is the real default.
+    GROQ_API_KEY: str | None = None
+    GROQ_MODEL: str = "openai/gpt-oss-120b"
     GEE_SERVICE_ACCOUNT: str | None = None
     GEE_KEY_PATH: str | None = None
     TELEGRAM_BOT_TOKEN: str | None = None

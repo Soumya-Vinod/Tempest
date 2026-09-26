@@ -56,9 +56,11 @@ def health() -> dict:
     return {
         "status": "ok",
         "demo_mode": s.DEMO_MODE,
+        "groq_model": s.GROQ_MODEL,  # not a secret: the fallback advisory model's id
         "configured": {
             # Set and not left at the .env.example placeholder.
             "gemini_api_key": s.is_configured("GEMINI_API_KEY"),
+            "groq_api_key": s.is_configured("GROQ_API_KEY"),
             "gee_service_account": s.is_configured("GEE_SERVICE_ACCOUNT"),
             # Existence check only; the key file is never read.
             "gee_key_path": s.gee_key_file is not None and s.gee_key_file.is_file(),

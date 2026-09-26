@@ -11,7 +11,8 @@ the fixtures match what the demo serves. Failures are written to the audit log
 (api/data/state/tempest.db) and printed. Pairs that already have a fixture are skipped unless
 --all. When Gemini answers 503 (overloaded), the script waits BACKOFF_503_S and tries the same
 pair again; every attempt, failed or not, counts towards --max-calls. A 429 (quota exhausted)
-stops the run at once and lists the pairs still to generate.
+stops the run at once and lists the pairs still to generate. Gemini only: never the Groq
+fallback.
 """
 
 import argparse
@@ -90,9 +91,15 @@ def run(
                 break
             facts = build_facts(block_id, ts)
             try:
-                _, raw, used = service.generate_live(
-                    facts, actor="build_advisory_fixtures", max_attempts=budget, before_call=pace
+                # Gemini only: a Groq fallback draft is never written as a demo fixture.
+                generated = service.generate_live(
+                    facts,
+                    actor="build_advisory_fixtures",
+                    max_attempts=budget,
+                    before_call=pace,
+                    fallback=False,
                 )
+                raw, used = generated.raw, generated.calls
             except service.DraftRejected as e:
                 result.calls += e.calls
                 if _status(e) == 429:  # quota exhausted: every further call would fail too

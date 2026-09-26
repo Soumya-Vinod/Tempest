@@ -2,13 +2,15 @@
 
 import json
 
+import httpx
 import pytest
 import shapely
 from fastapi.testclient import TestClient
 
 from app.advisory import facts as facts_module
-from app.advisory import gemini, render, service, store
+from app.advisory import gemini, providers, render, service, store
 from app.advisory.facts import Facts
+from app.advisory.prompt import SYSTEM_PROMPT, user_message
 from app.core import demo as demo_module
 from app.core.config import Settings
 from app.main import app
@@ -69,11 +71,14 @@ class FakeGemini:
     def __call__(self, system_prompt, message, api_key):
         assert "{{" in system_prompt and api_key == "test-key"
         self.calls.append(message)
-        return json.loads(json.dumps(self.responses.pop(0)))
+        response = self.responses.pop(0)
+        if isinstance(response, Exception):
+            raise response
+        return json.loads(json.dumps(response))
 
 
-def settings(demo: bool, key: str | None) -> Settings:
-    return Settings(_env_file=None, DEMO_MODE=demo, GEMINI_API_KEY=key)
+def settings(demo: bool, key: str | None, groq_key: str | None = None) -> Settings:
+    return Settings(_env_file=None, DEMO_MODE=demo, GEMINI_API_KEY=key, GROQ_API_KEY=groq_key)
 
 
 @pytest.fixture
@@ -83,8 +88,8 @@ def env(tmp_path, monkeypatch):
     monkeypatch.setattr(demo_module, "DEMO_DIR", tmp_path)
     monkeypatch.setattr(service, "build_facts", lambda block_id, ts: FACTS)
 
-    def mode(demo: bool, key: str | None = "test-key"):
-        s = settings(demo, key)
+    def mode(demo: bool, key: str | None = "test-key", groq_key: str | None = None):
+        s = settings(demo, key, groq_key)
         for module in (service, demo_module):
             monkeypatch.setattr(module, "get_settings", lambda: s)
 
@@ -784,3 +789,158 @@ def test_script_writes_the_cited_text_with_the_response(fixture_script):
     assert payload == service.fixture_payload(CLEAN, FACTS)
     assert payload[service.CITED_TEXT_KEY]["isolated_1_name"] == "Ward 12 PHC"
     assert service.staleness(payload, FACTS) is None
+
+
+# --- Groq fallback (both providers mocked) ------------------------------------------------------
+
+GROQ_KEY = "gsk_test-SECRET-groq-key"
+QUOTA = gemini.GeminiError("Gemini call failed: ClientError: 429 RESOURCE_EXHAUSTED", status=429)
+BUSY = gemini.GeminiError("Gemini call failed: ServerError: 503 UNAVAILABLE", status=503)
+
+
+class FakeGroq:
+    """Groq's chat completions endpoint: returns `responses` (drafts, or (status, error body))."""
+
+    def __init__(self, *responses):
+        self.responses = list(responses)
+        self.requests: list[dict] = []
+        self.sleeps: list[float] = []
+
+    def handler(self, request: httpx.Request) -> httpx.Response:
+        assert request.headers["Authorization"] == f"Bearer {GROQ_KEY}"
+        self.requests.append(json.loads(request.content))
+        r = self.responses.pop(0)
+        if isinstance(r, tuple):
+            return httpx.Response(r[0], json=r[1])
+        content = json.dumps(r, ensure_ascii=False)
+        return httpx.Response(200, json={"choices": [{"message": {"content": content}}]})
+
+
+@pytest.fixture
+def groq(env, monkeypatch):
+    """Groq configured and mocked; service.sleep recorded instead of waiting."""
+    env.mode(False, groq_key=GROQ_KEY)
+    fake = FakeGroq()
+    monkeypatch.setattr(
+        providers, "http_client", lambda: httpx.Client(transport=httpx.MockTransport(fake.handler))
+    )
+    monkeypatch.setattr(service, "sleep", fake.sleeps.append)
+    return fake
+
+
+def generated_event(advisory_id: str) -> dict:
+    [event] = [e for e in store.events(advisory_id) if e.action == "generated"]
+    return json.loads(event.details)
+
+
+def test_gemini_429_falls_back_to_groq_and_is_labelled(env, groq):
+    groq.responses = [CLEAN]
+    resp, fake = create(env, QUOTA)
+    assert resp.status_code == 200, resp.text
+    p = resp.json()["properties"]
+    assert p["generated_by"] == {"provider": "groq", "model": "openai/gpt-oss-120b"}
+    assert len(fake.calls) == 1 and groq.sleeps == []  # 429: straight to Groq, no retry
+    details = generated_event(p["id"])
+    assert details["fallback_reason"] == "gemini 429" and details["source"] == "groq"
+    assert details["generated_by"] == p["generated_by"]
+    # Same prompt, same schema, strict JSON-schema output.
+    [request] = groq.requests
+    assert request["model"] == "openai/gpt-oss-120b"
+    assert request["messages"] == [
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": user_message(FACTS)},
+    ]
+    fmt = request["response_format"]
+    assert fmt["type"] == "json_schema" and fmt["json_schema"]["strict"] is True
+    schema = fmt["json_schema"]["schema"]
+    assert schema["required"] == ["en", "bn", "hi"] and schema["additionalProperties"] is False
+    # Rendered exactly like a Gemini draft: placeholders filled, exercise prefix added.
+    assert p["texts"]["en"]["body"].startswith(render.EXERCISE_PREFIX["en"])
+    assert "1.5 m" in p["texts"]["en"]["body"]
+
+
+def test_gemini_503_is_retried_once_after_2s_then_groq(env, groq):
+    groq.responses = [CLEAN]
+    resp, fake = create(env, BUSY, BUSY)
+    assert resp.status_code == 200, resp.text
+    assert len(fake.calls) == 2 and groq.sleeps == [2.0]
+    assert resp.json()["properties"]["generated_by"]["provider"] == "groq"
+    assert generated_event(resp.json()["id"])["fallback_reason"] == "gemini 503 x2"
+
+
+def test_gemini_503_then_ok_needs_no_groq(env, groq):
+    resp, fake = create(env, BUSY, CLEAN)
+    assert resp.status_code == 200
+    assert resp.json()["properties"]["generated_by"] == {
+        "provider": "gemini",
+        "model": "gemini-3.7-flash",
+    }
+    assert len(fake.calls) == 2 and groq.sleeps == [2.0] and groq.requests == []
+    assert "fallback_reason" not in generated_event(resp.json()["id"])
+
+
+def test_gemini_ok_never_calls_groq(env, groq):
+    resp, fake = create(env, CLEAN)
+    assert resp.status_code == 200 and len(fake.calls) == 1
+    assert groq.requests == [] and groq.sleeps == []
+    assert resp.json()["properties"]["generated_by"]["provider"] == "gemini"
+
+
+@pytest.mark.parametrize(("responses", "status"), [((QUOTA,), "429"), ((BUSY, BUSY), "503")])
+def test_without_a_groq_key_the_gemini_error_stands(env, groq, responses, status):
+    env.mode(False, groq_key=None)
+    resp, _ = create(env, *responses)
+    assert resp.status_code == 502 and status in resp.json()["detail"]
+    assert groq.requests == []
+
+
+def test_other_gemini_errors_do_not_fall_back(env, groq):
+    bad_request = gemini.GeminiError("Gemini call failed: ClientError: 400", status=400)
+    resp, _ = create(env, bad_request)
+    assert resp.status_code == 502 and groq.requests == []
+
+
+def test_number_check_rejects_bad_groq_output(env, groq):
+    bad = with_en(headline="Surge of 3 m")
+    groq.responses = [bad, bad]
+    resp, _ = create(env, QUOTA)
+    assert resp.status_code == 502
+    detail = resp.json()["detail"]
+    assert "Groq" in detail["message"] and "gemini 429" in detail["message"]
+    assert any("digit" in p for p in detail["problems"])
+    assert len(groq.requests) == 2  # one retry with the correction note, like Gemini
+    assert "rejected" in groq.requests[1]["messages"][1]["content"]
+    failed = [json.loads(e.details) for e in store.events() if e.action == "number_check_failed"]
+    assert [f["generated_by"]["provider"] for f in failed] == ["groq", "groq"]
+
+
+def test_bad_then_good_groq_output_passes_on_the_retry(env, groq):
+    groq.responses = [with_en(headline="Two boats"), CLEAN]
+    resp, _ = create(env, QUOTA)
+    assert resp.status_code == 200 and len(groq.requests) == 2
+
+
+def test_groq_errors_never_contain_the_key(env, groq):
+    groq.responses = [(401, {"error": {"message": f"Invalid API Key {GROQ_KEY}"}})]
+    resp, _ = create(env, QUOTA)
+    assert resp.status_code == 502
+    assert GROQ_KEY not in resp.text and "***" in resp.text
+    assert GROQ_KEY not in "".join(e.details or "" for e in store.events())
+
+
+def test_fixture_drafts_are_labelled_gemini_and_copies_keep_the_label(env, groq):
+    env.mode(True, key=None, groq_key=GROQ_KEY)
+    write_cached(env, service.fixture_payload(CLEAN, FACTS))
+    resp, fake = create(env)
+    p = resp.json()["properties"]
+    assert p["generated_by"]["provider"] == "gemini" and fake.calls == [] and groq.requests == []
+    approved = client.post(f"{URL}{p['id']}/approve", json={"approved_by": "A. Officer (BDO)"})
+    copy = client.post(f"{URL}{approved.json()['id']}/new-draft", json={})
+    assert copy.json()["properties"]["generated_by"] == p["generated_by"]
+
+
+def test_fixture_script_never_falls_back_to_groq(env, groq, fixture_script):
+    env.mode(False, groq_key=GROQ_KEY)
+    result = fixture_script.run([PAIR], 20, QUOTA)
+    assert result.remaining == [("Gosaba", TS)] and not result.written
+    assert groq.requests == [] and groq.sleeps == []

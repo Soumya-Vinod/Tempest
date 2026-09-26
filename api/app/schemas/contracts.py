@@ -19,6 +19,7 @@ from app.schemas.common import (
     HazardType,
     ImpactStatus,
     InfraType,
+    ModelProvider,
     RiskDriver,
     RiskReach,
     StepType,
@@ -281,6 +282,14 @@ class AdvisoryTexts(ContractModel):
     hi: AdvisoryText
 
 
+class GeneratedBy(ContractModel):
+    """The model that wrote the draft: Gemini, or Groq as the fallback when Gemini answered 429 /
+    503 (v1.2 change, pending Dev A)."""
+
+    provider: ModelProvider
+    model: str
+
+
 class AdvisoryProperties(ContractModel):
     id: AdvisoryId
     block_id: BlockId
@@ -296,6 +305,8 @@ class AdvisoryProperties(ContractModel):
     rejected_at: AwareDatetime | None = None
     created_from: AdvisoryId | None = None  # "New draft from this"
     created_at: AwareDatetime
+    # v1.2 change, pending Dev A. Null on advisories stored before it existed.
+    generated_by: GeneratedBy | None = None
 
     @model_validator(mode="after")
     def _status_fields(self) -> Self:
