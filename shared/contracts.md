@@ -257,6 +257,11 @@ no advisory (its draft failed the checks); `details` is JSON text.
 
 ### 4.6 TriggerEvent (Dev B)
 One feature per insurance zone per timestep. Geometry: zone `Polygon | MultiPolygon`.
+*v1.2 change, pending Dev A:* a zone is a CD block (Census 2011 code). The feature reports the
+metric that sets the payout: of wind and surge, the higher tier (never the sum of both); on a
+tie, the one further past its threshold (untriggered: closer to its first threshold). Terms are
+illustrative (`api/app/insurance/constants.py`): wind ≥ 33 / 46 / 62 m/s and surge ≥ 1 / 2 / 3 m
+pay 25 / 50 / 100 % of a sum insured of ₹1,000 per resident (2011 population).
 
 | Property | Type | Notes |
 |---|---|---|
@@ -264,12 +269,23 @@ One feature per insurance zone per timestep. Geometry: zone `Polygon | MultiPoly
 | `zone_id` | string | |
 | `zone_name` | string | |
 | `timestep` | Timestep | |
-| `metric` | TriggerMetric | Read from HazardLayer `value` (not severity). |
+| `metric` | TriggerMetric | Read from HazardLayer `value` (not severity). *v1.2:* the governing metric. |
 | `unit` | `"m/s" \| "m"` | |
-| `threshold` | float | |
-| `observed` | float | Max over the zone at this timestep. |
+| `threshold` | float | *v1.2:* the governing metric's threshold for the tier reached (its first tier when none). |
+| `observed` | float | *v1.2 change, pending Dev A* (was: max over the zone): the nearest-rank 90th percentile of the cells overlapping the zone's inhabited land by ≥ 1 km², so one extreme cell can't trigger alone. |
 | `triggered` | boolean | `observed >= threshold` |
-| `payout_estimate_inr` | float | `0` when not triggered. |
+| `payout_estimate_inr` | float | `0` when not triggered. *v1.2:* `payout_fraction × sum_insured_inr` (the current reading). |
+| `tier` | int ≥ 0 | *v1.2 change, pending Dev A.* 0 = not triggered; `triggered == (tier > 0)`. |
+| `payout_fraction` | float [0, 1] | *v1.2 change, pending Dev A.* Of `sum_insured_inr`, for `tier`. |
+| `sum_insured_inr` | float | *v1.2 change, pending Dev A.* |
+| `released_tier` | int ≥ `tier` | *v1.2 change, pending Dev A.* The highest tier at any timestep up to this one: released money is never taken back. |
+| `released_payout_inr` | float ≥ `payout_estimate_inr` | *v1.2 change, pending Dev A.* The payout for `released_tier`. |
+
+**InsuranceSummary** (*v1.2 change, pending Dev A*), `GET /api/insurance/summary`:
+`{ district: [{ timestep, released_payout_inr, triggered_zones, released_zones }] (25, never
+decreasing), zones: [{ zone_id, zone_name, first_trigger_timestep | null, hours_before_landfall |
+null, first_trigger_metric | null, first_trigger_tier, first_trigger_payout_inr,
+final_released_tier, final_released_payout_inr, sum_insured_inr }] }`.
 
 ### 4.7 DispatchReceipt (Dev B, not GeoJSON)
 *v1.2 change, pending Dev A* (was `{ advisory_id, sent_at, channels: [{ channel, ok, error }] }`):
@@ -339,7 +355,8 @@ stated; `timestep=live` returns `501` in v1.1. FC = FeatureCollection.
 | B | GET | `/api/dispatch/{advisory_id}/receipts` | — | `{ receipts: DispatchReceipt[] }`, oldest first. *v1.2 change, pending Dev A* |
 | B | GET | `/api/dispatch/{advisory_id}/cap.xml` | — | CAP 1.2 XML of the latest dispatch (a fresh one if approved and never sent; `409` otherwise). *v1.2 change, pending Dev A* |
 | B | GET | `/api/dispatch/recipients` | — | `{ telegram: { configured, chat_id }, email: { configured, to[] }, pin_configured }`, masked. *v1.2 change, pending Dev A* |
-| B | GET | `/api/insurance/triggers` | `timestep` | FC&lt;TriggerEvent&gt; |
+| B | GET | `/api/insurance/triggers` | `timestep` | FC&lt;TriggerEvent&gt;, one per CD block |
+| B | GET | `/api/insurance/summary` | — | InsuranceSummary. *v1.2 change, pending Dev A* |
 | — | GET | `/health` | — | not part of this contract (see README) |
 
 The `/api/hazard/*` routes are for the web client only. Dev B reads hazard data through §6.
@@ -392,7 +409,8 @@ the schema listed here, and fails on any route resource not in this table.
 | `GET /api/risk/scores` | `scores` | yes | FC&lt;RiskScore&gt; |
 | `GET /api/risk/breakdown` | `breakdown` *(added in v1.1)* | yes | RiskBreakdown |
 | `GET /api/risk/unscored-areas` | `unscored-areas` *(added in v1.1)* | no | FC&lt;UnscoredArea&gt; |
-| `GET /api/insurance/triggers` | `triggers` | yes | FC&lt;TriggerEvent&gt; |
+| `GET /api/insurance/triggers` | `triggers` (compact, see below) | yes | FC&lt;TriggerEvent&gt; |
+| `GET /api/insurance/summary` | `summary` *(v1.2 change, pending Dev A)* | no | InsuranceSummary |
 
 Enum values containing `_` (e.g. `power_line`) are written with `-` in resource names:
 `exposure__infra-power-line`. `advisory_id` is fixture-safe by §4.5, so it is used as is.
@@ -409,6 +427,7 @@ impact__results__20200519T0000Z.json
 risk__scores__20200520T1200Z.json
 advisory__gemini-<census_code>__20200520T1200Z.json *(v1.2 change, pending Dev A)*
 insurance__triggers__20200520T1200Z.json
+insurance__summary.json *(v1.2 change, pending Dev A)*
 ```
 
 Fixture content is exactly the route response (or the raw upstream body) as JSON, UTF-8, LF.
@@ -424,4 +443,7 @@ type not present, so the response is exactly the full contract collection.
 geometry back from the block reference file (`api/data/reference/s24p_blocks.geojson`), so the
 response is exactly the full contract collection. `risk__breakdown__<ts>` has no geometry and is
 stored as is.
+*Exception (v1.2 change, pending Dev A):* `insurance__triggers__<ts>` stores each TriggerEvent
+without its `geometry`, which the route adds back from the same block reference file, as for
+`risk__scores__<ts>`.
 Keep each file under ~2 MB, roads up to 5 MB (`exposure__infra-road`) *(added in v0.9)*. Anything larger or regenerable goes in `api/data/cache/` (ignored).

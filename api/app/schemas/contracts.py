@@ -342,6 +342,17 @@ class TriggerEventProperties(ContractModel):
     observed: float
     triggered: bool
     payout_estimate_inr: float = Field(ge=0)
+    # v1.2 change, pending Dev A: the payout tier. The feature reports the metric that sets the
+    # payout (the higher of wind and surge tiers, never the sum); `threshold` is that metric's
+    # threshold for the tier reached (its first tier when none); `observed` is its 90th-percentile
+    # value over the zone's inhabited land (was: max over the zone).
+    tier: int = Field(default=0, ge=0)  # 0 = not triggered
+    payout_fraction: UnitFraction = 0.0  # of sum_insured_inr, for the current tier
+    sum_insured_inr: float = Field(default=0.0, ge=0)
+    # v1.2 change, pending Dev A: payouts only go up during an event (released money is not taken
+    # back): the highest tier reached at any timestep up to this one, and its payout.
+    released_tier: int = Field(default=0, ge=0)
+    released_payout_inr: float = Field(default=0.0, ge=0)
 
     @model_validator(mode="after")
     def _consistent(self) -> Self:
@@ -351,6 +362,12 @@ class TriggerEventProperties(ContractModel):
             raise ValueError("triggered must equal observed >= threshold")
         if not self.triggered and self.payout_estimate_inr != 0:
             raise ValueError("payout_estimate_inr must be 0 when not triggered")
+        if self.triggered != (self.tier > 0):
+            raise ValueError("triggered must equal tier > 0")
+        if abs(self.payout_estimate_inr - self.payout_fraction * self.sum_insured_inr) > 1:
+            raise ValueError("payout_estimate_inr must be payout_fraction * sum_insured_inr")
+        if self.released_tier < self.tier or self.released_payout_inr < self.payout_estimate_inr:
+            raise ValueError("released amounts can't be below the current reading")
         return self
 
 
@@ -361,6 +378,54 @@ class TriggerEvent(Feature):
 
 class TriggerEventCollection(FeatureCollection[TriggerEvent]):
     pass
+
+
+class InsuranceDistrictTotal(ContractModel):
+    """One timestep of GET /api/insurance/summary (v1.2 change, pending Dev A)."""
+
+    timestep: Timestep
+    released_payout_inr: float = Field(ge=0)  # sum of released_payout_inr over the zones
+    triggered_zones: int = Field(ge=0)  # triggered on the current reading
+    released_zones: int = Field(ge=0)  # with a payout released so far
+
+
+class InsuranceZoneSummary(ContractModel):
+    """A zone's first trigger and final release (v1.2 change, pending Dev A)."""
+
+    zone_id: str
+    zone_name: str
+    first_trigger_timestep: Timestep | None = None
+    hours_before_landfall: int | None = None
+    first_trigger_metric: TriggerMetric | None = None
+    first_trigger_tier: int = Field(default=0, ge=0)
+    first_trigger_payout_inr: float = Field(default=0.0, ge=0)
+    final_released_tier: int = Field(default=0, ge=0)
+    final_released_payout_inr: float = Field(default=0.0, ge=0)
+    sum_insured_inr: float = Field(ge=0)
+
+    @model_validator(mode="after")
+    def _consistent(self) -> Self:
+        triggered = self.first_trigger_timestep is not None
+        if triggered != (self.first_trigger_tier > 0):
+            raise ValueError("first_trigger_tier > 0 exactly when there is a first trigger")
+        if self.final_released_tier < self.first_trigger_tier:
+            raise ValueError("the final released tier can't be below the first trigger's")
+        return self
+
+
+class InsuranceSummary(ContractModel):
+    """GET /api/insurance/summary: released totals per timestep (never decreasing) and each
+    zone's first trigger (v1.2 change, pending Dev A)."""
+
+    district: list[InsuranceDistrictTotal]
+    zones: list[InsuranceZoneSummary]
+
+    @model_validator(mode="after")
+    def _monotonic(self) -> Self:
+        totals = [d.released_payout_inr for d in self.district]
+        if any(b < a for a, b in zip(totals, totals[1:], strict=False)):
+            raise ValueError("released totals can't decrease")
+        return self
 
 
 # --- 4.7 DispatchReceipt (Dev B, not GeoJSON) ---

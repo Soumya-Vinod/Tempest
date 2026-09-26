@@ -273,12 +273,42 @@ export interface TriggerEventProperties {
   metric: TriggerMetric;
   unit: "m/s" | "m";
   threshold: number;
-  observed: number;
+  observed: number; // v1.2 change pending Dev A: 90th percentile over inhabited land (was max)
   triggered: boolean;
-  payout_estimate_inr: number; // 0 when not triggered
+  payout_estimate_inr: number; // 0 when not triggered; the current reading
+  // v1.2 change pending Dev A: the governing metric's tier, and what has been released so far.
+  tier: number; // 0 = not triggered
+  payout_fraction: number;
+  sum_insured_inr: number;
+  released_tier: number; // highest tier up to this timestep (never taken back)
+  released_payout_inr: number;
 }
 export type TriggerEvent = Feature<AreaGeometry, TriggerEventProperties>;
 export type TriggerEventCollection = FeatureCollection<TriggerEvent>;
+
+/** GET /api/insurance/summary (v1.2 change pending Dev A). */
+export interface InsuranceDistrictTotal {
+  timestep: Timestep;
+  released_payout_inr: number;
+  triggered_zones: number;
+  released_zones: number;
+}
+export interface InsuranceZoneSummary {
+  zone_id: string;
+  zone_name: string;
+  first_trigger_timestep: Timestep | null;
+  hours_before_landfall: number | null;
+  first_trigger_metric: TriggerMetric | null;
+  first_trigger_tier: number;
+  first_trigger_payout_inr: number;
+  final_released_tier: number;
+  final_released_payout_inr: number;
+  sum_insured_inr: number;
+}
+export interface InsuranceSummary {
+  district: InsuranceDistrictTotal[]; // 25, never decreasing
+  zones: InsuranceZoneSummary[];
+}
 
 // ---------- §4.7 DispatchReceipt (Dev B) ----------
 

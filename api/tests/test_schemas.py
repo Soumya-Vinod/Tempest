@@ -187,9 +187,18 @@ def test_trigger_consistency():
         "threshold": 40.0,
         "observed": 45.0,
     }
-    TriggerEventProperties(**base, triggered=True, payout_estimate_inr=1e6)
+    tier1 = {"tier": 1, "payout_fraction": 0.25, "sum_insured_inr": 4e6}
+    released = {"released_tier": 1, "released_payout_inr": 1e6}
+    TriggerEventProperties(**base, triggered=True, payout_estimate_inr=1e6, **tier1, **released)
     with pytest.raises(ValidationError):
         TriggerEventProperties(**base, triggered=False, payout_estimate_inr=0)
+    # v1.2: tier > 0 exactly when triggered; payout = fraction x sum insured; released >= current.
+    with pytest.raises(ValidationError):
+        TriggerEventProperties(**base, triggered=True, payout_estimate_inr=1e6)  # tier 0
+    with pytest.raises(ValidationError):
+        TriggerEventProperties(**base, triggered=True, payout_estimate_inr=2e6, **tier1, **released)
+    with pytest.raises(ValidationError):
+        TriggerEventProperties(**base, triggered=True, payout_estimate_inr=1e6, **tier1)
 
 
 def test_get_hazard_layer_live_raises_not_implemented():

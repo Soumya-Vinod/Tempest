@@ -9,6 +9,7 @@ import { AdvisoryDrawer, AdvisoryPanel, useAdvisories } from './features/advisor
 import { InfraPanel, infraTooltip, useInfraLayers, useInfraMap } from './features/exposure'
 import { HazardPanel, type MapViewMode, StormEdge, useHazardMap } from './features/hazard'
 import { ImpactPanel, PathwayCard, useImpactMap } from './features/impact'
+import { InsurancePanel, useInsuranceMap } from './features/insurance'
 import { RiskCard, RiskPanel, useRiskMap } from './features/risk'
 
 export default function App() {
@@ -23,15 +24,18 @@ export default function App() {
   const impact = useImpactMap(timestepIndex, infra.state)
   const risk = useRiskMap(timestepIndex, chosenView)
   const hazard = useHazardMap(timestepIndex, risk.view, setChosenView, map)
+  const insurance = useInsuranceMap(timestepIndex, risk.view === 'risk')
   // Red and orange mean impact only: exposure mutes its colours while impact results show.
   const infraLayers = useInfraLayers(infra, impact.active)
 
   // Bottom to top: hazard fills or the risk choropleth (one view at a time: both are area
-  // fills), muted exposure, impact, the storm track, then the selection highlights.
+  // fills; in Risk view, gold outlines on blocks with an insurance payout released), muted
+  // exposure, impact, the storm track, then the selection highlights.
   const layers = useMemo(
     () => [
       ...hazard.fillLayers,
       ...risk.layers,
+      ...insurance.layers,
       ...infraLayers,
       ...impact.layers,
       ...hazard.trackLayers,
@@ -41,6 +45,7 @@ export default function App() {
     [
       hazard.fillLayers,
       risk.layers,
+      insurance.layers,
       infraLayers,
       impact.layers,
       hazard.trackLayers,
@@ -93,6 +98,7 @@ export default function App() {
         <InfraPanel state={infra.state} visible={infra.visible} onToggle={infra.toggle} />
         <RiskPanel {...risk.panel} />
         <ImpactPanel {...impact.panel} />
+        <InsurancePanel {...insurance.panel} />
         <AdvisoryPanel {...advisory.panel} />
       </HealthPanel>
       <PathwayCard {...impact.card} />

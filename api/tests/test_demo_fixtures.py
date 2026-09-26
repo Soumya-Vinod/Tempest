@@ -13,6 +13,7 @@ from app.core.demo import DEMO_DIR
 from app.exposure import service as exposure
 from app.hazard.models import CycloneTrack
 from app.impact import service as impact
+from app.insurance import engine as insurance_engine
 from app.main import app
 from app.risk import fixtures as risk_fixtures
 from app.risk import service as risk
@@ -24,6 +25,7 @@ from app.schemas import (
     ImpactResultCollection,
     InfraFeatureCollection,
     InfraType,
+    InsuranceSummary,
     ReplayTimeline,
     RiskBreakdown,
     RiskScoreCollection,
@@ -60,7 +62,10 @@ ROUTE_SCHEMAS = {
     "advisory": [],
     # Dispatch receipts live in SQLite (v1.2 change, pending Dev A: receipt fixture dropped).
     "dispatch": [],
-    "insurance": [(r"triggers", TriggerEventCollection, True, None)],
+    "insurance": [
+        (r"triggers", TriggerEventCollection, True, None),
+        (r"summary", InsuranceSummary, False, None),  # v1.2 change, pending Dev A
+    ],
 }
 FIXTURES = sorted(DEMO_DIR.glob("*.json"))
 
@@ -99,6 +104,12 @@ def test_fixture_matches_contract(path):
         data = json.loads(raw)
         assert all("geometry" not in f for f in data["features"]), "scores store no geometry"
         model = risk_fixtures.from_fixture(data, load_blocks())
+    elif (module, resource) == ("insurance", "triggers"):  # compact, as risk scores (v1.2)
+        data = json.loads(raw)
+        assert all("geometry" not in f for f in data["features"]), "triggers store no geometry"
+        blocks = load_blocks()
+        geometry = dict(zip(blocks.codes, blocks.display, strict=True))
+        model = insurance_engine.collection_from(data["features"], geometry)
     else:
         model = schema.model_validate_json(raw)
     if body_id:

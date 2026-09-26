@@ -7,16 +7,7 @@ from app.schemas import LANDFALL_TIMESTEP
 client = TestClient(app)
 TS = LANDFALL_TIMESTEP
 
-# (method, path, json body) for every contract route still stubbed, each with valid params.
-# /api/exposure/infra is implemented: see test_exposure_routes.py.
-# /api/hazard/* routes are implemented: see test_hazard.py.
-# /api/impact/results is implemented: see test_impact_routes.py.
-# /api/risk/scores is implemented: see test_risk_routes.py.
-# /api/advisory/* is implemented: see test_advisory.py.
-# /api/dispatch/* is implemented: see test_dispatch.py.
-CONTRACT_ROUTES = [
-    ("GET", f"/api/insurance/triggers?timestep={TS}", None),
-]
+# Every contract route is implemented; see the test_<module>*.py files.
 
 TIMESTEP_ROUTES = [
     "/api/hazard/layers?hazard_type=wind&timestep={}",
@@ -24,11 +15,6 @@ TIMESTEP_ROUTES = [
     "/api/risk/scores?timestep={}",
     "/api/insurance/triggers?timestep={}",
 ]
-
-
-@pytest.mark.parametrize(("method", "path", "body"), CONTRACT_ROUTES)
-def test_contract_routes_return_501(method, path, body):
-    assert client.request(method, path, json=body).status_code == 501
 
 
 @pytest.mark.parametrize("path", TIMESTEP_ROUTES)

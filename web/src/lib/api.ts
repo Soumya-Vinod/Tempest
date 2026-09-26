@@ -2,6 +2,7 @@
 // Contract types come from ../types/contracts; do not redefine them here.
 import type {
   CycloneTrack,
+  InsuranceSummary,
   Advisory,
   AdvisoryApprove,
   AdvisoryCollection,
@@ -171,3 +172,7 @@ export const capXmlUrl = (advisoryId: string) =>
 
 export const getTriggers = (timestep: TimestepParam) =>
   request<TriggerEventCollection>('GET', '/api/insurance/triggers', { query: { timestep } })
+
+/** v1.2 change, pending Dev A: released totals per timestep and each block's first trigger. */
+export const getInsuranceSummary = () =>
+  request<InsuranceSummary>('GET', '/api/insurance/summary')
