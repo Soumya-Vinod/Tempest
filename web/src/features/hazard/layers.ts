@@ -1,59 +1,126 @@
 // deck.gl layers for the hazard view (flood, surge, wind cells) and the storm track (both views).
-import type { Layer, PickingInfo } from '@deck.gl/core'
-import { PathStyleExtension, type PathStyleExtensionProps } from '@deck.gl/extensions'
-import { GeoJsonLayer, PathLayer, ScatterplotLayer, TextLayer } from '@deck.gl/layers'
+import type { Color, Layer, PickingInfo } from '@deck.gl/core'
+import {
+  MaskExtension,
+  PathStyleExtension,
+  type PathStyleExtensionProps,
+} from '@deck.gl/extensions'
+import {
+  BitmapLayer,
+  type BitmapLayerProps,
+  GeoJsonLayer,
+  PathLayer,
+  ScatterplotLayer,
+  TextLayer,
+} from '@deck.gl/layers'
+import type { Feature } from 'geojson'
 
 import type { CycloneTrackPoint, HazardLayer } from '../../types/contracts'
+import land from './land.json'
+import { type Colorize, hazardImage } from './raster'
 import {
   floodColor,
   imdCategory,
   STORM_FILL,
   STORM_OUTLINE,
   SURGE_MIN_M,
-  surgeColor,
+  surgePixel,
   toKmh,
   TRACK_COLOR,
   TRACK_FUTURE_COLOR,
-  windColor,
+  windPixel,
 } from './style'
 
 const EMPTY = { type: 'FeatureCollection' as const, features: [] as HazardLayer[] }
 const collection = (features: HazardLayer[]) => ({ ...EMPTY, features })
 
-/** Area fills, bottom to top: flood susceptibility, surge, wind. */
+// Land mask: South 24 Parganas + Kolkata land (unfilled OSM districts), bundled simplified.
+// Generated from api/data/reference/s24p_land.geojson (351 KB): union, simplify 100 m in UTM 45N
+// (EPSG:32645, topology kept), round to 1e-4°, GeoJSON Feature, 52 KB, 90 parts, area within
+// 0.04 %. Nothing is drawn or pickable outside it: not over the sea, rivers, N 24 Parganas or
+// Bangladesh.
+const LAND_MASK_ID = 'hazard-land-mask'
+const MASK = { extensions: [new MaskExtension()], maskId: LAND_MASK_ID }
+const LINEAR: BitmapLayerProps['textureParameters'] = {
+  minFilter: 'linear',
+  magFilter: 'linear',
+}
+// Nearly transparent: deck.gl picks it, the eye doesn't see it.
+const PICK_ONLY: Color = [0, 0, 0, 1]
+
+function landMask(): Layer {
+  return new GeoJsonLayer({ id: LAND_MASK_ID, data: land as Feature, operation: 'mask' })
+}
+
+/** A smoothed, land-masked image of one hazard (null data: hidden). */
+function imageLayer(id: string, cells: HazardLayer[] | null, colorize: Colorize): Layer[] {
+  const img = cells ? hazardImage(cells, colorize) : null
+  if (!img) return []
+  return [
+    new BitmapLayer({
+      id,
+      image: img.image,
+      bounds: img.bounds,
+      textureParameters: LINEAR,
+      pickable: false,
+      ...MASK,
+    }),
+  ]
+}
+
+/** Invisible, land-masked cells for the tooltip ("Surge 2.7 m"). */
+function pickCells(id: string, cells: HazardLayer[]): Layer {
+  return new GeoJsonLayer<HazardLayer['properties']>({
+    id,
+    data: collection(cells),
+    pickable: true,
+    stroked: false,
+    getFillColor: PICK_ONLY,
+    ...MASK,
+  })
+}
+
+/**
+ * Hazard fills, bottom to top: flood susceptibility (masked cells), surge and wind (smoothed,
+ * masked images, each with invisible pickable cells). All clipped to land by the mask layer.
+ */
 export function buildHazardFills(cells: {
   flood: HazardLayer[] | null
   surge: HazardLayer[] | null
   wind: HazardLayer[] | null
 }): Layer[] {
-  const surge = (cells.surge ?? []).filter((f) => f.properties.value > SURGE_MIN_M)
-  const wind = (cells.wind ?? []).filter((f) => imdCategory(toKmh(f.properties.value)))
-  return [
-    new GeoJsonLayer<HazardLayer['properties']>({
-      id: 'hazard-flood',
-      data: collection(cells.flood ?? []),
-      visible: cells.flood !== null,
-      pickable: true,
-      stroked: false,
-      getFillColor: (f) => floodColor(f.properties.severity),
-    }),
-    new GeoJsonLayer<HazardLayer['properties']>({
-      id: 'hazard-surge',
-      data: collection(surge),
-      visible: cells.surge !== null,
-      pickable: true,
-      stroked: false,
-      getFillColor: (f) => surgeColor(f.properties.value),
-    }),
-    new GeoJsonLayer<HazardLayer['properties']>({
-      id: 'hazard-wind',
-      data: collection(wind),
-      visible: cells.wind !== null,
-      pickable: true,
-      stroked: false,
-      getFillColor: (f) => windColor(f.properties.value),
-    }),
-  ]
+  const layers: Layer[] = [landMask()]
+  if (cells.flood) {
+    layers.push(
+      new GeoJsonLayer<HazardLayer['properties']>({
+        id: 'hazard-flood',
+        data: collection(cells.flood),
+        pickable: true,
+        stroked: false,
+        getFillColor: (f) => floodColor(f.properties.severity),
+        ...MASK,
+      }),
+    )
+  }
+  if (cells.surge) {
+    layers.push(...imageLayer('hazard-surge-image', cells.surge, surgePixel))
+    layers.push(
+      pickCells(
+        'hazard-surge',
+        cells.surge.filter((f) => f.properties.value > SURGE_MIN_M),
+      ),
+    )
+  }
+  if (cells.wind) {
+    layers.push(...imageLayer('hazard-wind-image', cells.wind, windPixel))
+    layers.push(
+      pickCells(
+        'hazard-wind',
+        cells.wind.filter((f) => imdCategory(toKmh(f.properties.value))),
+      ),
+    )
+  }
+  return layers
 }
 
 const lonLat = (p: CycloneTrackPoint): [number, number] => [p.lon, p.lat]

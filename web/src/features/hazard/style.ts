@@ -35,7 +35,7 @@ function ramp(stops: [number, number, number][], t: number): [number, number, nu
   ]
 }
 
-export function surgeColor(depthM: number): Color {
+function surgeRgba(depthM: number): [number, number, number, number] {
   const t = depthM / SURGE_MAX_M
   return [...ramp(SURGE_STOPS, t), Math.round(lerp(SURGE_ALPHA[0], SURGE_ALPHA[1], Math.min(t, 1)))]
 }
@@ -73,11 +73,6 @@ export function imdCategory(kmh: number): ImdCategory | null {
   return found
 }
 
-export function windColor(ms: number): Color {
-  const c = imdCategory(toKmh(ms))
-  return c ? [...c.color, WIND_ALPHA] : [0, 0, 0, 0]
-}
-
 export const rgbCss = ([r, g, b]: [number, number, number], alpha = 1) =>
   `rgba(${r}, ${g}, ${b}, ${alpha})`
 export const WIND_SWATCH_ALPHA = WIND_ALPHA / 255
@@ -106,3 +101,21 @@ export const TRACK_COLOR: Color = [30, 41, 59, 220]
 export const TRACK_FUTURE_COLOR: Color = [30, 41, 59, 150]
 export const STORM_FILL: Color = [220, 38, 38, 235]
 export const STORM_OUTLINE: Color = [255, 255, 255, 255]
+
+// --- Smoothed images (raster.ts): the same scales, per pixel ------------------------------------
+// Module-level functions: raster.ts caches images per function, so they must stay stable.
+
+const SURGE_BASE = SURGE_STOPS[0]
+const WIND_BASE = IMD_CATEGORIES[0].color
+
+/** Surge pixel: the legend's colour and opacity; transparent at or below SURGE_MIN_M. */
+export function surgePixel(depthM: number): [number, number, number, number] {
+  if (depthM <= SURGE_MIN_M) return [...SURGE_BASE, 0]
+  return surgeRgba(depthM)
+}
+
+/** Wind pixel: the IMD category colour; transparent below a Depression. */
+export function windPixel(ms: number): [number, number, number, number] {
+  const c = imdCategory(toKmh(ms))
+  return c ? [...c.color, WIND_ALPHA] : [...WIND_BASE, 0]
+}
