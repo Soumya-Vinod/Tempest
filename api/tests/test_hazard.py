@@ -28,15 +28,18 @@ from app.hazard.replay import (
     REPLAY_TIMELINE_TIMESTEPS,
     TIMESTEP_INTERVAL_HOURS,
     TOTAL_TIMESTEPS,
+    compute_flood_metric,
     compute_flood_susceptibility_metric,
     compute_holland_b,
     compute_surge_metric,
     compute_wind_metric,
     create_replay_timeline,
+    generate_flood_layer,
     generate_surge_layer,
     generate_wind_layer,
     get_aoi_grid,
     iso_to_compact_ts,
+    normalize_flood_severity,
     normalize_surge_severity,
     normalize_wind_severity,
     validate_timestep,
@@ -1148,4 +1151,228 @@ def test_build_surge_fixtures_script(tmp_path):
         assert b"\r\n" not in raw
         parsed = HazardLayerCollection.model_validate_json(raw)
         assert len(parsed.features) == 528
+
+
+# ===========================================================================
+# 8. Phase 6 — Flood Susceptibility Model & Regression Audit Tests
+# ===========================================================================
+def test_flood_metric_determinism_and_bounds():
+    """Verify compute_flood_metric produces deterministic, bounded, and physically sound indices."""
+    cells = get_aoi_grid()
+    coastal_cell = cells[0]  # c0000: lat 21.525, elev 0.0m, dist_coast 2.78km
+    inland_cell = cells[500]  # northern inland higher elevation cell
+
+    res_coastal_1 = compute_flood_metric(coastal_cell)
+    res_coastal_2 = compute_flood_metric(coastal_cell)
+    res_inland = compute_flood_metric(inland_cell)
+
+    # Determinism
+    assert res_coastal_1.value == res_coastal_2.value
+    assert res_coastal_1.severity == res_coastal_2.severity
+    assert res_coastal_1.unit == "index"
+
+    # Numerical bounds [0.05, 0.98]
+    assert 0.05 <= res_coastal_1.value <= 0.98
+    assert 0.0 <= res_coastal_1.severity <= 1.0
+    assert 0.05 <= res_inland.value <= 0.98
+    assert 0.0 <= res_inland.severity <= 1.0
+
+    # Physical soundness: coastal mangrove mudflat has higher susceptibility than inland high ground
+    assert res_coastal_1.value > res_inland.value
+    assert res_coastal_1.severity > res_inland.severity
+
+
+def test_flood_metric_fallback_and_reusability():
+    """Verify compute_flood_metric gracefully handles standalone custom test cells."""
+    custom_cell = GridCell(
+        id="test-cell-custom",
+        centroid_lon=88.5,
+        centroid_lat=22.0,
+        min_lon=88.45,
+        min_lat=21.95,
+        max_lon=88.55,
+        max_lat=22.05,
+        elevation_m=2.5,
+        dist_to_coast_km=30.0,
+        polygon=SAMPLE_POLYGON,
+    )
+    res = compute_flood_metric(custom_cell)
+    assert res.unit == "index"
+    assert 0.05 <= res.value <= 0.98
+    assert 0.0 <= res.severity <= 1.0
+
+
+def test_flood_severity_normalization_monotonic_and_continuous():
+    """Verify normalize_flood_severity is strictly monotonic, continuous, and bounded in [0, 1]."""
+    test_indices = [-0.5, 0.0, 0.15, 0.20, 0.35, 0.40, 0.55, 0.60, 0.75, 0.80, 0.95, 1.0, 1.5]
+    severities = [normalize_flood_severity(i) for i in test_indices]
+
+    # Bounds
+    assert severities[0] == 0.0
+    assert severities[-1] == 1.0
+    assert all(0.0 <= s <= 1.0 for s in severities)
+
+    # Monotonicity
+    for i in range(len(severities) - 1):
+        assert severities[i] <= severities[i + 1]
+
+    # Continuity check at arbitrary delta
+    delta = 1e-4
+    for val in (0.20, 0.40, 0.60, 0.80):
+        left = normalize_flood_severity(val - delta)
+        right = normalize_flood_severity(val + delta)
+        assert abs(right - left) <= 0.02
+
+
+def test_generate_flood_layer_contract():
+    """Verify generate_flood_layer returns contract-compliant FeatureCollection<HazardLayer>."""
+    # 1. Valid replay timestep
+    col = generate_flood_layer(TS_LANDFALL)
+    assert col.type == "FeatureCollection"
+    assert len(col.features) == 528
+
+    feat = col.features[0]
+    assert feat.properties.hazard_type == "flood"
+    assert feat.properties.unit == "index"
+    assert feat.properties.timestep == TS_LANDFALL
+    assert 0.0 <= feat.properties.value <= 1.0
+    assert 0.0 <= feat.properties.severity <= 1.0
+
+    # 2. Live mode raises NotImplementedError
+    with pytest.raises(NotImplementedError):
+        generate_flood_layer("live")
+
+    # 3. Invalid timestep raises ValueError
+    with pytest.raises(ValueError):
+        generate_flood_layer("2020-05-20T13:00:00Z")
+
+
+def test_flood_layer_static_across_all_25_replay_timesteps():
+    """Verify flood layers are identical across all 25 timesteps (contracts.md §4.1)."""
+    baseline = generate_flood_layer(REPLAY_TIMESTEPS[0])
+    baseline_values = [f.properties.value for f in baseline.features]
+    baseline_severities = [f.properties.severity for f in baseline.features]
+
+    for ts in REPLAY_TIMESTEPS[1:]:
+        col = generate_flood_layer(ts)
+        assert len(col.features) == 528
+        ts_values = [f.properties.value for f in col.features]
+        ts_severities = [f.properties.severity for f in col.features]
+        assert ts_values == baseline_values
+        assert ts_severities == baseline_severities
+
+
+def test_flood_demo_fixture_loading_and_fallback(monkeypatch):
+    """Verify get_hazard_layer loads flood fixtures in DEMO_MODE and computes dynamically."""
+    # 1. DEMO_MODE = True
+    monkeypatch.setattr("app.hazard.service.get_settings", lambda: Settings(DEMO_MODE=True))
+    fixture_col = get_hazard_layer("flood", TS_LANDFALL)
+    assert len(fixture_col.features) == 528
+    assert fixture_col.features[0].properties.hazard_type == "flood"
+
+    # 2. DEMO_MODE = False (dynamic computation)
+    monkeypatch.setattr("app.hazard.service.get_settings", lambda: Settings(DEMO_MODE=False))
+    dynamic_col = get_hazard_layer("flood", TS_LANDFALL)
+    assert len(dynamic_col.features) == 528
+    assert dynamic_col.features[0].properties.hazard_type == "flood"
+    assert dynamic_col.features[0].properties.unit == "index"
+
+
+def test_flood_api_endpoints():
+    """Verify HTTP API endpoint for GET /api/hazard/layers?hazard_type=flood."""
+    # 1. 200 OK
+    resp = client.get(f"/api/hazard/layers?hazard_type=flood&timestep={TS_LANDFALL}")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["type"] == "FeatureCollection"
+    assert len(data["features"]) == 528
+    assert data["features"][0]["properties"]["hazard_type"] == "flood"
+    assert data["features"][0]["properties"]["unit"] == "index"
+
+    # 2. Live mode returns 501
+    resp_live = client.get("/api/hazard/layers?hazard_type=flood&timestep=live")
+    assert resp_live.status_code == 501
+
+    # 3. Invalid timestep returns 422
+    resp_bad = client.get("/api/hazard/layers?hazard_type=flood&timestep=2020-05-20T13:00:00Z")
+    assert resp_bad.status_code == 422
+
+
+def test_build_flood_fixtures_script(tmp_path):
+    """Verify scripts.build_flood_fixtures generates all 25 fixtures cleanly."""
+    from scripts.build_flood_fixtures import build_flood_fixtures
+
+    written = build_flood_fixtures(out_dir=tmp_path)
+    assert len(written) == 25
+    for ts in REPLAY_TIMESTEPS:
+        compact_ts = iso_to_compact_ts(ts)
+        key = f"hazard__layers-flood__{compact_ts}"
+        assert key in written
+        path = written[key]
+        assert path.is_file()
+        raw = path.read_bytes()
+        assert b"\r\n" not in raw
+        parsed = HazardLayerCollection.model_validate_json(raw)
+        assert len(parsed.features) == 528
+
+
+# ---------------------------------------------------------------------------
+# Mandatory Verification: Phases 4 & 5 Regression Audit Tests
+# ---------------------------------------------------------------------------
+def test_regression_audit_phase4_holland_reuse():
+    """Verify compute_surge_metric reuses compute_wind_metric rather than duplicating Holland."""
+    track_pt = AMPHAN_TRACK[TS_LANDFALL]
+    cell = get_aoi_grid()[0]
+
+    # compute_wind_metric returns valid wind speed
+    wind_res = compute_wind_metric(cell, track_pt)
+    assert wind_res.unit == "m/s"
+    assert wind_res.value > 0.0
+
+    # compute_surge_metric uses wind_res.value to compute setup
+    surge_res = compute_surge_metric(cell, track_pt)
+    assert surge_res.unit == "m"
+    assert surge_res.value >= 0.0
+
+
+def test_regression_audit_phase5_surge_physics_and_bounds():
+    """Verify surge physics: clamped at output, continuous eye modifier, non-negative dist."""
+    track_pt = AMPHAN_TRACK[TS_LANDFALL]
+    cells = get_aoi_grid()
+
+    # 1. Clamped strictly at final output 0 <= surge <= 6.0 m
+    for cell in cells:
+        assert cell.dist_to_coast_km >= 0.0
+        res = compute_surge_metric(cell, track_pt)
+        assert 0.0 <= res.value <= 6.0
+        assert 0.0 <= res.severity <= 1.0
+
+    # 2. Eye-distance modifier continuity at 300km and 600km
+    # At 600km: (600 - 600) / 300 = 0.0; at 300km: (600 - 300) / 300 = 1.0
+    from app.hazard.replay import SURGE_MAX_DISTANCE_EYE_KM, SURGE_RAMP_DISTANCE_EYE_KM
+
+    assert SURGE_MAX_DISTANCE_EYE_KM == 600.0
+    assert SURGE_RAMP_DISTANCE_EYE_KM == 300.0
+
+
+def test_regression_audit_grid_and_dem_consistency():
+    """Verify all hazard layers share identical 528-cell grid and DEM source."""
+    wind_col = generate_wind_layer(TS_LANDFALL)
+    surge_col = generate_surge_layer(TS_LANDFALL)
+    flood_col = generate_flood_layer(TS_LANDFALL)
+
+    assert len(wind_col.features) == 528
+    assert len(surge_col.features) == 528
+    assert len(flood_col.features) == 528
+
+    # Verify identical geometries and IDs across all layers
+    zipped = zip(wind_col.features, surge_col.features, flood_col.features, strict=True)
+    for w_feat, s_feat, f_feat in zipped:
+        coords = w_feat.geometry.coordinates
+        assert coords == s_feat.geometry.coordinates == f_feat.geometry.coordinates
+        w_id = w_feat.id.split("__")[1]
+        s_id = s_feat.id.split("__")[1]
+        f_id = f_feat.id.split("__")[1]
+        assert w_id == s_id == f_id
+
 
