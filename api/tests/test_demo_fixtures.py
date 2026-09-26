@@ -29,6 +29,7 @@ from app.schemas import (
     ReplayTimeline,
     RiskBreakdown,
     RiskScoreCollection,
+    SentinelValidationResponse,
     TriggerEventCollection,
     UnscoredAreaCollection,
 )
@@ -49,6 +50,7 @@ ROUTE_SCHEMAS = {
         (r"timesteps", ReplayTimeline, False, None),
         (r"track", CycloneTrack, False, None),
         (rf"layers-({_alternatives(HazardType)})", HazardLayerCollection, True, None),
+        (r"validation-sentinel", SentinelValidationResponse, False, None),
     ],
     # Per type only: the unfiltered route is composed from these (contracts.md §7).
     "exposure": [(rf"infra-({_alternatives(InfraType)})", InfraFeatureCollection, False, None)],

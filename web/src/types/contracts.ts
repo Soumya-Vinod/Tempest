@@ -391,3 +391,45 @@ export interface DispatchRequest {
   dry_run?: boolean;
   pin?: string | null; // required for a live dispatch
 }
+
+// ---------- Sentinel-1 Validation (Dev A; GET /api/hazard/validation/sentinel, Phase 12) ----------
+
+export interface SentinelValidationMetrics {
+  prediction_overlap: number;
+  flooded_area_agreement: number;
+  iou: number;
+  precision: number;
+  recall: number;
+  f1_score: number;
+  observed_flooded_km2: number;
+  predicted_flooded_km2: number;
+  intersection_km2: number;
+}
+
+export interface SentinelValidationAOI {
+  name: string;
+  census_code: string;
+  district: string;
+  bbox: number[];
+  total_area_km2: number;
+  land_area_km2: number;
+}
+
+export interface SentinelValidationResponse {
+  location: string;
+  before_image: string;
+  after_image: string;
+  prediction_overlap: number;
+  flooded_area_agreement: number;
+  confidence: number;
+  summary: string;
+  observations: string[];
+  aoi: SentinelValidationAOI;
+  metrics: SentinelValidationMetrics;
+  acquisition_dates: {
+    before: string;
+    after: string;
+  };
+  satellite: string;
+  baseline_event: string;
+}

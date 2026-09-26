@@ -8,6 +8,7 @@ from app.hazard.models import (
     HazardLayerCollection,
     HazardType,
     ReplayTimeline,
+    SentinelValidationResponse,
     TimestepParam,
 )
 from app.schemas.common import LIVE
@@ -25,6 +26,17 @@ def get_timesteps() -> ReplayTimeline:
 def get_track() -> CycloneTrack:
     """The 25-point Amphan replay track (contracts.md §5, internal)."""
     return CycloneTrack(points=list(service.get_replay_track()))
+
+
+@router.get("/validation/sentinel", response_model=SentinelValidationResponse)
+def get_sentinel_validation() -> SentinelValidationResponse:
+    """Return the deterministic Sentinel-1 validation benchmark for Sagar Island.
+
+    Read-only observational benchmark comparing existing hazard engine outputs
+    with Copernicus Sentinel-1 SAR observations for Cyclone Amphan.
+    Sync handler by contract so FastAPI runs it in the threadpool.
+    """
+    return service.get_sentinel_validation()
 
 
 @router.get("/layers", response_model=HazardLayerCollection)

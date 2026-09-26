@@ -540,3 +540,50 @@ class DispatchRequest(ContractModel):
     resend: bool = False
     dry_run: bool = False
     pin: str | None = None  # required for a live dispatch (DISPATCH_PIN); not for a dry run
+
+
+# --- 4.8 SentinelValidation (Dev A, added in Phase 12) ---
+
+
+class SentinelValidationMetrics(ContractModel):
+    """Benchmark accuracy and overlap metrics against Sentinel-1 SAR observations."""
+
+    prediction_overlap: UnitFraction
+    flooded_area_agreement: UnitFraction
+    iou: UnitFraction
+    precision: UnitFraction
+    recall: UnitFraction
+    f1_score: UnitFraction
+    observed_flooded_km2: float
+    predicted_flooded_km2: float
+    intersection_km2: float
+
+
+class SentinelValidationAOI(ContractModel):
+    """Area of Interest definition for Sentinel-1 validation."""
+
+    name: str
+    census_code: str
+    district: str
+    bbox: list[float]
+    total_area_km2: float
+    land_area_km2: float
+
+
+class SentinelValidationResponse(ContractModel):
+    """Response schema for GET /api/hazard/validation/sentinel (shared/contracts.md §4.8)."""
+
+    location: str
+    before_image: str
+    after_image: str
+    prediction_overlap: UnitFraction
+    flooded_area_agreement: UnitFraction
+    confidence: UnitFraction
+    summary: str
+    observations: list[str]
+    aoi: SentinelValidationAOI
+    metrics: SentinelValidationMetrics
+    acquisition_dates: dict[str, str]
+    satellite: str = "Sentinel-1 (Copernicus SAR)"
+    baseline_event: str = "Cyclone Amphan Landfall (2020-05-20T12:00:00Z)"
+

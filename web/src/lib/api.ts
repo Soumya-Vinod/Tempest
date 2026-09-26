@@ -27,6 +27,7 @@ import type {
   ReplayTimeline,
   RiskBreakdown,
   RiskScoreCollection,
+  SentinelValidationResponse,
   Timestep,
   TimestepParam,
   TriggerEventCollection,
@@ -97,6 +98,10 @@ export const getHazardLayer = (hazard_type: HazardType, timestep: TimestepParam)
 
 /** Internal route (contracts.md §5, added in v1.1): the 25-point replay track. */
 export const getHazardTrack = () => request<CycloneTrack>('GET', '/api/hazard/track')
+
+/** Sentinel-1 SAR validation benchmark for Sagar Island (contracts.md §5, added in Phase 12). */
+export const getSentinelValidation = () =>
+  request<SentinelValidationResponse>('GET', '/api/hazard/validation/sentinel')
 
 // --- Dev B ---
 

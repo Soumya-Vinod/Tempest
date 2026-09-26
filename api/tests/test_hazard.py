@@ -1785,3 +1785,44 @@ def test_wind_progression_coastal_cells_t24_to_landfall():
     assert mean_6h > mean_12h, f"T-6h ({mean_6h:.1f}) must exceed T-12h ({mean_12h:.1f})"
     assert mean_0h > mean_6h, f"T-0h ({mean_0h:.1f}) must exceed T-6h ({mean_6h:.1f})"
 
+
+# ===========================================================================
+# 10. Phase 12: Sentinel-1 Validation Benchmarking Tests
+# ===========================================================================
+
+
+def test_get_sentinel_validation_route():
+    """GET /api/hazard/validation/sentinel returns 200 and valid SentinelValidationResponse."""
+    response = client.get("/api/hazard/validation/sentinel")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["location"] == "Sagar Island"
+    assert data["prediction_overlap"] == 0.82
+    assert data["flooded_area_agreement"] == 0.85
+    assert data["confidence"] == 0.91
+    assert "Sagar Island" in data["summary"]
+    assert len(data["observations"]) >= 2
+    assert data["before_image"].startswith("/assets/sentinel/")
+    assert data["after_image"].startswith("/assets/sentinel/")
+    assert data["metrics"]["iou"] == 0.72
+
+
+def test_get_sentinel_validation_service():
+    """service.get_sentinel_validation() returns valid SentinelValidationResponse."""
+    from app.hazard.service import get_sentinel_validation
+    res = get_sentinel_validation()
+    assert res.location == "Sagar Island"
+    assert res.prediction_overlap == 0.82
+    assert res.flooded_area_agreement == 0.85
+    assert res.confidence == 0.91
+    assert res.aoi.census_code == "02438"
+
+
+def test_sentinel_validation_fixture_integrity():
+    """validate_sentinel_fixture() verifies the cached demo fixture."""
+    from app.hazard.validation import validate_sentinel_fixture
+    result = validate_sentinel_fixture()
+    assert result["valid"] is True
+    assert result["location"] == "Sagar Island"
+    assert result["prediction_overlap"] == 0.82
+

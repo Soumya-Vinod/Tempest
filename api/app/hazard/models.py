@@ -20,6 +20,9 @@ from app.schemas.contracts import (
     HazardLayerCollection,
     HazardLayerProperties,
     ReplayTimeline,
+    SentinelValidationAOI,
+    SentinelValidationMetrics,
+    SentinelValidationResponse,
 )
 from app.schemas.geojson import AreaGeometry, MultiPolygon, Polygon
 
