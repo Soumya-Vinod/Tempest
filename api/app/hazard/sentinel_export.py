@@ -146,7 +146,7 @@ def export_validation_artifacts(
     # 1. observed_flood.geojson
     obs_path = out_path / "observed_flood.geojson"
     obs_col = layers.get("observed_flood", {"type": "FeatureCollection", "features": []})
-    obs_path.write_text(json.dumps(obs_col, indent=2) + "\n", encoding="utf-8")
+    obs_path.write_bytes((json.dumps(obs_col, indent=2) + "\n").encode("utf-8"))
     artifacts["observed_flood_geojson"] = str(obs_path)
 
     # 2. validation_overlap.geojson
@@ -156,7 +156,7 @@ def export_validation_artifacts(
     for category in ("agreement", "false_positives", "missed_flooding"):
         all_overlap_features.extend(layers.get(category, {}).get("features", []))
     overlap_col = {"type": "FeatureCollection", "features": all_overlap_features}
-    overlap_path.write_text(json.dumps(overlap_col, indent=2) + "\n", encoding="utf-8")
+    overlap_path.write_bytes((json.dumps(overlap_col, indent=2) + "\n").encode("utf-8"))
     artifacts["validation_overlap_geojson"] = str(overlap_path)
 
     # 3. validation_metrics.json
@@ -168,7 +168,7 @@ def export_validation_artifacts(
         },
         "event_metadata": event_metadata or {},
     }
-    metrics_path.write_text(json.dumps(metrics_payload, indent=2) + "\n", encoding="utf-8")
+    metrics_path.write_bytes((json.dumps(metrics_payload, indent=2) + "\n").encode("utf-8"))
     artifacts["validation_metrics_json"] = str(metrics_path)
 
     # 4. observed_flood.tif (GeoTIFF)
@@ -200,7 +200,7 @@ def export_validation_artifacts(
     for layer_name in ("predicted_flood", "agreement", "disagreement"):
         layer_col = layers.get(layer_name, {"type": "FeatureCollection", "features": []})
         layer_path = out_path / f"{layer_name}.geojson"
-        layer_path.write_text(json.dumps(layer_col, indent=2) + "\n", encoding="utf-8")
+        layer_path.write_bytes((json.dumps(layer_col, indent=2) + "\n").encode("utf-8"))
         artifacts[f"{layer_name}_geojson"] = str(layer_path)
 
     return artifacts
