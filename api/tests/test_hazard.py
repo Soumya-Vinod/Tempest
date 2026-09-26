@@ -33,9 +33,11 @@ from app.hazard.replay import (
     compute_surge_metric,
     compute_wind_metric,
     create_replay_timeline,
+    generate_surge_layer,
     generate_wind_layer,
     get_aoi_grid,
     iso_to_compact_ts,
+    normalize_surge_severity,
     normalize_wind_severity,
     validate_timestep,
 )
@@ -917,3 +919,233 @@ def test_build_hazard_fixtures_script(tmp_path):
             assert b"\r\n" not in raw
             parsed = HazardLayerCollection.model_validate_json(raw)
             assert len(parsed.features) == 528
+
+
+# ===========================================================================
+# 7. Phase 5 — Storm Surge Model & Surge Hazard Layer Tests
+# ===========================================================================
+
+
+def test_surge_metric_physics_and_determinism():
+    """Verify compute_surge_metric produces physically sound, deterministic output."""
+    grid = get_aoi_grid()
+    pt_start = AMPHAN_TRACK[TS_START]
+    pt_landfall = AMPHAN_TRACK[TS_LANDFALL]
+
+    # Determinism: 50 successive runs must produce bitwise identical values
+    cell_coast = grid[0]
+    baseline = compute_surge_metric(cell_coast, pt_landfall)
+    for _ in range(50):
+        res = compute_surge_metric(cell_coast, pt_landfall)
+        assert res.value == baseline.value
+        assert res.severity == baseline.severity
+        assert res.unit == "m"
+
+    # Physics at T-72 (storm > 1000 km away)
+    surge_start = compute_surge_metric(cell_coast, pt_start)
+    assert surge_start.value == 0.0
+    assert surge_start.severity == 0.0
+    assert surge_start.unit == "m"
+
+    # Physics at Landfall (storm directly crossing Sundarbans)
+    assert baseline.value > 1.0  # Coastal cell experiences significant surge
+    assert baseline.value <= 6.0  # Within physical bounds
+    assert 0.0 <= baseline.severity <= 1.0
+
+
+def test_surge_depths_non_negative_and_bounded():
+    """Verify surge depth is strictly non-negative and bounded across all cells and timesteps."""
+    grid = get_aoi_grid()
+    for ts in (TS_START, "2020-05-19T12:00:00Z", TS_LANDFALL):
+        pt = AMPHAN_TRACK[ts]
+        for cell in grid:
+            res = compute_surge_metric(cell, pt)
+            assert res.value >= 0.0
+            assert res.value <= 6.0
+            assert 0.0 <= res.severity <= 1.0
+            assert res.unit == "m"
+
+
+def test_surge_severity_monotonic_and_bounded():
+    """Verify normalize_surge_severity is strictly monotonic and bounded in [0, 1]."""
+    depths = [-1.0, 0.0, 0.15, 0.30, 0.50, 1.0, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0, 10.0]
+    severities = [normalize_surge_severity(d) for d in depths]
+
+    # Bounds
+    assert severities[0] == 0.0
+    assert severities[1] == 0.0
+    assert severities[-1] == 1.0
+    assert all(0.0 <= s <= 1.0 for s in severities)
+
+    # Monotonicity
+    for i in range(len(severities) - 1):
+        assert (
+            severities[i + 1] >= severities[i]
+        ), f"Severity decreased from {depths[i]}m to {depths[i + 1]}m"
+
+    # Specific threshold checks
+    assert normalize_surge_severity(0.0) == 0.0
+    assert normalize_surge_severity(0.3) == 0.15
+    assert normalize_surge_severity(1.0) == 0.40
+    assert normalize_surge_severity(2.5) == 0.75
+    assert normalize_surge_severity(4.0) == 1.0
+
+
+def test_generate_surge_layer_contract():
+    """Verify generate_surge_layer returns a contract-compliant HazardLayerCollection."""
+    col = generate_surge_layer(TS_LANDFALL)
+    assert isinstance(col, HazardLayerCollection)
+    assert len(col.features) == 528
+    assert col.type == "FeatureCollection"
+
+    compact_ts = iso_to_compact_ts(TS_LANDFALL)
+
+    for feat in col.features:
+        assert feat.type == "Feature"
+        assert feat.id == feat.properties.id
+        assert feat.id.startswith("surge__c")
+        assert feat.id.endswith(f"__{compact_ts}")
+        assert feat.properties.hazard_type == "surge"
+        assert feat.properties.timestep == TS_LANDFALL
+        assert feat.properties.unit == "m"
+        assert feat.properties.value >= 0.0
+        assert 0.0 <= feat.properties.severity <= 1.0
+        assert feat.geometry.type == "Polygon"
+        ring = feat.geometry.coordinates[0]
+        assert len(ring) == 5
+        assert ring[0] == ring[-1]  # Closed polygon
+
+
+def test_generate_surge_layer_validations():
+    """Verify generate_surge_layer validates timesteps against replay timeline."""
+    with pytest.raises(NotImplementedError, match="live mode is reserved"):
+        generate_surge_layer("live")
+
+    with pytest.raises(ValueError, match="must be one of the 25 Amphan replay timesteps"):
+        generate_surge_layer("2020-05-20T13:00:00Z")
+
+    with pytest.raises(ValueError, match="must be one of the 25 Amphan replay timesteps"):
+        generate_surge_layer("invalid")
+
+
+def test_surge_fixtures_exist_and_match_generation():
+    """Verify all 25 DEMO_MODE surge fixtures exist and match generate_surge_layer bit-for-bit."""
+    for ts in REPLAY_TIMESTEPS:
+        compact_ts = iso_to_compact_ts(ts)
+        fixture_path = DEMO_DIR / f"hazard__layers-surge__{compact_ts}.json"
+        assert fixture_path.is_file(), f"Missing fixture {fixture_path.name}"
+
+        raw_bytes = fixture_path.read_bytes()
+        assert b"\r\n" not in raw_bytes, f"{fixture_path.name} contains CRLF"
+
+        fixture_model = HazardLayerCollection.model_validate_json(raw_bytes)
+        generated_model = generate_surge_layer(ts)
+
+        assert len(fixture_model.features) == len(generated_model.features) == 528
+        for f_fix, f_gen in zip(fixture_model.features, generated_model.features, strict=True):
+            assert f_fix.id == f_gen.id
+            assert f_fix.properties.hazard_type == "surge"
+            assert f_fix.properties.unit == "m"
+            assert f_fix.properties.value == f_gen.properties.value
+            assert f_fix.properties.severity == f_gen.properties.severity
+            assert f_fix.geometry.coordinates == f_gen.geometry.coordinates
+
+
+def test_service_get_hazard_layer_surge_demo_and_computed(monkeypatch):
+    """Verify service.get_hazard_layer with surge in both DEMO_MODE and computed mode."""
+    import app.hazard.service as hazard_service
+
+    hazard_service._LAYER_CACHE.clear()
+
+    # 1. In DEMO_MODE=True: loads from fixture
+    monkeypatch.setattr(demo_mod, "get_settings", lambda: Settings(_env_file=None, DEMO_MODE=True))
+    monkeypatch.setattr(
+        hazard_service, "get_settings", lambda: Settings(_env_file=None, DEMO_MODE=True)
+    )
+    col_demo = get_hazard_layer("surge", TS_LANDFALL)
+    assert isinstance(col_demo, HazardLayerCollection)
+    assert len(col_demo.features) == 528
+
+    # 2. In DEMO_MODE=False: computes directly via generate_surge_layer
+    hazard_service._LAYER_CACHE.clear()
+    monkeypatch.setattr(demo_mod, "get_settings", lambda: Settings(_env_file=None, DEMO_MODE=False))
+    monkeypatch.setattr(
+        hazard_service, "get_settings", lambda: Settings(_env_file=None, DEMO_MODE=False)
+    )
+    col_computed = get_hazard_layer("surge", TS_LANDFALL)
+    assert isinstance(col_computed, HazardLayerCollection)
+    assert len(col_computed.features) == 528
+
+    # Both modes must produce identical hazard layers
+    for f_d, f_c in zip(col_demo.features, col_computed.features, strict=True):
+        assert f_d.id == f_c.id
+        assert f_d.properties.value == f_c.properties.value
+        assert f_d.properties.severity == f_c.properties.severity
+
+
+def test_hazard_routes_surge_endpoint():
+    """Verify GET /api/hazard/layers endpoint for hazard_type=surge."""
+    # 1. Valid replay timestep
+    resp = client.get(f"/api/hazard/layers?hazard_type=surge&timestep={TS_LANDFALL}")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["type"] == "FeatureCollection"
+    assert len(data["features"]) == 528
+    for feat in data["features"]:
+        assert feat["properties"]["hazard_type"] == "surge"
+        assert feat["properties"]["unit"] == "m"
+        assert 0.0 <= feat["properties"]["severity"] <= 1.0
+        assert feat["properties"]["value"] >= 0.0
+
+    # 2. Live mode returns 501
+    resp_live = client.get("/api/hazard/layers?hazard_type=surge&timestep=live")
+    assert resp_live.status_code == 501
+
+    # 3. Invalid timestep returns 422
+    resp_bad = client.get("/api/hazard/layers?hazard_type=surge&timestep=2020-05-20T13:00:00Z")
+    assert resp_bad.status_code == 422
+
+
+def test_surge_replay_consistency_across_all_25_timesteps():
+    """Verify surge hazard layers across all 25 timesteps demonstrate continuity and bounds."""
+    peak_surge_over_time: list[float] = []
+
+    for ts in REPLAY_TIMESTEPS:
+        col = generate_surge_layer(ts)
+        assert len(col.features) == 528
+        depths = [f.properties.value for f in col.features]
+        severities = [f.properties.severity for f in col.features]
+
+        assert all(d >= 0.0 for d in depths)
+        assert all(d <= 6.0 for d in depths)
+        assert all(0.0 <= sev <= 1.0 for sev in severities)
+
+        peak_surge_over_time.append(max(depths))
+
+    # At T-72h (far south in Bay of Bengal), peak AOI surge is 0.0 m
+    assert peak_surge_over_time[0] == 0.0
+
+    # At landfall T-0h (passing through Sundarbans AOI), peak surge is significant (> 1.5 m)
+    assert peak_surge_over_time[-1] > 1.5
+
+    # Surge increases as storm nears landfall
+    assert peak_surge_over_time[-1] > peak_surge_over_time[0]
+
+
+def test_build_surge_fixtures_script(tmp_path):
+    """Verify scripts.build_surge_fixtures generates all 25 fixtures cleanly."""
+    from scripts.build_surge_fixtures import build_surge_fixtures
+
+    written = build_surge_fixtures(out_dir=tmp_path)
+    assert len(written) == 25
+    for ts in REPLAY_TIMESTEPS:
+        compact_ts = iso_to_compact_ts(ts)
+        key = f"hazard__layers-surge__{compact_ts}"
+        assert key in written
+        path = written[key]
+        assert path.is_file()
+        raw = path.read_bytes()
+        assert b"\r\n" not in raw
+        parsed = HazardLayerCollection.model_validate_json(raw)
+        assert len(parsed.features) == 528
+
