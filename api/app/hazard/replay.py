@@ -428,52 +428,113 @@ def compute_wind_metric(cell: GridCell, track_pt: CycloneTrackPoint) -> HazardMe
     return HazardMetricResult(value=wind_speed, unit="m/s", severity=severity)
 
 
+# ---------------------------------------------------------------------------
+# Storm Surge Model Physical Constants (Bay of Bengal / Sundarbans)
+# ---------------------------------------------------------------------------
+P_ENV_SURGE_HPA: float = 1012.0  # Synoptic pre-monsoon ambient pressure (hPa)
+SURGE_BAROMETER_FACTOR: float = 0.010  # Inverted barometer rise: ~1 cm per 1 hPa deficit (m/hPa)
+WIND_SETUP_REF_SPEED_MPS: float = 20.0  # Reference wind speed scaling for shallow-shelf setup (m/s)
+WIND_SETUP_EXPONENT: float = 2.2  # Non-linear wind stress setup exponent on shallow shelf
+WIND_SETUP_COEFF: float = 0.85  # Empirical coastal wind setup amplitude coefficient (m)
+SHELF_BATHYMETRY_AMPLIFICATION: float = 1.10  # Funneling & shallow-shelf amplification factor
+INLAND_SURGE_DECAY_KM: float = 35.0  # Wetland & deltaic topography dissipation length scale (km)
+SURGE_TOPO_REDUCTION_FACTOR: float = 0.25  # Ground elevation attenuation factor
+SURGE_MAX_DISTANCE_EYE_KM: float = 600.0  # Eye cutoff distance: surge is zero beyond 600 km
+SURGE_RAMP_DISTANCE_EYE_KM: float = 300.0  # Eye distance threshold where surge attenuation begins
+MAX_PHYSICAL_SURGE_DEPTH_M: float = 6.0  # Physical ceiling for ground-level surge depth (m)
+
+
+def normalize_surge_severity(depth_m: float) -> float:
+    """Normalize storm surge inundation depth (m) above ground to severity score in [0.0, 1.0].
+
+    Mapped continuously across disaster impact and inundation damage thresholds:
+    - depth <= 0.0 m      : 0.00 (No ground inundation)
+    - 0.0 < depth <= 0.3 m: (0.00, 0.15] (Minor nuisance splash / road puddle flooding)
+    - 0.3 < depth <= 1.0 m: (0.15, 0.40] (Moderate / ground-floor water ingress, vehicle stalling)
+    - 1.0 < depth <= 2.5 m: (0.40, 0.75] (Severe / building submergence, mandatory evacuation)
+    - 2.5 < depth <= 4.0 m: (0.75, 1.00] (Extreme / catastrophic structural damage, wave action)
+    - depth >= 4.0 m      : 1.00 (Total structural inundation destruction)
+
+    Guarantees:
+    - Deterministic
+    - Strictly monotonic non-decreasing (depth_a <= depth_b ==> S(depth_a) <= S(depth_b))
+    - Strictly continuous at all piece boundaries
+    - Strictly bounded in [0.0, 1.0]
+    """
+    if depth_m <= 0.0:
+        return 0.0
+    if depth_m <= 0.30:
+        severity = (depth_m / 0.30) * 0.15
+    elif depth_m <= 1.0:
+        severity = 0.15 + ((depth_m - 0.30) / 0.70) * 0.25
+    elif depth_m <= 2.5:
+        severity = 0.40 + ((depth_m - 1.0) / 1.5) * 0.35
+    elif depth_m <= 4.0:
+        severity = 0.75 + ((depth_m - 2.5) / 1.5) * 0.25
+    else:
+        severity = 1.0
+
+    return max(0.0, min(1.0, round(severity, 3)))
+
+
 def compute_surge_metric(cell: GridCell, track_pt: CycloneTrackPoint) -> HazardMetricResult:
     """Compute coastal and estuary storm surge depth (m) above ground and severity [0, 1].
 
-    Driven by atmospheric pressure drop, onshore wind stress, and coastal inundation decay.
+    Implements a deterministic shallow-shelf hydrodynamic surge model driven by:
+    - Inverse barometer effect from cyclone central barometric pressure deficit
+    - Shallow continental shelf wind stress setup driven by Holland wind field
+    - Estuarine funneling and bathymetric shallowing amplification
+    - Storm eye distance modulation (surge is zero for eye > 600 km away)
+    - Exponential inland dissipation through mangrove wetlands and tidal creeks
+    - Local terrain surface elevation reduction (SRTM topography)
+
+    Args:
+        cell: Spatial GridCell with centroid, distance to coast, and SRTM elevation.
+        track_pt: CycloneTrackPoint with eye coordinates, central pressure, and wind speed.
+
+    Returns:
+        HazardMetricResult with value in meters, unit="m", and severity in [0.0, 1.0].
     """
     dist_to_eye = haversine_distance_km(
         cell.centroid_lat, cell.centroid_lon, track_pt.lat, track_pt.lon
     )
 
     # 1. Inverted barometer effect: ~1 cm surge per 1 hPa pressure deficit
-    delta_p = max(0.0, 1012.0 - track_pt.central_pressure_hpa)
-    h_barometer = delta_p * 0.010  # meters
+    delta_p = max(0.0, P_ENV_SURGE_HPA - track_pt.central_pressure_hpa)
+    h_barometer = delta_p * SURGE_BAROMETER_FACTOR  # meters
 
-    # 2. Wind setup: peak onshore winds pushing water into the shallow northern Bay of Bengal shelf
+    # 2. Wind setup: onshore winds pushing water into the shallow northern Bay of Bengal shelf
     wind_res = compute_wind_metric(cell, track_pt)
     v_wind = wind_res.value
-    h_wind_setup = (v_wind / 20.0) ** 2.2 * 0.85
+    h_wind_setup = (
+        (v_wind / WIND_SETUP_REF_SPEED_MPS) ** WIND_SETUP_EXPONENT * WIND_SETUP_COEFF
+    )
 
-    total_coastal_surge = h_barometer + h_wind_setup
+    # 3. Shallow shelf and funneling bathymetric amplification
+    total_coastal_surge = (h_barometer + h_wind_setup) * SHELF_BATHYMETRY_AMPLIFICATION
 
-    # Distance attenuation: surge decays as it travels inland across the delta
-    decay = math.exp(-cell.dist_to_coast_km / 35.0)
+    # 4. Distance attenuation: surge decays as it travels inland across the delta
+    decay = math.exp(-cell.dist_to_coast_km / INLAND_SURGE_DECAY_KM)
     inland_surge = total_coastal_surge * decay
 
-    # Subtract terrain elevation to obtain flood depth above ground level
-    depth = max(0.0, inland_surge - 0.25 * cell.elevation_m)
+    # 5. Topographic subtraction: flood depth above ground level
+    depth = max(0.0, inland_surge - SURGE_TOPO_REDUCTION_FACTOR * cell.elevation_m)
 
-    # If the eye is far away (>600 km), surge is minimal
-    if dist_to_eye > 600.0:
+    # 6. Eye distance modulation: surge is negligible when the storm is far away
+    if dist_to_eye > SURGE_MAX_DISTANCE_EYE_KM:
         depth = 0.0
-    elif dist_to_eye > 300.0:
-        depth *= max(0.0, (600.0 - dist_to_eye) / 300.0)
+    elif dist_to_eye > SURGE_RAMP_DISTANCE_EYE_KM:
+        depth *= max(
+            0.0,
+            (SURGE_MAX_DISTANCE_EYE_KM - dist_to_eye)
+            / (SURGE_MAX_DISTANCE_EYE_KM - SURGE_RAMP_DISTANCE_EYE_KM),
+        )
 
-    depth = round(min(depth, 5.5), 2)
+    depth = round(min(depth, MAX_PHYSICAL_SURGE_DEPTH_M), 2)
 
-    # Severity normalization: 0m -> 0.0, 1.0m -> 0.30, 2.5m -> 0.70, >=4.0m -> 1.0
-    if depth <= 0.05:
-        severity = 0.0
-    elif depth <= 1.0:
-        severity = 0.05 + (depth / 1.0) * 0.25
-    elif depth <= 2.5:
-        severity = 0.30 + ((depth - 1.0) / 1.5) * 0.40
-    else:
-        severity = 0.70 + min(0.30, ((depth - 2.5) / 1.5) * 0.30)
+    # 7. Continuous severity normalization [0, 1]
+    severity = normalize_surge_severity(depth)
 
-    severity = max(0.0, min(1.0, round(severity, 3)))
     return HazardMetricResult(value=depth, unit="m", severity=severity)
 
 
@@ -513,7 +574,7 @@ def generate_wind_layer(timestep: str) -> HazardLayerCollection:
         timestep: ISO 8601 UTC replay timestamp string.
 
     Returns:
-        HazardLayerCollection containing 64 validated HazardLayer features.
+        HazardLayerCollection containing validated HazardLayer features for all AOI cells.
 
     Raises:
         NotImplementedError: If timestep is 'live'.
@@ -554,11 +615,27 @@ def generate_wind_layer(timestep: str) -> HazardLayerCollection:
     return HazardLayerCollection(type="FeatureCollection", features=features)
 
 
-def generate_hazard_layer(hazard_type: HazardType, timestep: str) -> HazardLayerCollection:
-    """Generate a validated FeatureCollection<HazardLayer> for the requested hazard and timestep."""
-    if hazard_type == "wind":
-        return generate_wind_layer(timestep)
+def generate_surge_layer(timestep: str) -> HazardLayerCollection:
+    """Generate a contract-compliant HazardLayerCollection for surge at the requested timestep.
 
+    Validation rules (shared/contracts.md §2, §6):
+    - Validates timestep using the centralized validate_timestep validator.
+    - 'live' raises NotImplementedError.
+    - Other invalid timesteps raise ValueError.
+    - Uses canonical replay track to retrieve the CycloneTrackPoint.
+    - Computes deterministic hydrodynamic storm surge depth (m) for every AOI grid cell.
+    - Returns FeatureCollection<HazardLayer> with hazard_type='surge' and unit='m'.
+
+    Args:
+        timestep: ISO 8601 UTC replay timestamp string.
+
+    Returns:
+        HazardLayerCollection containing validated HazardLayer features for all AOI cells.
+
+    Raises:
+        NotImplementedError: If timestep is 'live'.
+        ValueError: If timestep is not in the official 25 replay timesteps.
+    """
     clean_ts = validate_timestep(timestep)
     if clean_ts == LIVE:
         raise NotImplementedError("live mode is reserved and not implemented in v0.9")
@@ -573,9 +650,48 @@ def generate_hazard_layer(hazard_type: HazardType, timestep: str) -> HazardLayer
 
     features: list[HazardLayer] = []
     for cell in grid_cells:
-        if hazard_type == "surge":
-            metric = compute_surge_metric(cell, track_pt)
-        elif hazard_type == "flood":
+        metric = compute_surge_metric(cell, track_pt)
+        feature_id = f"surge__{cell.id}__{compact_ts}"
+        props = HazardLayerProperties(
+            id=feature_id,
+            hazard_type="surge",
+            timestep=clean_ts,
+            value=metric.value,
+            unit="m",
+            severity=metric.severity,
+        )
+        features.append(
+            HazardLayer(
+                id=feature_id,
+                geometry=cell.polygon,
+                properties=props,
+            )
+        )
+
+    return HazardLayerCollection(type="FeatureCollection", features=features)
+
+
+def generate_hazard_layer(hazard_type: HazardType, timestep: str) -> HazardLayerCollection:
+    """Generate a validated FeatureCollection<HazardLayer> for the requested hazard and timestep."""
+    if hazard_type == "wind":
+        return generate_wind_layer(timestep)
+    if hazard_type == "surge":
+        return generate_surge_layer(timestep)
+
+    clean_ts = validate_timestep(timestep)
+    if clean_ts == LIVE:
+        raise NotImplementedError("live mode is reserved and not implemented in v0.9")
+
+    track_dict = _load_track_dict()
+    if clean_ts not in track_dict:
+        raise ValueError(f"Unknown replay timestep: {clean_ts}")
+
+    grid_cells = get_aoi_grid()
+    compact_ts = iso_to_compact_ts(clean_ts)
+
+    features: list[HazardLayer] = []
+    for cell in grid_cells:
+        if hazard_type == "flood":
             metric = compute_flood_susceptibility_metric(cell)
         else:
             raise ValueError(f"Unsupported hazard_type: {hazard_type}")
