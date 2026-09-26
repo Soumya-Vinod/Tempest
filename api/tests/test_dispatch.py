@@ -23,6 +23,11 @@ TOKEN = "123456:SECRET-bot-token"
 APP_PASSWORD = "abcd efgh ijkl mnop"
 PIN = "4321"
 SAGAR, TS = "02438", "2020-05-20T09:00:00Z"
+LABEL = {
+    "en": "⚠️ [EXERCISE: Cyclone Amphan 2020 replay]",
+    "bn": "⚠️ [মহড়া: ঘূর্ণিঝড় আমফান ২০২০ রিপ্লে]",
+    "hi": "⚠️ [अभ्यास: चक्रवात अम्फान 2020 रीप्ले]",
+}
 
 
 def settings(**overrides) -> Settings:
@@ -70,6 +75,12 @@ def make_advisory(status: str = "approved", block_id: str = SAGAR, block_name: s
     with store.transaction() as conn:
         store.save(conn, advisory)
     return advisory
+
+
+def make_text(lang: str):
+    from app.schemas import AdvisoryText
+
+    return AdvisoryText(**texts(lang))
 
 
 class FakeTelegram:
@@ -302,8 +313,10 @@ def test_live_dispatch_sends_both_channels_and_marks_sent(env):
     # Telegram: bn first, then en, plain text, to the configured chat.
     tg = env.telegram.messages
     assert [m["chat_id"] for m in tg] == ["-1009876543210"] * 2
-    assert tg[0]["text"].startswith(texts("bn")["headline"])
-    assert tg[1]["text"].startswith(texts("en")["headline"])
+    # The exercise label is the first line (the notification preview), then a blank line.
+    assert tg[0]["text"].startswith(f"{LABEL['bn']}\n\n{texts('bn')['headline']}\n\n")
+    assert tg[1]["text"].startswith(f"{LABEL['en']}\n\n{texts('en')['headline']}\n\n")
+    assert texts("bn")["body"] in tg[0]["text"]  # the body keeps its own prefix
     assert "parse_mode" not in tg[0]
 
     # E-mail: STARTTLS before login, [EXERCISE] subject, en then bn, CAP attached and valid.
@@ -320,6 +333,8 @@ def test_live_dispatch_sends_both_channels_and_marks_sent(env):
     body = next(p for p in parts if p.get_content_type() == "text/plain").get_payload(decode=True)
     body = body.decode("utf-8")
     assert body.index(texts("en")["headline"]) < body.index(texts("bn")["headline"])
+    assert body.startswith(f"{LABEL['en']}\n\n{texts('en')['headline']}\n\n")
+    assert f"----------\n\n{LABEL['bn']}\n\n{texts('bn')['headline']}" in body
     attachment = next(p for p in parts if p.get_filename())
     assert attachment.get_filename() == "tempest-cap-02438-20200520T090000Z.xml"
     assert cap.errors(attachment.get_payload(decode=True).decode("utf-8")) == []
@@ -453,3 +468,28 @@ def test_long_messages_are_split_under_telegrams_limit():
     assert all(len(p) <= channels.TELEGRAM_MAX_CHARS for p in parts)
     assert "".join(parts).replace("\n", "") == text.replace("\n", "")
     assert channels.split_message("short") == ["short"]
+
+
+def test_every_telegram_message_starts_with_the_label_even_when_split(env):
+    a = make_advisory()
+    long_body = "\n".join(f"line {i}: " + "x" * 90 for i in range(80))  # ~8 000 characters
+    props = a.properties.model_copy(
+        update={
+            "texts": a.properties.texts.model_copy(
+                update={"bn": make_text("bn").model_copy(update={"body": long_body})}
+            )
+        }
+    )
+    messages = channels.telegram_messages(Advisory(id=props.id, properties=props))
+    bn = [m for m in messages if m.startswith(LABEL["bn"])]
+    assert len(bn) >= 2  # split into several messages
+    assert all(m.startswith(f"{LABEL['bn']}\n\n") for m in bn)
+    assert all(m.startswith((LABEL["bn"], LABEL["en"])) for m in messages)
+    assert all(len(m) <= channels.TELEGRAM_MAX_CHARS for m in messages)
+    assert messages[-1].startswith(f"{LABEL['en']}\n\n{texts('en')['headline']}")
+
+
+def test_plain_text_puts_the_label_first_in_each_language():
+    for lang in ("en", "bn", "hi"):
+        text = channels.plain_text(make_text(lang), lang)
+        assert text.split("\n\n")[:2] == [LABEL[lang], texts(lang)["headline"]]

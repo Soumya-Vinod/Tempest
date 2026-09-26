@@ -18,6 +18,7 @@ from email.utils import make_msgid
 
 import httpx
 
+from app.advisory import render
 from app.core.config import Settings
 from app.schemas import Advisory, AdvisoryText
 
@@ -65,9 +66,20 @@ def email_configured(settings: Settings) -> bool:
     )
 
 
-def plain_text(t: AdvisoryText) -> str:
+def exercise_label(language: str) -> str:
+    """First line of every dispatched message, so a notification preview shows it first."""
+    return f"⚠️ {render.EXERCISE_PREFIX[language]}"
+
+
+def _content(t: AdvisoryText) -> str:
     actions = "\n".join(f"{i}. {a}" for i, a in enumerate(t.actions, 1))
     return f"{t.headline}\n\n{t.body}\n\n{actions}"
+
+
+def plain_text(t: AdvisoryText, language: str) -> str:
+    """The exercise label, a blank line, then headline, body (which keeps its own prefix) and
+    the numbered actions."""
+    return f"{exercise_label(language)}\n\n{_content(t)}"
 
 
 def split_message(text: str, limit: int = TELEGRAM_MAX_CHARS) -> list[str]:
@@ -93,12 +105,14 @@ def split_message(text: str, limit: int = TELEGRAM_MAX_CHARS) -> list[str]:
 
 
 def telegram_messages(advisory: Advisory) -> list[str]:
+    """bn then en; a text over the limit is split, and every part starts with the label."""
     texts = advisory.properties.texts
-    return [
-        part
-        for lang in TELEGRAM_LANGUAGES
-        for part in split_message(plain_text(getattr(texts, lang)))
-    ]
+    messages = []
+    for lang in TELEGRAM_LANGUAGES:
+        label = f"{exercise_label(lang)}\n\n"
+        parts = split_message(_content(getattr(texts, lang)), TELEGRAM_MAX_CHARS - len(label))
+        messages += [label + part for part in parts]
+    return messages
 
 
 def send_telegram(
@@ -138,7 +152,9 @@ def email_message(settings: Settings, advisory: Advisory, cap_xml: str) -> Email
     msg["From"] = settings.GMAIL_ADDRESS
     msg["To"] = ", ".join(email_recipients(settings))
     msg["Message-ID"] = make_msgid(domain="tempest.invalid")
-    body = "\n\n----------\n\n".join(plain_text(getattr(p.texts, lang)) for lang in EMAIL_LANGUAGES)
+    body = "\n\n----------\n\n".join(
+        plain_text(getattr(p.texts, lang), lang) for lang in EMAIL_LANGUAGES
+    )
     msg.set_content(body, charset="utf-8")
     compact = p.timestep.replace("-", "").replace(":", "")
     msg.add_attachment(
