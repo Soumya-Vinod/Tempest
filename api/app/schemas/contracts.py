@@ -557,6 +557,12 @@ class SentinelValidationMetrics(ContractModel):
     observed_flooded_km2: float
     predicted_flooded_km2: float
     intersection_km2: float
+    # Optional extensions for quantitative benchmarking
+    accuracy: UnitFraction | None = None
+    false_positive_km2: float | None = None
+    missed_flood_km2: float | None = None
+    true_negative_km2: float | None = None
+    confusion_matrix: dict[str, float] | None = None
 
 
 class SentinelValidationAOI(ContractModel):
@@ -586,4 +592,6 @@ class SentinelValidationResponse(ContractModel):
     acquisition_dates: dict[str, str]
     satellite: str = "Sentinel-1 (Copernicus SAR)"
     baseline_event: str = "Cyclone Amphan Landfall (2020-05-20T12:00:00Z)"
+    mode: Literal["demo", "live"] | None = None
+    artifacts: dict[str, str] | None = None
 
