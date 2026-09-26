@@ -10,9 +10,9 @@ InfraType = Literal["substation", "power_line", "road", "hospital", "shelter"]
 ImpactStatus = Literal["ok", "at_risk", "cut", "isolated"]
 StepType = Literal["hazard", "infra", "service"]
 Language = Literal["en", "bn", "hi"]
-# "rejected": v1.2 change, pending Dev A.
+# "rejected": added in v1.2.
 AdvisoryStatus = Literal["draft", "approved", "sent", "rejected"]
-# Advisory audit log actions (§4.5, v1.2 change pending Dev A).
+# Advisory audit log actions (§4.5, added in v1.2).
 AuditAction = Literal[
     "generated",
     "number_check_failed",
@@ -23,7 +23,7 @@ AuditAction = Literal[
     "new_draft",
     "copied",
     "sent",
-    "dispatched",  # one per channel attempt, incl. dry runs (v1.2 change, pending Dev A)
+    "dispatched",  # one per channel attempt, incl. dry runs (added in v1.2)
 ]
 TriggerMetric = Literal["wind_speed", "surge_depth"]
 BlockSource = Literal["census2011_cd", "h3_r7"]
@@ -44,9 +44,9 @@ RiskDriver = Literal[
 # (§4.4 risk breakdown, added in v1.1).
 RiskReach = Literal["direct", "cut_off"]
 Channel = Literal["telegram", "email"]
-# The model that wrote an advisory draft (v1.2 change, pending Dev A).
+# The model that wrote an advisory draft (added in v1.2).
 ModelProvider = Literal["gemini", "groq"]
-# dry_run: built and validated, not sent (v1.2 change, pending Dev A).
+# dry_run: built and validated, not sent (added in v1.2).
 ChannelStatus = Literal["sent", "failed", "dry_run"]
 
 TIMESTEP_FORMAT = "%Y-%m-%dT%H:%M:%SZ"

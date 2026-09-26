@@ -60,11 +60,11 @@ ROUTE_SCHEMAS = {
     ],
     # Advisory state lives in SQLite; its only fixtures are raw gemini-* responses.
     "advisory": [],
-    # Dispatch receipts live in SQLite (v1.2 change, pending Dev A: receipt fixture dropped).
+    # Dispatch receipts live in SQLite (added in v1.2: receipt fixture dropped).
     "dispatch": [],
     "insurance": [
         (r"triggers", TriggerEventCollection, True, None),
-        (r"summary", InsuranceSummary, False, None),  # v1.2 change, pending Dev A
+        (r"summary", InsuranceSummary, False, None),  # added in v1.2
     ],
 }
 FIXTURES = sorted(DEMO_DIR.glob("*.json"))

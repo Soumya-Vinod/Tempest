@@ -1,5 +1,5 @@
 """Insurance service for GET /api/insurance/triggers and /summary (contracts.md §4.6, §5; the
-summary route, tiers and released amounts: v1.2 change, pending Dev A). ILLUSTRATIVE terms.
+summary route, tiers and released amounts: added in v1.2). ILLUSTRATIVE terms.
 
 Live: readings per timestep from Dev A's hazard layers (the impact service's cache), each
 computed once; a timestep's released amounts need every timestep up to it.

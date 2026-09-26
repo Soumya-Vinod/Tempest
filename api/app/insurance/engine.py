@@ -1,5 +1,5 @@
 """Parametric triggers per CD block (contracts.md §4.6; tiers, released amounts and the summary:
-v1.2 change, pending Dev A). The terms are in constants.py (illustrative).
+added in v1.2). The terms are in constants.py (illustrative).
 
 Per timestep and block: each hazard's reading is the nearest-rank 90th percentile of the cells
 overlapping the block's inhabited land by >= MIN_OVERLAP_KM2; each reading maps to a tier; the
