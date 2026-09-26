@@ -38,7 +38,7 @@ The Hazard Engine provides a unified interface for downstream impact and risk co
 │   ┌───────────────────────┐  ┌───────────────────────┐  ┌────────────────────┐   │
 │   │ generate_wind_layer   │  │ generate_surge_layer  │  │generate_flood_layer│   │
 │   │ Holland (1980) vortex │  │ Hydrodynamic setup    │  │ MCDA AHP (6 factors│   │
-│   │ m/s in [6.0, 75.0]    │  │ m in [0.0, 6.0]       │  │ index [0.17, 0.95]  │   │
+│   │ m/s in [6.0, 65.0]    │  │ m in [0.0, 6.0]       │  │ index [0.17, 0.95]  │   │
 │   │ severity in [0.0, 1.0]│  │ severity in [0.0, 1.0]│  │severity in [0, 1.0] │   │
 │   └──────────┬────────────┘  └───────────┬───────────┘  └─────────┬──────────┘   │
 └──────────────┼───────────────────────────┼────────────────────────┼──────────────┘
@@ -83,7 +83,7 @@ Each feature in a hazard layer is verified against the canonical contract (`shar
    - `surge`: `"m"`
    - `flood`: `"index"`
 5. **Physical Value Bounds**:
-   - `wind`: $v \in [0.0, 75.0]\text{ m/s}$ (observed ambient floor $6.0\text{ m/s}$)
+   - `wind`: $v \in [0.0, 65.0]\text{ m/s}$ (observed ambient floor $6.0\text{ m/s}$)
    - `surge`: $D \in [0.0, 6.0]\text{ m}$ (strictly non-negative)
    - `flood`: $I \in [0.05, 0.98]$ (empirical range $[0.17, 0.95]$)
 6. **Severity Normalization**: Severity $S \in [0.0, 1.0]$ with strict monotonic mapping from physical metric value.
@@ -120,7 +120,7 @@ Phase 7 verified that the underlying equations and constants from Phases 4, 5, a
 - **Ambient Wind Floor**: Enforced baseline:
   $$v_{amb} = 6.0 + \max\left(0.0, 14.0 - \frac{r}{60\text{ km}}\right)$$
   ensuring far-field cells maintain a physical breeze floor ($6.0\text{ m/s}$).
-- **Physical Ceiling**: $V_{max} = 75.0\text{ m/s}$.
+- **Physical Ceiling**: $V_{max} = 65.0\text{ m/s}$ ($234\text{ km/h}$).
 - **Severity Normalization**: Mapped to official IMD cyclone classifications:
   - $[0, 10\text{ m/s}] \to [0.00, 0.20]$ (Calm to Moderate Breeze)
   - $(10, 17\text{ m/s}] \to (0.20, 0.35]$ (Strong Breeze / Depression)
@@ -243,7 +243,7 @@ A rigorous backward-compatibility audit verified that no existing functionality 
 | **Phase 3** | Cyclone Replay Track | 25 track points, valid motion vector, pressure deficit, radius of maximum winds | **VERIFIED** |
 | **Phase 3** | Track Fixture | `hazard__track.json` parses and serializes roundtrip without modification | **VERIFIED** |
 | **Phase 4** | Holland Wind Model | Dynamic shape parameter $B$, forward motion asymmetry, friction, 25 wind fixtures | **VERIFIED** |
-| **Phase 4** | Wind Normalization | Monotonic mapping into $[0, 1]$, bounds $[6.0, 75.0]\text{ m/s}$ | **VERIFIED** |
+| **Phase 4** | Wind Normalization | Monotonic mapping into $[0, 1]$, bounds $[6.0, 65.0]\text{ m/s}$ | **VERIFIED** |
 | **Phase 4** | Wind Fixtures | All 25 wind fixtures exist, validate against schema, and match computed output | **VERIFIED** |
 | **Phase 5** | Storm Surge Model | Inverse barometer, $(V/20)^{2.2} \times 0.85$ setup, $K_{shelf} = 1.10$, $\lambda = 35\text{ km}$, 25 surge fixtures | **VERIFIED** |
 | **Phase 5** | Surge Normalization | Monotonic mapping into $[0, 1]$, strictly non-negative depths $[0.0, 6.0]\text{ m}$ | **VERIFIED** |
