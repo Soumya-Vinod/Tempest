@@ -286,3 +286,30 @@ def export_geojson(
         logger.warning("Error exporting GeoJSON from GEE object: %s", e)
     return None
 
+
+# Re-export Sentinel-1 acquisition utilities
+from app.hazard.sentinel_acquisition import (  # noqa: E402
+    find_post_landfall_image,
+    find_pre_landfall_image,
+    get_sentinel_image_metadata,
+    load_sentinel_collection,
+    load_sentinel_pair,
+)
+
+__all__ = [
+    "init_ee",
+    "is_ee_available",
+    "get_elevation_for_aoi",
+    "get_era5_wind_at_timestep",
+    "load_dem",
+    "load_rainfall",
+    "load_worldcover",
+    "load_surface_water",
+    "export_geojson",
+    "load_sentinel_collection",
+    "find_pre_landfall_image",
+    "find_post_landfall_image",
+    "load_sentinel_pair",
+    "get_sentinel_image_metadata",
+]
+
