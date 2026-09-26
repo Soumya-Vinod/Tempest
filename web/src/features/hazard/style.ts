@@ -52,19 +52,17 @@ export interface ImdCategory {
   name: string
   /** Lower bound, km/h (IMD's knot thresholds: 17, 28, 34, 48, 64, 90, 120 kt). */
   minKmh: number
-  color: [number, number, number]
 }
 
 export const IMD_CATEGORIES: ImdCategory[] = [
-  { name: 'Depression', minKmh: 31, color: [254, 240, 138] },
-  { name: 'Deep Depression', minKmh: 50, color: [253, 224, 71] },
-  { name: 'Cyclonic Storm', minKmh: 62, color: [251, 146, 60] },
-  { name: 'Severe Cyclonic Storm', minKmh: 89, color: [239, 68, 68] },
-  { name: 'Very Severe Cyclonic Storm', minKmh: 118, color: [190, 18, 60] },
-  { name: 'Extremely Severe Cyclonic Storm', minKmh: 166, color: [134, 25, 143] },
-  { name: 'Super Cyclonic Storm', minKmh: 221, color: [59, 7, 100] },
+  { name: 'Depression', minKmh: 31 },
+  { name: 'Deep Depression', minKmh: 50 },
+  { name: 'Cyclonic Storm', minKmh: 62 },
+  { name: 'Severe Cyclonic Storm', minKmh: 89 },
+  { name: 'Very Severe Cyclonic Storm', minKmh: 118 },
+  { name: 'Extremely Severe Cyclonic Storm', minKmh: 166 },
+  { name: 'Super Cyclonic Storm', minKmh: 221 },
 ]
-const WIND_ALPHA = 150
 
 /** The IMD category for a sustained wind speed in km/h; null below a Depression. */
 export function imdCategory(kmh: number): ImdCategory | null {
@@ -73,9 +71,14 @@ export function imdCategory(kmh: number): ImdCategory | null {
   return found
 }
 
-export const rgbCss = ([r, g, b]: [number, number, number], alpha = 1) =>
-  `rgba(${r}, ${g}, ${b}, ${alpha})`
-export const WIND_SWATCH_ALPHA = WIND_ALPHA / 255
+// Wind is drawn as isotachs (contours.ts): dark slate lines at the category boundaries, heavier
+// for higher categories. No fill colour: red and orange are reserved for impact, and a fill
+// would hide the surge underneath.
+export const ISOTACH_COLOR: Color = [51, 65, 85, 230]
+export const ISOTACH_CSS = 'rgb(51 65 85)'
+export const ISOTACH_LABEL_BG: Color = [255, 255, 255, 210]
+/** Line width in px for isotach level 0 (50 km/h) … 5 (221 km/h). */
+export const isotachWidth = (level: number) => 1 + 0.5 * level
 
 // --- Flood susceptibility (static, muted) --------------------------------------------------------
 
@@ -106,16 +109,9 @@ export const STORM_OUTLINE: Color = [255, 255, 255, 255]
 // Module-level functions: raster.ts caches images per function, so they must stay stable.
 
 const SURGE_BASE = SURGE_STOPS[0]
-const WIND_BASE = IMD_CATEGORIES[0].color
 
 /** Surge pixel: the legend's colour and opacity; transparent at or below SURGE_MIN_M. */
 export function surgePixel(depthM: number): [number, number, number, number] {
   if (depthM <= SURGE_MIN_M) return [...SURGE_BASE, 0]
   return surgeRgba(depthM)
-}
-
-/** Wind pixel: the IMD category colour; transparent below a Depression. */
-export function windPixel(ms: number): [number, number, number, number] {
-  const c = imdCategory(toKmh(ms))
-  return c ? [...c.color, WIND_ALPHA] : [...WIND_BASE, 0]
 }

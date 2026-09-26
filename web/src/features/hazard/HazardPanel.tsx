@@ -1,13 +1,13 @@
 import type { CycloneTrackPoint, HazardLayer } from '../../types/contracts'
+import { ISOTACH_LEVELS } from './contours'
 import {
   FLOOD_RAMP_CSS,
-  IMD_CATEGORIES,
   imdCategory,
-  rgbCss,
+  ISOTACH_CSS,
+  isotachWidth,
   SURGE_RAMP_CSS,
   SURGE_TICKS_M,
   toKmh,
-  WIND_SWATCH_ALPHA,
 } from './style'
 import type { HazardState, MapViewMode } from './useHazard'
 
@@ -131,27 +131,25 @@ export default function HazardPanel(props: HazardPanelProps) {
           <p className="text-[11px] text-slate-500">Depth above ground; fixed scale, cells over 0.05 m.</p>
           <Status state={props.surge} />
 
-          <Toggle label="Wind (IMD categories)" on={props.wind.on} onToggle={props.wind.onToggle} />
+          <Toggle label="Wind isotachs (IMD categories)" on={props.wind.on} onToggle={props.wind.onToggle} />
           {props.wind.on && (
             <>
-              <ul className="mt-1 space-y-0.5 text-[11px] text-slate-600">
-                {IMD_CATEGORIES.map((c, i) => {
-                  const next = IMD_CATEGORIES[i + 1]
-                  return (
-                    <li key={c.name} className="flex items-center gap-2">
-                      <span
-                        className="size-3 rounded-sm"
-                        style={{ background: rgbCss(c.color, WIND_SWATCH_ALPHA) }}
-                        aria-hidden
-                      />
-                      <span className="flex-1">{c.name}</span>
-                      <span className="tabular-nums">
-                        {next ? `${c.minKmh}–${next.minKmh - 1}` : `≥ ${c.minKmh}`} km/h
-                      </span>
-                    </li>
-                  )
-                })}
+              <ul className="mt-1 space-y-1 text-[11px] text-slate-600">
+                {ISOTACH_LEVELS.map((l, level) => (
+                  <li key={l.kmh} className="flex items-center gap-2">
+                    <span
+                      className="w-6 shrink-0 rounded-full"
+                      style={{ height: isotachWidth(level), background: ISOTACH_CSS }}
+                      aria-hidden
+                    />
+                    <span className="w-14 shrink-0 tabular-nums">{l.kmh} km/h</span>
+                    <span>{l.category}</span>
+                  </li>
+                ))}
               </ul>
+              <p className="mt-1 text-[11px] text-slate-500">
+                Lines at the category boundaries; hover a line for its category.
+              </p>
               <Status state={props.wind.state} />
             </>
           )}

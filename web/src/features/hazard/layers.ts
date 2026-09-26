@@ -2,6 +2,7 @@
 import type { Color, Layer, PickingInfo } from '@deck.gl/core'
 import {
   MaskExtension,
+  type MaskExtensionProps,
   PathStyleExtension,
   type PathStyleExtensionProps,
 } from '@deck.gl/extensions'
@@ -10,17 +11,22 @@ import {
   type BitmapLayerProps,
   GeoJsonLayer,
   PathLayer,
+  PolygonLayer,
   ScatterplotLayer,
   TextLayer,
 } from '@deck.gl/layers'
 import type { Feature } from 'geojson'
 
 import type { CycloneTrackPoint, HazardLayer } from '../../types/contracts'
+import { type Isotach, type IsotachLabel, isotachs } from './contours'
 import land from './land.json'
 import { type Colorize, hazardImage } from './raster'
 import {
   floodColor,
   imdCategory,
+  ISOTACH_COLOR,
+  ISOTACH_LABEL_BG,
+  isotachWidth,
   STORM_FILL,
   STORM_OUTLINE,
   SURGE_MIN_M,
@@ -28,7 +34,6 @@ import {
   toKmh,
   TRACK_COLOR,
   TRACK_FUTURE_COLOR,
-  windPixel,
 } from './style'
 
 const EMPTY = { type: 'FeatureCollection' as const, features: [] as HazardLayer[] }
@@ -68,21 +73,41 @@ function imageLayer(id: string, cells: HazardLayer[] | null, colorize: Colorize)
   ]
 }
 
-/** Invisible, land-masked cells for the tooltip ("Surge 2.7 m"). */
-function pickCells(id: string, cells: HazardLayer[]): Layer {
-  return new GeoJsonLayer<HazardLayer['properties']>({
-    id,
-    data: collection(cells),
-    pickable: true,
-    stroked: false,
-    getFillColor: PICK_ONLY,
-    ...MASK,
-  })
+/** One hover target per grid cell, with every hazard shown there (one tooltip for all). */
+interface CellValues {
+  geometry: HazardLayer['geometry']
+  surge: number | null
+  wind: number | null
+  flood: number | null
+}
+
+/** "c0042" from "surge__c0042__20200520T0900Z": the same cell across hazard types. */
+const cellKey = (f: HazardLayer) => f.properties.id.split('__')[1] ?? f.properties.id
+
+function cellValues(cells: {
+  flood: HazardLayer[] | null
+  surge: HazardLayer[] | null
+  wind: HazardLayer[] | null
+}): CellValues[] {
+  const out = new Map<string, CellValues>()
+  const add = (layer: HazardLayer[] | null, set: (v: CellValues, f: HazardLayer) => void) => {
+    for (const f of layer ?? []) {
+      const key = cellKey(f)
+      let v = out.get(key)
+      if (!v) out.set(key, (v = { geometry: f.geometry, surge: null, wind: null, flood: null }))
+      set(v, f)
+    }
+  }
+  add(cells.surge, (v, f) => (v.surge = f.properties.value))
+  add(cells.wind, (v, f) => (v.wind = f.properties.value))
+  add(cells.flood, (v, f) => (v.flood = f.properties.severity))
+  return [...out.values()]
 }
 
 /**
- * Hazard fills, bottom to top: flood susceptibility (masked cells), surge and wind (smoothed,
- * masked images, each with invisible pickable cells). All clipped to land by the mask layer.
+ * Hazard fills, bottom to top: flood susceptibility (masked cells), surge (smoothed, masked
+ * image), wind isotachs (masked lines with km/h labels), then one invisible, masked hover layer
+ * per cell for the tooltip. Everything is clipped to land by the mask layer.
  */
 export function buildHazardFills(cells: {
   flood: HazardLayer[] | null
@@ -95,29 +120,57 @@ export function buildHazardFills(cells: {
       new GeoJsonLayer<HazardLayer['properties']>({
         id: 'hazard-flood',
         data: collection(cells.flood),
-        pickable: true,
+        pickable: false, // hovered through hazard-cells
         stroked: false,
         getFillColor: (f) => floodColor(f.properties.severity),
         ...MASK,
       }),
     )
   }
-  if (cells.surge) {
-    layers.push(...imageLayer('hazard-surge-image', cells.surge, surgePixel))
+  if (cells.surge) layers.push(...imageLayer('hazard-surge-image', cells.surge, surgePixel))
+  if (cells.flood || cells.surge || cells.wind) {
     layers.push(
-      pickCells(
-        'hazard-surge',
-        cells.surge.filter((f) => f.properties.value > SURGE_MIN_M),
-      ),
+      new PolygonLayer<CellValues>({
+        id: 'hazard-cells',
+        data: cellValues(cells),
+        getPolygon: (d) => (d.geometry.type === 'Polygon' ? d.geometry.coordinates : d.geometry.coordinates[0]),
+        pickable: true,
+        stroked: false,
+        getFillColor: PICK_ONLY,
+        ...MASK,
+      }),
     )
   }
   if (cells.wind) {
-    layers.push(...imageLayer('hazard-wind-image', cells.wind, windPixel))
+    const { lines, labels } = isotachs(cells.wind)
     layers.push(
-      pickCells(
-        'hazard-wind',
-        cells.wind.filter((f) => imdCategory(toKmh(f.properties.value))),
-      ),
+      new PathLayer<Isotach>({
+        id: 'hazard-isotachs',
+        data: lines,
+        getPath: (d) => d.path,
+        getColor: ISOTACH_COLOR,
+        widthUnits: 'pixels',
+        getWidth: (d) => isotachWidth(d.level),
+        jointRounded: true,
+        capRounded: true,
+        pickable: true,
+        ...MASK,
+      }),
+      new TextLayer<IsotachLabel, MaskExtensionProps>({
+        id: 'hazard-isotach-labels',
+        data: labels,
+        getPosition: (d) => d.position,
+        getText: (d) => `${d.kmh} km/h`,
+        getSize: 11,
+        getColor: ISOTACH_COLOR,
+        fontWeight: 600,
+        background: true,
+        getBackgroundColor: ISOTACH_LABEL_BG,
+        backgroundPadding: [3, 1],
+        extensions: [new MaskExtension()],
+        maskId: LAND_MASK_ID,
+        maskByInstance: true, // whole labels, by anchor
+      }),
     )
   }
   return layers
@@ -213,12 +266,20 @@ function hazardText(info: PickingInfo): string | null {
     const category = imdCategory(kmh)
     return `Cyclone Amphan\n${Math.round(kmh)} km/h${category ? `, ${category.name}` : ''}\n${p.central_pressure_hpa} hPa`
   }
-  if (!id.startsWith('hazard-')) return null
-  const p = (info.object as HazardLayer).properties
-  if (id === 'hazard-surge') return `Storm surge ${p.value.toFixed(1)} m above ground`
-  if (id === 'hazard-wind') {
-    const kmh = toKmh(p.value)
-    return `Wind ${Math.round(kmh)} km/h, ${imdCategory(kmh)?.name ?? 'below depression'}`
+  if (id === 'hazard-isotachs') {
+    const line = info.object as Isotach
+    return `Isotach ${line.kmh} km/h: ${line.category}`
   }
-  return `Flood susceptibility ${p.severity.toFixed(2)} (static)`
+  if (id !== 'hazard-cells') return null
+  const v = info.object as CellValues
+  const lines: string[] = []
+  if (v.surge !== null && v.surge > SURGE_MIN_M) {
+    lines.push(`Storm surge ${v.surge.toFixed(1)} m above ground`)
+  }
+  if (v.wind !== null) {
+    const kmh = toKmh(v.wind)
+    lines.push(`Wind ${Math.round(kmh)} km/h, ${imdCategory(kmh)?.name ?? 'below depression'}`)
+  }
+  if (v.flood !== null) lines.push(`Flood susceptibility ${v.flood.toFixed(2)} (static)`)
+  return lines.length ? lines.join('\n') : null
 }

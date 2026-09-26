@@ -78,26 +78,53 @@ function sample(g: Grid, x: number, y: number): number {
   return south * (1 - fy) + north * fy
 }
 
-function render(g: Grid, colorize: Colorize): HTMLCanvasElement {
+/**
+ * The grid values interpolated at UPSAMPLE x: `width` x `height` samples, row-major from the
+ * north-west (canvas order), each at a pixel centre inside `bounds`.
+ */
+export interface Interpolated {
+  width: number
+  height: number
+  values: Float32Array
+  bounds: Bounds
+}
+
+function interpolate(g: Grid): Interpolated {
   const width = g.cols * UPSAMPLE
   const height = g.rows * UPSAMPLE
+  const values = new Float32Array(width * height)
+  for (let py = 0; py < height; py++) {
+    // Canvas rows run north to south; grid rows south to north.
+    const y = (height - py - 0.5) / UPSAMPLE - 0.5
+    for (let px = 0; px < width; px++) {
+      values[py * width + px] = sample(g, (px + 0.5) / UPSAMPLE - 0.5, y)
+    }
+  }
+  return { width, height, values, bounds: g.bounds }
+}
+
+const interpolated = new WeakMap<HazardLayer[], Interpolated | null>()
+
+/** Cached per fetched cell array (the fetch cache returns the same array per timestep). */
+export function interpolatedGrid(cells: HazardLayer[]): Interpolated | null {
+  if (!interpolated.has(cells)) {
+    const grid = toGrid(cells)
+    interpolated.set(cells, grid ? interpolate(grid) : null)
+  }
+  return interpolated.get(cells) ?? null
+}
+
+function render(grid: Interpolated, colorize: Colorize): HTMLCanvasElement {
+  const { width, height, values } = grid
   const canvas = document.createElement('canvas')
   canvas.width = width
   canvas.height = height
   const ctx = canvas.getContext('2d')
   if (!ctx) return canvas
   const img = ctx.createImageData(width, height)
-  for (let py = 0; py < height; py++) {
-    // Canvas rows run north to south; grid rows south to north.
-    const y = (height - py - 0.5) / UPSAMPLE - 0.5
-    for (let px = 0; px < width; px++) {
-      const [r, gr, b, a] = colorize(sample(g, (px + 0.5) / UPSAMPLE - 0.5, y))
-      const o = (py * width + px) * 4
-      img.data[o] = r
-      img.data[o + 1] = gr
-      img.data[o + 2] = b
-      img.data[o + 3] = a
-    }
+  for (let i = 0; i < values.length; i++) {
+    const [r, g, b, a] = colorize(values[i])
+    img.data.set([r, g, b, a], i * 4)
   }
   ctx.putImageData(img, 0, 0)
   return canvas
@@ -111,7 +138,7 @@ export function hazardImage(cells: HazardLayer[], colorize: Colorize): HazardIma
   let byScale = images.get(cells)
   if (!byScale) images.set(cells, (byScale = new Map()))
   if (!byScale.has(colorize)) {
-    const grid = toGrid(cells)
+    const grid = interpolatedGrid(cells)
     byScale.set(colorize, grid ? { image: render(grid, colorize), bounds: grid.bounds } : null)
   }
   return byScale.get(colorize) ?? null
