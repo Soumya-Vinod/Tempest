@@ -48,7 +48,19 @@ export type InfraType = "substation" | "power_line" | "road" | "hospital" | "she
 export type ImpactStatus = "ok" | "at_risk" | "cut" | "isolated";
 export type StepType = "hazard" | "infra" | "service";
 export type Language = "en" | "bn" | "hi";
-export type AdvisoryStatus = "draft" | "approved" | "sent";
+/** "rejected": v1.2 change, pending Dev A. */
+export type AdvisoryStatus = "draft" | "approved" | "sent" | "rejected";
+/** Advisory audit log actions (§4.5, v1.2 change pending Dev A). */
+export type AuditAction =
+  | "generated"
+  | "number_check_failed"
+  | "invalid_response"
+  | "edited"
+  | "approved"
+  | "rejected"
+  | "new_draft"
+  | "copied"
+  | "sent";
 export type TriggerMetric = "wind_speed" | "surge_depth";
 export type BlockSource = "census2011_cd" | "h3_r7";
 /** The largest contributing part of a RiskScore (§4.4, added in v1.1). */
@@ -185,23 +197,57 @@ export interface RiskBreakdown {
 // ---------- §4.5 Advisory (Dev B) ----------
 
 export interface Citation {
-  key: string;
+  key: string; // ^[a-z0-9_]+$
   label: string;
-  value: number;
+  value: number | string; // string: v1.2 change pending Dev A (names, causes)
   unit: string | null;
   source: string;
 }
+/** v1.2 change pending Dev A: one Advisory per block and timestep, all three languages. */
+export interface AdvisoryText {
+  headline: string;
+  body: string;
+  actions: string[]; // 3 to 5
+}
+export type AdvisoryTexts = Record<Language, AdvisoryText>;
 export interface AdvisoryProperties {
   id: AdvisoryId;
   block_id: BlockId;
+  block_name: string; // v1.2 change pending Dev A
   timestep: Timestep;
-  language: Language;
-  body: string;
+  texts: AdvisoryTexts; // figures filled in; body starts with the exercise label
+  templates: AdvisoryTexts; // {{key}} placeholders, no label
   citations: Citation[];
   status: AdvisoryStatus;
-  approved_by: string | null; // required once status !== "draft"
-  approved_at: IsoDateTime | null; // required once status !== "draft"
+  approved_by: string | null; // required once approved or sent: "Name (Designation)"
+  approved_at: IsoDateTime | null; // required once approved or sent
+  rejection_reason: string | null; // required once rejected (v1.2 change pending Dev A)
+  rejected_at: IsoDateTime | null; // required once rejected
+  created_from: AdvisoryId | null; // "New draft from this" (v1.2 change pending Dev A)
   created_at: IsoDateTime;
+}
+/** v1.2 change pending Dev A. advisory_id null: a generation that produced no advisory. */
+export interface AuditEvent {
+  id: number;
+  advisory_id: AdvisoryId | null;
+  action: AuditAction;
+  actor: string | null;
+  at: IsoDateTime;
+  details: string | null; // JSON text
+}
+export interface AuditLog {
+  events: AuditEvent[];
+}
+/** v1.2 change pending Dev A. */
+export interface AdvisorySuggestion {
+  block_id: BlockId;
+  block_name: string;
+  score: number;
+}
+export interface AdvisorySuggestions {
+  timestep: Timestep;
+  threshold: number;
+  blocks: AdvisorySuggestion[];
 }
 export type Advisory = Feature<null, AdvisoryProperties>;
 export type AdvisoryCollection = FeatureCollection<Advisory>;
@@ -246,13 +292,21 @@ export interface ReplayTimeline {
 export interface AdvisoryCreate {
   block_id: BlockId;
   timestep: TimestepParam;
-  language: Language;
 }
 export interface AdvisoryUpdate {
-  body: string;
+  templates: AdvisoryTexts; // v1.2 change pending Dev A (was { body })
+  edited_by?: string | null;
 }
 export interface AdvisoryApprove {
-  approved_by: string;
+  approved_by: string; // "Name (Designation)"
+}
+/** v1.2 change pending Dev A. */
+export interface AdvisoryReject {
+  reason: string;
+  rejected_by?: string | null;
+}
+export interface AdvisoryNewDraft {
+  created_by?: string | null;
 }
 export interface DispatchRequest {
   channels: Channel[];

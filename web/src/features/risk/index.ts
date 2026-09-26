@@ -32,6 +32,10 @@ export interface RiskMap {
   /** Selects the clicked block (true) or clears the selection (false). */
   onClick: (info: PickingInfo) => boolean
   clear: () => void
+  /** Selects a block by id (e.g. from the advisory queue), showing the risk layer. */
+  select: (blockId: string) => void
+  /** Every scored block, for pickers. */
+  blocks: { block_id: string; block_name: string }[]
   onMapLoad: (map: MapLibreMap) => void
   panel: { visible: boolean; onToggle: () => void; state: RiskState }
   card: RiskCardProps
@@ -66,6 +70,18 @@ export function useRiskMap(timestepIndex: number): RiskMap {
   }, [map, unscored, visible])
 
   const clear = useCallback(() => setSelectedId(null), [])
+  const select = useCallback((blockId: string) => {
+    setVisible(true)
+    setSelectedId(blockId)
+  }, [])
+  const blocks = useMemo(
+    () =>
+      shown?.scores.features.map((f) => ({
+        block_id: f.properties.block_id,
+        block_name: f.properties.block_name,
+      })) ?? [],
+    [shown],
+  )
   const onClick = useCallback((info: PickingInfo) => {
     const block = pickedBlock(info)
     setSelectedId(block?.properties.block_id ?? null)
@@ -92,6 +108,8 @@ export function useRiskMap(timestepIndex: number): RiskMap {
     tooltip,
     onClick,
     clear,
+    select,
+    blocks,
     onMapLoad: setMap,
     panel: { visible, onToggle, state },
     card: { timestepIndex, selected, breakdown, onClose: clear },

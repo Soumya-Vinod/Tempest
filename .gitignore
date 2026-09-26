@@ -38,6 +38,9 @@ api/data/cache/*
 # Regenerate with api\.venv\Scripts\python api\scripts\ingest_osm.py (see README)
 api/data/processed/*
 !api/data/processed/.gitkeep
+# Advisory queue and audit log (SQLite, created on start)
+api/data/state/*
+!api/data/state/.gitkeep
 
 # --- Claude Code (local only) ---
 CLAUDE.md

@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState } from 'react'
 import HealthPanel from './components/HealthPanel'
 import MapView from './components/MapView'
 import TimelineScrubber from './components/TimelineScrubber'
+import { AdvisoryDrawer, AdvisoryPanel, useAdvisories } from './features/advisory'
 import { InfraPanel, infraTooltip, useInfraLayers, useInfraMap } from './features/exposure'
 import { ImpactPanel, PathwayCard, useImpactMap } from './features/impact'
 import { RiskCard, RiskPanel, useRiskMap } from './features/risk'
@@ -22,8 +23,17 @@ export default function App() {
     () => [...infraLayers, ...risk.layers, ...impact.layers],
     [infraLayers, risk.layers, impact.layers],
   )
-  const { tooltip: impactTooltip, onClick: impactClick } = impact
-  const { tooltip: riskTooltip, onClick: riskClick, clear: riskClear } = risk
+  const { tooltip: impactTooltip, onClick: impactClick, clear: impactClear } = impact
+  const { tooltip: riskTooltip, onClick: riskClick, clear: riskClear, select: riskSelect } = risk
+  // Opening an advisory selects its block on the map (one card at a time, as a click does).
+  const selectBlock = useCallback(
+    (blockId: string) => {
+      impactClear()
+      riskSelect(blockId)
+    },
+    [impactClear, riskSelect],
+  )
+  const advisory = useAdvisories(timestepIndex, risk.blocks, selectBlock)
   const getTooltip = useCallback(
     (info: PickingInfo) => impactTooltip(info) ?? riskTooltip(info) ?? infraTooltip(info),
     [impactTooltip, riskTooltip],
@@ -50,9 +60,11 @@ export default function App() {
         <InfraPanel state={infra.state} visible={infra.visible} onToggle={infra.toggle} />
         <RiskPanel {...risk.panel} />
         <ImpactPanel {...impact.panel} />
+        <AdvisoryPanel {...advisory.panel} />
       </HealthPanel>
       <PathwayCard {...impact.card} />
       <RiskCard {...risk.card} />
+      <AdvisoryDrawer {...advisory.drawer} />
       <TimelineScrubber index={timestepIndex} onChange={setTimestepIndex} />
     </main>
   )

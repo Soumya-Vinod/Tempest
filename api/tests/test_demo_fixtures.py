@@ -19,8 +19,6 @@ from app.risk import service as risk
 from app.risk.blocks import load_blocks
 from app.schemas import (
     REPLAY_TIMESTEPS,
-    Advisory,
-    AdvisoryCollection,
     DispatchReceipt,
     HazardLayerCollection,
     HazardType,
@@ -60,10 +58,8 @@ ROUTE_SCHEMAS = {
         (r"breakdown", RiskBreakdown, True, None),
         (r"unscored-areas", UnscoredAreaCollection, False, None),
     ],
-    "advisory": [
-        (r"list", AdvisoryCollection, False, None),
-        (rf"item-{ADVISORY_ID}", Advisory, False, lambda m: m.properties.id),
-    ],
+    # Advisory state lives in SQLite; its only fixtures are raw gemini-* responses.
+    "advisory": [],
     "dispatch": [(rf"receipt-{ADVISORY_ID}", DispatchReceipt, False, lambda m: m.advisory_id)],
     "insurance": [(r"triggers", TriggerEventCollection, True, None)],
 }

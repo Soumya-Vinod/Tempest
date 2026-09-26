@@ -10,6 +10,7 @@ from app.schemas import (
     LANDFALL_TIMESTEP,
     REPLAY_TIMESTEPS,
     AdvisoryProperties,
+    Citation,
     DispatchReceipt,
     HazardLayer,
     HazardLayerCollection,
@@ -111,18 +112,46 @@ def test_block_id_rejects_unsafe(block_id):
         )
 
 
+TEXT = {"headline": "h", "body": "b", "actions": ["a", "b", "c"]}
+TEXTS = {"en": TEXT, "bn": TEXT, "hi": TEXT}
+
+
+def _advisory(**changes):
+    fields = {
+        "id": "a",
+        "block_id": "b-1",
+        "block_name": "B",
+        "timestep": TS,
+        "texts": TEXTS,
+        "templates": TEXTS,
+        "citations": [],
+        "status": "draft",
+        "created_at": "2020-05-20T12:00:00Z",
+    }
+    return AdvisoryProperties(**(fields | changes))
+
+
 def test_approved_advisory_needs_approver():
+    _advisory()
     with pytest.raises(ValidationError):
-        AdvisoryProperties(
-            id="a",
-            block_id="b-1",
-            timestep=TS,
-            language="en",
-            body="text",
-            citations=[],
-            status="approved",
-            created_at="2020-05-20T12:00:00Z",
-        )
+        _advisory(status="approved")
+    _advisory(status="approved", approved_by="A (BDO)", approved_at="2020-05-20T12:00:00Z")
+
+
+def test_rejected_advisory_needs_reason():
+    with pytest.raises(ValidationError):
+        _advisory(status="rejected", rejected_at="2020-05-20T12:00:00Z")
+    _advisory(status="rejected", rejection_reason="r", rejected_at="2020-05-20T12:00:00Z")
+
+
+def test_advisory_needs_three_to_five_actions():
+    for n in (2, 6):
+        with pytest.raises(ValidationError):
+            _advisory(texts={**TEXTS, "bn": {**TEXT, "actions": ["x"] * n}})
+
+
+def test_citation_value_can_be_text():
+    Citation(key="isolated_1_name", label="l", value="Gosaba Rural Hospital", unit=None, source="s")
 
 
 @pytest.mark.parametrize("advisory_id", ["3F2504E0-4F89-41D3-9A0C-0305E82C3301", "a_1", "a.b", ""])

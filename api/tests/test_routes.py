@@ -12,12 +12,8 @@ TS = LANDFALL_TIMESTEP
 # /api/hazard/* routes are implemented: see test_hazard.py.
 # /api/impact/results is implemented: see test_impact_routes.py.
 # /api/risk/scores is implemented: see test_risk_routes.py.
+# /api/advisory/* is implemented: see test_advisory.py.
 CONTRACT_ROUTES = [
-    ("GET", "/api/advisory/", None),
-    ("POST", "/api/advisory/", {"block_id": "b-1", "timestep": TS, "language": "bn"}),
-    ("GET", "/api/advisory/abc", None),
-    ("PATCH", "/api/advisory/abc", {"body": "text"}),
-    ("POST", "/api/advisory/abc/approve", {"approved_by": "officer"}),
     ("POST", "/api/dispatch/abc", {"channels": ["telegram"]}),
     ("GET", f"/api/insurance/triggers?timestep={TS}", None),
 ]
@@ -47,7 +43,7 @@ def test_unknown_timestep_returns_422(path, bad):
 
 
 def test_bad_block_id_in_body_returns_422():
-    body = {"block_id": "Block_1", "timestep": TS, "language": "en"}
+    body = {"block_id": "Block_1", "timestep": TS}
     assert client.post("/api/advisory/", json=body).status_code == 422
 
 

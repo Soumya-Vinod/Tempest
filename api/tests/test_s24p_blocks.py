@@ -83,3 +83,11 @@ def test_inhabited_area_within_land(blocks):
     assert (blocks["inhabited_area_km2"] <= blocks["land_area_km2"] + AREA_TOLERANCE_KM2).all()
     gosaba = blocks.set_index("block_name").loc["Gosaba"]
     assert gosaba["land_area_km2"] - gosaba["inhabited_area_km2"] > 1000  # Sunderban Tiger Reserve
+
+
+def test_local_names_bengali_for_every_block_hindi_optional():
+    names = pd.read_csv(LOOKUP_CSV, comment="#", dtype=str, keep_default_na=False)
+    assert names["name_bn"].str.fullmatch(r"[ঀ-৿ ]+").all()  # Bengali script, every block
+    assert not names["name_bn"].str.contains("ব্লক").any()  # "CD block" suffix dropped
+    hindi = names.loc[names["name_hi"] != "", "name_hi"]
+    assert hindi.str.fullmatch(r"[ऀ-ॿ ]+").all()  # Wikidata has few; the rest fall back

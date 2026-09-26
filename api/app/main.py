@@ -1,7 +1,11 @@
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 
+from app.advisory import store as advisory_store
 from app.advisory.router import router as advisory_router
 from app.core.config import get_settings
 from app.dispatch.router import router as dispatch_router
@@ -11,7 +15,14 @@ from app.impact.router import router as impact_router
 from app.insurance.router import router as insurance_router
 from app.risk.router import router as risk_router
 
-app = FastAPI(title="Tempest API")
+
+@asynccontextmanager
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    advisory_store.init()  # api/data/state/tempest.db
+    yield
+
+
+app = FastAPI(title="Tempest API", lifespan=lifespan)
 
 # Large GeoJSON compresses well (/api/exposure/infra: ~4x live, ~8x demo); small responses
 # (< 1000 bytes) stay plain.

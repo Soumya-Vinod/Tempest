@@ -10,6 +10,7 @@ from pydantic import AwareDatetime, Field, model_validator
 from app.schemas.common import (
     AdvisoryId,
     AdvisoryStatus,
+    AuditAction,
     BlockId,
     BlockSource,
     Channel,
@@ -17,7 +18,6 @@ from app.schemas.common import (
     HazardType,
     ImpactStatus,
     InfraType,
-    Language,
     RiskDriver,
     RiskReach,
     StepType,
@@ -260,29 +260,50 @@ class RiskBreakdown(ContractModel):
 
 
 class Citation(ContractModel):
-    key: str
+    key: str = Field(pattern=r"^[a-z0-9_]+$")
     label: str
-    value: float
+    value: float | str  # str: v1.2 change, pending Dev A (names, causes)
     unit: str | None
     source: str
+
+
+# v1.2 change, pending Dev A: one Advisory per block and timestep with all three languages.
+class AdvisoryText(ContractModel):
+    headline: str = Field(min_length=1)
+    body: str = Field(min_length=1)
+    actions: list[str] = Field(min_length=3, max_length=5)
+
+
+class AdvisoryTexts(ContractModel):
+    en: AdvisoryText
+    bn: AdvisoryText
+    hi: AdvisoryText
 
 
 class AdvisoryProperties(ContractModel):
     id: AdvisoryId
     block_id: BlockId
+    block_name: str
     timestep: Timestep
-    language: Language
-    body: str
+    texts: AdvisoryTexts  # figures filled in, body prefixed with the exercise label
+    templates: AdvisoryTexts  # the same text with {{key}} placeholders, no prefix
     citations: list[Citation]
     status: AdvisoryStatus
     approved_by: str | None = None
     approved_at: AwareDatetime | None = None
+    rejection_reason: str | None = None
+    rejected_at: AwareDatetime | None = None
+    created_from: AdvisoryId | None = None  # "New draft from this"
     created_at: AwareDatetime
 
     @model_validator(mode="after")
-    def _approval_fields(self) -> Self:
-        if self.status != "draft" and (not self.approved_by or self.approved_at is None):
-            raise ValueError("approved_by and approved_at are required once status is not draft")
+    def _status_fields(self) -> Self:
+        if self.status in ("approved", "sent") and (
+            not self.approved_by or self.approved_at is None
+        ):
+            raise ValueError("approved_by and approved_at are required once approved")
+        if self.status == "rejected" and (not self.rejection_reason or self.rejected_at is None):
+            raise ValueError("rejection_reason and rejected_at are required once rejected")
         return self
 
 
@@ -357,15 +378,50 @@ class ReplayTimeline(ContractModel):
 class AdvisoryCreate(ContractModel):
     block_id: BlockId
     timestep: TimestepParam
-    language: Language
 
 
 class AdvisoryUpdate(ContractModel):
-    body: str = Field(min_length=1)
+    templates: AdvisoryTexts  # v1.2 change, pending Dev A (was { body })
+    edited_by: str | None = None
 
 
 class AdvisoryApprove(ContractModel):
-    approved_by: str = Field(min_length=1)
+    approved_by: str = Field(min_length=1)  # "Name (Designation)", §5
+
+
+# v1.2 change, pending Dev A.
+class AdvisoryReject(ContractModel):
+    reason: str = Field(min_length=1)
+    rejected_by: str | None = None
+
+
+class AdvisoryNewDraft(ContractModel):
+    created_by: str | None = None
+
+
+class AuditEvent(ContractModel):
+    id: int
+    advisory_id: AdvisoryId | None  # null: a generation that produced no advisory
+    action: AuditAction
+    actor: str | None
+    at: AwareDatetime
+    details: str | None
+
+
+class AuditLog(ContractModel):
+    events: list[AuditEvent]
+
+
+class AdvisorySuggestion(ContractModel):
+    block_id: BlockId
+    block_name: str
+    score: UnitFraction
+
+
+class AdvisorySuggestions(ContractModel):
+    timestep: Timestep
+    threshold: UnitFraction
+    blocks: list[AdvisorySuggestion]
 
 
 class DispatchRequest(ContractModel):

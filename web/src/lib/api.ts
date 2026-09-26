@@ -5,8 +5,12 @@ import type {
   AdvisoryApprove,
   AdvisoryCollection,
   AdvisoryCreate,
+  AdvisoryNewDraft,
+  AdvisoryReject,
   AdvisoryStatus,
+  AdvisorySuggestions,
   AdvisoryUpdate,
+  AuditLog,
   BlockId,
   DispatchReceipt,
   DispatchRequest,
@@ -19,6 +23,7 @@ import type {
   ReplayTimeline,
   RiskBreakdown,
   RiskScoreCollection,
+  Timestep,
   TimestepParam,
   TriggerEventCollection,
   UnscoredAreaCollection,
@@ -110,8 +115,13 @@ export const getRiskBreakdown = (timestep: TimestepParam) =>
 export const getUnscoredAreas = () =>
   request<UnscoredAreaCollection>('GET', '/api/risk/unscored-areas')
 
-export const listAdvisories = (filters: { status?: AdvisoryStatus; block_id?: BlockId } = {}) =>
-  request<AdvisoryCollection>('GET', '/api/advisory/', { query: filters })
+export const listAdvisories = (
+  filters: { status?: AdvisoryStatus; block_id?: BlockId; timestep?: Timestep } = {},
+) => request<AdvisoryCollection>('GET', '/api/advisory/', { query: filters })
+
+/** v1.2 change, pending Dev A. Blocks at or above the suggestion threshold. */
+export const getAdvisorySuggestions = (timestep: TimestepParam) =>
+  request<AdvisorySuggestions>('GET', '/api/advisory/suggestions', { query: { timestep } })
 
 export const createAdvisory = (body: AdvisoryCreate) =>
   request<Advisory>('POST', '/api/advisory/', { body })
@@ -124,6 +134,18 @@ export const updateAdvisory = (advisoryId: string, body: AdvisoryUpdate) =>
 
 export const approveAdvisory = (advisoryId: string, body: AdvisoryApprove) =>
   request<Advisory>('POST', `/api/advisory/${enc(advisoryId)}/approve`, { body })
+
+/** v1.2 change, pending Dev A. */
+export const rejectAdvisory = (advisoryId: string, body: AdvisoryReject) =>
+  request<Advisory>('POST', `/api/advisory/${enc(advisoryId)}/reject`, { body })
+
+/** v1.2 change, pending Dev A. Copies a finished advisory into a new draft. */
+export const newDraftFrom = (advisoryId: string, body: AdvisoryNewDraft = {}) =>
+  request<Advisory>('POST', `/api/advisory/${enc(advisoryId)}/new-draft`, { body })
+
+/** v1.2 change, pending Dev A. */
+export const getAdvisoryAudit = (advisoryId: string) =>
+  request<AuditLog>('GET', `/api/advisory/${enc(advisoryId)}/audit`)
 
 export const dispatchAdvisory = (advisoryId: string, body: DispatchRequest) =>
   request<DispatchReceipt>('POST', `/api/dispatch/${enc(advisoryId)}`, { body })

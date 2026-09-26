@@ -10,7 +10,20 @@ InfraType = Literal["substation", "power_line", "road", "hospital", "shelter"]
 ImpactStatus = Literal["ok", "at_risk", "cut", "isolated"]
 StepType = Literal["hazard", "infra", "service"]
 Language = Literal["en", "bn", "hi"]
-AdvisoryStatus = Literal["draft", "approved", "sent"]
+# "rejected": v1.2 change, pending Dev A.
+AdvisoryStatus = Literal["draft", "approved", "sent", "rejected"]
+# Advisory audit log actions (§4.5, v1.2 change pending Dev A).
+AuditAction = Literal[
+    "generated",
+    "number_check_failed",
+    "invalid_response",
+    "edited",
+    "approved",
+    "rejected",
+    "new_draft",
+    "copied",
+    "sent",
+]
 TriggerMetric = Literal["wind_speed", "surge_depth"]
 BlockSource = Literal["census2011_cd", "h3_r7"]
 # The largest contributing part of a RiskScore (§4.4, added in v1.1).

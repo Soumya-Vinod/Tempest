@@ -22,7 +22,7 @@ Dev A* (or *Dev B*) until both devs sign off and the version is bumped.
 | Units | Wind speed **m/s**; surge depth **m** above ground; money **INR**. |
 | Timestamps | ISO 8601 UTC, always `YYYY-MM-DDTHH:MM:SSZ` (e.g. `2020-05-20T12:00:00Z`). |
 | Null geometry | Allowed only where stated (Advisory). |
-| Errors | FastAPI default `{"detail": ...}`. `404` unknown id, `409` invalid state change, `422` bad params (incl. unknown `timestep`), `501` not implemented yet, `503` required processed data missing (live mode) *(added in v0.9)*. |
+| Errors | FastAPI default `{"detail": ...}`. `404` unknown id, `409` invalid state change, `422` bad params (incl. unknown `timestep`), `501` not implemented yet, `503` required processed data missing (live mode) *(added in v0.9)*, or an upstream key missing; `502` an upstream (Gemini) response unusable *(v1.2 change, pending Dev A)*. |
 
 ## 2. Replay timeline — Cyclone Amphan
 
@@ -54,7 +54,9 @@ type InfraType    = "substation" | "power_line" | "road" | "hospital" | "shelter
 type ImpactStatus = "ok" | "at_risk" | "cut" | "isolated";
 type StepType     = "hazard" | "infra" | "service";
 type Language     = "en" | "bn" | "hi";
-type AdvisoryStatus = "draft" | "approved" | "sent";
+type AdvisoryStatus = "draft" | "approved" | "sent" | "rejected";  // rejected: v1.2 change, pending Dev A
+type AuditAction = "generated" | "number_check_failed" | "invalid_response" | "edited"
+  | "approved" | "rejected" | "new_draft" | "copied" | "sent";  // v1.2 change, pending Dev A
 type TriggerMetric  = "wind_speed" | "surge_depth";
 type BlockSource    = "census2011_cd" | "h3_r7";
 type Timestep = string;       // one of the 25 replay keys (in responses)
@@ -206,21 +208,48 @@ which of the two scaled the score.
 ### 4.5 Advisory (Dev B)
 Geometry: **null** (join to the block via `block_id`).
 
+*v1.2 change, pending Dev A*: one Advisory per block and timestep, holding all three languages (was one `language` and
+one `body` per record).
+
 | Property | Type | Notes |
 |---|---|---|
 | `id` | AdvisoryId | UUID4, lowercase. Must match `^[a-z0-9-]+$` (fixture-safe). *Added in v0.9.* |
 | `block_id` | string | |
+| `block_name` | string | *v1.2 change, pending Dev A* |
 | `timestep` | Timestep | The timestep whose figures it cites. |
-| `language` | Language | |
-| `body` | string | Written by Gemini; contains **no numbers except those in `citations`**. |
-| `citations` | Citation[] | The source figures, all from the risk engine. |
-| `status` | AdvisoryStatus | `draft → approved → sent` only. |
-| `approved_by` | string \| null | Required once `status ≠ draft`. |
-| `approved_at` | ISO datetime \| null | Required once `status ≠ draft`. |
+| `texts` | `{ en, bn, hi }` of AdvisoryText | *v1.2 change, pending Dev A* The advisory as shown: figures filled in, each `body` starting with the exercise label (below). |
+| `templates` | `{ en, bn, hi }` of AdvisoryText | *v1.2 change, pending Dev A* The same text with `{{key}}` placeholders and no label: what Gemini wrote and what edits change. |
+| `citations` | Citation[] | The source of every figure and name in `texts`, all from the engines. |
+| `status` | AdvisoryStatus | `draft → approved → sent`, or `draft → rejected` (*v1.2 change, pending Dev A*). |
+| `approved_by` | string \| null | Required once `approved` or `sent`. `"Name (Designation)"`, see §5. |
+| `approved_at` | ISO datetime \| null | Required once `approved` or `sent`. |
+| `rejection_reason` | string \| null | *v1.2 change, pending Dev A* Required once `rejected`. |
+| `rejected_at` | ISO datetime \| null | *v1.2 change, pending Dev A* Required once `rejected`. |
+| `created_from` | AdvisoryId \| null | *v1.2 change, pending Dev A* The advisory this draft was copied from ("New draft from this"). |
 | `created_at` | ISO datetime | |
 
-`Citation = { key: string, label: string, value: number, unit: string | null, source: string }`
-e.g. `{"key":"risk_score","label":"Block risk score","value":0.82,"unit":null,"source":"risk"}`
+`AdvisoryText = { headline: string, body: string, actions: string[] }` (*v1.2 change, pending Dev A*): `actions` has 3 to 5
+lines for local officials.
+
+`Citation = { key: string, label: string, value: number | string, unit: string | null, source: string }`
+e.g. `{"key":"risk_score","label":"Block risk score (0-1)","value":0.27,"unit":null,"source":"risk"}`.
+`key` matches `^[a-z0-9_]+$`. `value` may be a string (*v1.2 change, pending Dev A*): names and causes, e.g.
+`{"key":"isolated_1_cause","label":"Cause","value":"ferry suspended by wind","unit":null,"source":"impact"}`.
+
+**Numbers rule** (*v1.2 change, pending Dev A*). Gemini never writes a figure: `templates` contain no digits (any script)
+and no number words outside `{{key}}` placeholders, and only keys from `citations`. The server
+rejects drafts and edits that break this, and fills the placeholders: Bengali numerals for `bn`,
+Latin digits for `en` and `hi`, units in the text's language. The only other digits in `texts` are
+the exercise label the server puts at the start of every `body`: `[EXERCISE: Cyclone Amphan 2020
+replay]`, `[মহড়া: ঘূর্ণিঝড় আমফান ২০২০ রিপ্লে]`, `[अभ्यास: चक्रवात अम्फान 2020 रीप्ले]`.
+
+**Audit log** (*v1.2 change, pending Dev A*). Every action is recorded as
+`AuditEvent = { id: int, advisory_id: AdvisoryId | null, action: AuditAction, actor: string | null,
+at: ISO datetime, details: string | null }`. `advisory_id` is null for a generation that produced
+no advisory (its draft failed the checks); `details` is JSON text.
+
+`AdvisorySuggestions = { timestep, threshold: float, blocks: { block_id, block_name, score }[] }`
+(*v1.2 change, pending Dev A*): the blocks at or above the suggestion threshold (0.25), highest first.
 
 ### 4.6 TriggerEvent (Dev B)
 One feature per insurance zone per timestep. Geometry: zone `Polygon | MultiPolygon`.
@@ -256,11 +285,16 @@ stated; `timestep=live` returns `501` in v1.1. FC = FeatureCollection.
 | B | GET | `/api/risk/scores` | `timestep` | FC&lt;RiskScore&gt; |
 | B | GET | `/api/risk/breakdown` | `timestep` | RiskBreakdown. *added in v1.1.* |
 | B | GET | `/api/risk/unscored-areas` | — | FC&lt;UnscoredArea&gt; (static; live from reference data, DEMO_MODE from the `unscored-areas` fixture). *added in v1.1.* |
-| B | GET | `/api/advisory/` | `status?`, `block_id?` | FC&lt;Advisory&gt; |
-| B | POST | `/api/advisory/` | `{ block_id, timestep, language }` | Advisory (`draft`) |
+| B | GET | `/api/advisory/` | `status?`, `block_id?`, `timestep?` (*v1.2 change, pending Dev A*) | FC&lt;Advisory&gt;, newest first |
+| B | POST | `/api/advisory/` | `{ block_id, timestep }` (*v1.2 change, pending Dev A*: no `language`) | Advisory (`draft`). `502` if Gemini's draft fails the numbers rule twice; `503` with no cached response and no Gemini key. |
+| B | GET | `/api/advisory/suggestions` | `timestep` | AdvisorySuggestions. *v1.2 change, pending Dev A* |
+| B | GET | `/api/advisory/audit` | — | `{ events: AuditEvent[] }`, all events. *v1.2 change, pending Dev A* |
 | B | GET | `/api/advisory/{advisory_id}` | — | Advisory |
-| B | PATCH | `/api/advisory/{advisory_id}` | `{ body }`; `draft` only, else `409` | Advisory |
-| B | POST | `/api/advisory/{advisory_id}/approve` | `{ approved_by }`; `draft` only, else `409` | Advisory (`approved`) |
+| B | PATCH | `/api/advisory/{advisory_id}` | `{ templates, edited_by? }` (*v1.2 change, pending Dev A*: was `{ body }`); `draft` only, else `409`; `422` if it breaks the numbers rule or removes a placeholder | Advisory |
+| B | POST | `/api/advisory/{advisory_id}/approve` | `{ approved_by }` as `"Name (Designation)"`, designation `BDO`, `SDO`, `ADM (Disaster Management)`, `District Magistrate` or `Other: <role>` (*v1.2 change, pending Dev A*), else `422`; `draft` only, else `409` | Advisory (`approved`) |
+| B | POST | `/api/advisory/{advisory_id}/reject` | `{ reason, rejected_by? }`; `reason` not blank, else `422`; `draft` only, else `409` | Advisory (`rejected`). *v1.2 change, pending Dev A* |
+| B | POST | `/api/advisory/{advisory_id}/new-draft` | `{ created_by? }`; not a `draft`, else `409` | Advisory (`draft`, `created_from` set). *v1.2 change, pending Dev A* |
+| B | GET | `/api/advisory/{advisory_id}/audit` | — | `{ events: AuditEvent[] }`, oldest first. *v1.2 change, pending Dev A* |
 | B | POST | `/api/dispatch/{advisory_id}` | `{ channels: ("telegram" \| "email")[] }`; `approved` only, else `409` | DispatchReceipt; advisory → `sent` |
 | B | GET | `/api/insurance/triggers` | `timestep` | FC&lt;TriggerEvent&gt; |
 | — | GET | `/health` | — | not part of this contract (see README) |
@@ -315,8 +349,6 @@ the schema listed here, and fails on any route resource not in this table.
 | `GET /api/risk/scores` | `scores` | yes | FC&lt;RiskScore&gt; |
 | `GET /api/risk/breakdown` | `breakdown` *(added in v1.1)* | yes | RiskBreakdown |
 | `GET /api/risk/unscored-areas` | `unscored-areas` *(added in v1.1)* | no | FC&lt;UnscoredArea&gt; |
-| `GET /api/advisory/` | `list` | no | FC&lt;Advisory&gt; |
-| `GET /api/advisory/{advisory_id}` | `item-<advisory_id>` | no | Advisory |
 | `POST /api/dispatch/{advisory_id}` | `receipt-<advisory_id>` | no | DispatchReceipt |
 | `GET /api/insurance/triggers` | `triggers` | yes | FC&lt;TriggerEvent&gt; |
 
@@ -333,14 +365,16 @@ exposure__infra-power-line.json
 exposure__overpass-substations.json
 impact__results__20200519T0000Z.json
 risk__scores__20200520T1200Z.json
-advisory__gemini-draft-bn-<block_id>__20200520T1200Z.json
-advisory__list.json
-advisory__item-<advisory_id>.json
+advisory__gemini-<census_code>__20200520T1200Z.json *(v1.2 change, pending Dev A)*
 dispatch__receipt-<advisory_id>.json
 insurance__triggers__20200520T1200Z.json
 ```
 
 Fixture content is exactly the route response (or the raw upstream body) as JSON, UTF-8, LF.
+Advisories are local state (SQLite), not fixtures, in both modes (*v1.2 change, pending Dev A*): the only advisory
+fixtures are Gemini's raw responses, `advisory__gemini-<census_code>__<ts>`, one per block and
+timestep with all three languages. In DEMO_MODE a cached response is used when present, else the
+live Gemini key if set, else `503`.
 *Exception (added in v1.1):* `impact__results__<ts>` stores only the non-`ok` rows.
 When loading it, the route adds an `ok` row (empty `pathway`) for every InfraFeature and hazard
 type not present, so the response is exactly the full contract collection.
