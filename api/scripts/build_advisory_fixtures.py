@@ -238,7 +238,7 @@ def label(ts: str) -> str:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--max-calls", type=int, default=16, help="hard cap on model calls")
+    parser.add_argument("--max-calls", type=int, default=20, help="hard cap on model calls")
     parser.add_argument("--all", action="store_true", help="redo pairs that have a fixture")
     parser.add_argument(
         "--pairs", help='explicit pairs, e.g. "Namkhana:T-33,Gosaba:T-27,02438:T-24"'

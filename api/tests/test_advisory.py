@@ -976,10 +976,11 @@ COUNTED = with_citations(
     cite_count("isolated_hospital_count", "Isolated hospitals and health centres", 2),
     cite_count("isolated_shelter_count", "Isolated shelters", 0),
 )
+# Three: no count of this block is 3, so the auto-repair leaves it for the check to reject.
 COUNT_IN_WORDS = {
-    "en": lang(body="The storm has cut off two health facilities in {{block_name}}."),
-    "bn": lang(body="{{block_name}}-এ দুইটি স্বাস্থ্যকেন্দ্র বিচ্ছিন্ন।"),
-    "hi": lang(body="{{block_name}} में दो स्वास्थ्य केंद्र कट गए हैं।"),
+    "en": lang(body="The storm has cut off three health facilities in {{block_name}}."),
+    "bn": lang(body="{{block_name}}-এ তিনটি স্বাস্থ্যকেন্দ্র বিচ্ছিন্ন।"),
+    "hi": lang(body="{{block_name}} में तीन स्वास्थ्य केंद्र कट गए हैं।"),
 }
 
 
@@ -991,15 +992,15 @@ def test_counting_in_words_is_rejected_and_the_retry_names_the_count_placeholder
     [failed] = [e for e in store.events() if e.action == "number_check_failed"]
     found = json.loads(failed.details)["found"]
     assert [(f["language"], f["field"], f["text"]) for f in found] == [
-        ("en", "body", "two"),
-        ("bn", "body", "দুইটি"),
-        ("hi", "body", "दो"),
+        ("en", "body", "three"),
+        ("bn", "body", "তিনটি"),
+        ("hi", "body", "तीन"),
     ]
     # The correction quotes each word and points at the block's count placeholders.
     retry = fake.calls[1]
-    assert '"two" in en.body is a number word' in retry
-    assert '"দুইটি" in bn.body is a number word' in retry
-    assert '"दो" in hi.body is a number word' in retry
+    assert '"three" in en.body is a number word' in retry
+    assert '"তিনটি" in bn.body is a number word' in retry
+    assert '"तीन" in hi.body is a number word' in retry
     assert "{{isolated_count}} (Isolated facilities: 2)" in retry
     assert "{{isolated_hospital_count}} (Isolated hospitals and health centres: 2)" in retry
 
@@ -1008,7 +1009,7 @@ def test_counting_in_words_twice_is_refused(env, monkeypatch):
     monkeypatch.setattr(service, "build_facts", lambda block_id, ts: COUNTED)
     resp, fake = create(env, COUNT_IN_WORDS, COUNT_IN_WORDS)
     assert resp.status_code == 502 and len(fake.calls) == 2
-    assert any("'two'" in p for p in resp.json()["detail"]["problems"])
+    assert any("'three'" in p for p in resp.json()["detail"]["problems"])
 
 
 def test_retry_note_for_other_problems_has_no_count_hint():
@@ -1275,3 +1276,135 @@ def test_a_groq_fixture_is_served_labelled_groq(env, groq):
     resp, fake = create(env)
     assert resp.status_code == 200 and fake.calls == [] and groq.requests == []
     assert resp.json()["properties"]["generated_by"] == groq_by.model_dump()
+
+
+# --- Auto-repair: counts written in words -> count placeholders -----------------------------------
+
+REPAIR_FACTS = with_citations(
+    cite_count("isolated_count", "Isolated facilities", 2),
+    cite_count("isolated_hospital_count", "Isolated hospitals and health centres", 2),
+    cite_count("standin_count", "Stand-in shelters (not designated)", 0),
+)
+SHELTER_OK = "No shelters are mapped ({{standin_count}}): identify safe buildings locally."
+
+
+def repaired(language: str, text: str, facts: Facts = REPAIR_FACTS):
+    """The repaired body of one language, and the repairs."""
+    texts = {lang_: lang() for lang_ in ("en", "bn", "hi")}
+    texts[language] = lang(body=text)
+    out, found = render.repair_counts(AdvisoryTexts.model_validate(texts), facts.citations)
+    return getattr(out, language).body, found
+
+
+@pytest.mark.parametrize(
+    ("language", "text", "expected"),
+    [
+        ("en", "Two health centres are cut off.", "{{isolated_count}} health centres are cut off."),
+        ("en", "Both clinics are cut off.", "{{isolated_count}} clinics are cut off."),
+        ("en", "There are zero mapped shelters.", "There are {{standin_count}} mapped shelters."),
+        ("bn", "দুটো হাসপাতাল বিচ্ছিন্ন।", "{{isolated_count}}টি হাসপাতাল বিচ্ছিন্ন।"),
+        ("bn", "দুটি কেন্দ্র, দুই দল।", "{{isolated_count}}টি কেন্দ্র, {{isolated_count}} দল।"),
+        ("bn", "শূন্য আশ্রয়কেন্দ্র।", "{{standin_count}} আশ্রয়কেন্দ্র।"),
+        ("hi", "दोनों अस्पताल कट गए हैं।", "{{isolated_count}} अस्पताल कट गए हैं।"),
+        ("hi", "दो केंद्र, शून्य आश्रय।", "{{isolated_count}} केंद्र, {{standin_count}} आश्रय।"),
+    ],
+)
+def test_counts_in_words_are_repaired_to_a_matching_count_placeholder(language, text, expected):
+    body, found = repaired(language, text)
+    assert body == expected
+    assert found and all(r.language == language and r.field == "body" for r in found)
+
+
+def test_repair_leaves_what_it_cannot_match():
+    body, found = repaired("en", "Three boats and 2 crews; both wind and surge rise.")
+    assert body == "Three boats and 2 crews; both wind and surge rise." and found == []
+    # ...so the number check still rejects the word without a matching count, and the digit.
+    templates = AdvisoryTexts.model_validate({**CLEAN, "en": lang(body=body)})
+    kinds = {(p.kind, p.text) for p in render.check(templates, {c.key for c in CITATIONS})}
+    assert {("number_word", "Three"), ("digit", "2")} <= kinds
+
+
+def test_repair_needs_a_count_citation():
+    no_counts = Facts(BLOCK, "Gosaba", TS, [c for c in CITATIONS if not c.key.endswith("_count")])
+    body, found = repaired("en", "Two clinics.", no_counts)
+    assert body == "Two clinics." and found == []
+
+
+def test_repaired_draft_passes_and_the_audit_records_each_repair(env, monkeypatch):
+    monkeypatch.setattr(service, "build_facts", lambda block_id, ts: REPAIR_FACTS)
+    draft = {
+        "en": lang(body="Both health centres are cut off.", actions=("a", SHELTER_OK, "c")),
+        "bn": lang(body="দুটো হাসপাতাল বিচ্ছিন্ন।", actions=("a", SHELTER_OK, "c")),
+        "hi": lang(body="दोनों अस्पताल कट गए हैं।", actions=("a", SHELTER_OK, "c")),
+    }
+    resp, fake = create(env, draft)
+    assert resp.status_code == 200 and len(fake.calls) == 1  # no retry needed
+    texts = resp.json()["properties"]["texts"]
+    assert "2 health centres are cut off." in texts["en"]["body"]
+    assert "২টি হাসপাতাল" in texts["bn"]["body"]
+    details = json.loads(next(e for e in store.events() if e.action == "generated").details)
+    assert details["auto_repaired"] == [
+        {
+            "language": "en",
+            "field": "body",
+            "original": "Both",
+            "placeholder": "{{isolated_count}}",
+        },
+        {"language": "bn", "field": "body", "original": "দুটো", "placeholder": "{{isolated_count}}"},
+        {
+            "language": "hi",
+            "field": "body",
+            "original": "दोनों",
+            "placeholder": "{{isolated_count}}",
+        },
+    ]
+
+
+def test_a_digit_is_never_repaired(env, monkeypatch):
+    monkeypatch.setattr(service, "build_facts", lambda block_id, ts: REPAIR_FACTS)
+    digit = {lang_: lang(body="2 health centres.", actions=("a", SHELTER_OK, "c"))
+             for lang_ in ("en", "bn", "hi")}  # fmt: skip
+    resp, _ = create(env, digit, digit)
+    assert resp.status_code == 502
+    assert any("digit '2'" in p for p in resp.json()["detail"]["problems"])
+
+
+def test_groq_drafts_are_repaired_too(env, groq, monkeypatch):
+    monkeypatch.setattr(service, "build_facts", lambda block_id, ts: REPAIR_FACTS)
+    groq.responses = [
+        {
+            **{lang_: lang(actions=("a", SHELTER_OK, "c")) for lang_ in ("en", "bn", "hi")},
+            "en": lang(body="Two clinics are cut off.", actions=("a", SHELTER_OK, "c")),
+        }
+    ]
+    resp, _ = create(env, QUOTA)
+    assert resp.status_code == 200
+    assert resp.json()["properties"]["generated_by"]["provider"] == "groq"
+    details = json.loads(next(e for e in store.events() if e.action == "generated").details)
+    assert [r["original"] for r in details["auto_repaired"]] == ["Two"]
+
+
+# An edit can't remove a placeholder.
+KEPT_EDIT = "Surge up to {{peak_surge_m}} in {{hours_to_landfall}}; {{reach}}."
+
+
+def test_edits_are_repaired_and_audited(env, monkeypatch):
+    monkeypatch.setattr(service, "build_facts", lambda block_id, ts: REPAIR_FACTS)
+    base = {lang_: lang(actions=("a", SHELTER_OK, "c")) for lang_ in ("en", "bn", "hi")}
+    resp, _ = create(env, base)
+    advisory_id = resp.json()["id"]
+    edited = {
+        **base,
+        "en": lang(
+            body="Two clinics are cut off. " + KEPT_EDIT,
+            actions=("a", SHELTER_OK, "c"),
+        ),
+    }
+    r = client.patch(f"{URL}{advisory_id}", json={"templates": edited})
+    assert r.status_code == 200, r.text
+    assert (
+        r.json()["properties"]["templates"]["en"]["body"]
+        == "{{isolated_count}} clinics are cut off. " + KEPT_EDIT
+    )
+    event = next(e for e in store.events(advisory_id) if e.action == "edited")
+    assert json.loads(event.details)["auto_repaired"][0]["original"] == "Two"

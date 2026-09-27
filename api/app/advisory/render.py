@@ -39,13 +39,15 @@ _EN_WORDS = (
 _EN_PLURAL = "hundred thousand lakh crore dozen".split()
 _BN_WORDS = (
     "দুই তিন চার পাঁচ ছয় সাত আট দশ এগারো বারো তেরো চোদ্দ চৌদ্দ পনেরো ষোলো সতেরো আঠারো উনিশ "
-    "বিশ কুড়ি ত্রিশ তিরিশ চল্লিশ পঞ্চাশ ষাট সত্তর আশি নব্বই শত শো একশো হাজার লাখ লক্ষ কোটি"
+    "বিশ কুড়ি ত্রিশ তিরিশ চল্লিশ পঞ্চাশ ষাট সত্তর আশি নব্বই শত শো একশো হাজার লাখ লক্ষ কোটি "
+    "শূন্য"  # zero
 ).split()
 _BN_COUNTED = "দু দুই তিন চার পাঁচ ছয় সাত আট নয় দশ".split()  # + টি / টা / টো / জন
 _BN_COUNT_SUFFIXES = ("টি", "টা", "টো", "জন")
 _HI_WORDS = (
     "दो तीन चार पाँच पांच छह छः सात आठ नौ दस ग्यारह बारह तेरह चौदह पंद्रह पन्द्रह सोलह सत्रह "
-    "अठारह उन्नीस बीस तीस चालीस पचास साठ सत्तर अस्सी नब्बे सौ हज़ार हजार लाख करोड़ करोड"
+    "अठारह उन्नीस बीस तीस चालीस पचास साठ सत्तर अस्सी नब्बे सौ हज़ार हजार लाख करोड़ करोड "
+    "शून्य"  # zero
 ).split()
 _HI_ALL = "दोनों तीनों चारों पाँचों पांचों छहों सातों आठों दसों".split()  # "both", "all three"...
 
@@ -70,6 +72,121 @@ _NUMBER_WORD_RE = {
     "bn": _words_re(NUMBER_WORDS["bn"]),
     "hi": _words_re(NUMBER_WORDS["hi"]),
 }
+
+# --- Auto-repair: a count written in words -> its count placeholder ---------------------------
+#
+# Models (Groq especially) write "two hospitals" / "দুটো হাসপাতাল" / "दोनों" although the prompt
+# says to use {{..._count}}. Before the number check, a number word whose value equals a count
+# citation of the block is replaced by that count's placeholder (any match: they render the same
+# number). A word with no matching count stays, so the check still rejects it; digits are never
+# repaired. Every repair is returned for the audit log.
+
+_EN_VALUES = {
+    **{
+        w: i
+        for i, w in enumerate(
+            "zero one two three four five six seven eight nine ten eleven twelve thirteen fourteen "
+            "fifteen sixteen seventeen eighteen nineteen twenty".split()
+        )
+    },
+    "both": 2,
+}
+_BN_BASE = {"শূন্য": 0, "দু": 2, "দুই": 2, "তিন": 3, "চার": 4, "পাঁচ": 5, "ছয়": 6, "সাত": 7,
+            "আট": 8, "নয়": 9, "দশ": 10}  # fmt: skip
+_BN_VALUES = {
+    **{w: v for w, v in _BN_BASE.items() if w not in ("দু", "নয়")},  # bare দু / নয় aren't counts
+    **{w + sfx: v for w, v in _BN_BASE.items() if v for sfx in _BN_COUNT_SUFFIXES},
+}
+_HI_VALUES = {
+    "शून्य": 0, "दो": 2, "तीन": 3, "चार": 4, "पाँच": 5, "पांच": 5, "छह": 6, "छः": 6, "सात": 7,
+    "आठ": 8, "नौ": 9, "दस": 10,
+    "दोनों": 2, "तीनों": 3, "चारों": 4, "पाँचों": 5, "पांचों": 5, "छहों": 6, "सातों": 7,
+    "आठों": 8, "दसों": 10,
+}  # fmt: skip
+REPAIR_VALUES = {"en": _EN_VALUES, "bn": _BN_VALUES, "hi": _HI_VALUES}
+_REPAIR_RE = {
+    "en": _words_re(list(_EN_VALUES), re.IGNORECASE),
+    "bn": _words_re(list(_BN_VALUES)),
+    "hi": _words_re(list(_HI_VALUES)),
+}
+# "both wind and surge": "both ... and" joins two things; it doesn't count them.
+_BOTH_AND = re.compile(r"^\s+(?:\S+\s+){0,3}and\b", re.IGNORECASE)
+
+
+@dataclass(frozen=True)
+class Repair:
+    language: str
+    field: str
+    original: str
+    placeholder: str
+
+    def as_dict(self) -> dict:
+        return {
+            "language": self.language,
+            "field": self.field,
+            "original": self.original,
+            "placeholder": self.placeholder,
+        }
+
+
+def _count_keys(citations: list[Citation]) -> dict[float, str]:
+    """Count value -> the first count key with it (citation order)."""
+    out: dict[float, str] = {}
+    for c in citations:
+        if c.key.endswith(COUNT_SUFFIX) and not isinstance(c.value, str):
+            out.setdefault(float(c.value), c.key)
+    return out
+
+
+def _repair_text(
+    text: str, language: str, counts: dict[float, str], field: str, found: list[Repair]
+) -> str:
+    values = REPAIR_VALUES[language]
+
+    def replace(m: re.Match) -> str:
+        word = m.group(0)
+        value = values[word.casefold() if language == "en" else word]
+        key = counts.get(float(value))
+        if key is None:
+            return word  # no count with this value: left for the number check to reject
+        if language == "en" and word.casefold() == "both" and _BOTH_AND.match(text[m.end() :]):
+            return word
+        placeholder = f"{{{{{key}}}}}"
+        # Bengali counted forms keep a classifier: দুটো হাসপাতাল -> {{key}}টি হাসপাতাল.
+        suffix = next((s for s in _BN_COUNT_SUFFIXES if language == "bn" and word.endswith(s)), "")
+        replacement = placeholder + ("জন" if suffix == "জন" else "টি" if suffix else "")
+        found.append(Repair(language, field, word, placeholder))
+        return replacement
+
+    # Placeholders are left alone: only the text between them is repaired.
+    parts = re.split(r"(\{\{\s*[a-z0-9_]+\s*\}\})", text)
+    return "".join(
+        part if PLACEHOLDER.fullmatch(part) else _REPAIR_RE[language].sub(replace, part)
+        for part in parts
+    )
+
+
+def repair_counts(
+    templates: AdvisoryTexts, citations: list[Citation]
+) -> tuple[AdvisoryTexts, list[Repair]]:
+    """The templates with counts written in words replaced by matching count placeholders."""
+    counts = _count_keys(citations)
+    found: list[Repair] = []
+    if not counts:
+        return templates, found
+    out = {}
+    for lang in LANGUAGES:
+        t = getattr(templates, lang)
+        out[lang] = AdvisoryText(
+            headline=_repair_text(t.headline, lang, counts, "headline", found),
+            body=_repair_text(t.body, lang, counts, "body", found),
+            actions=[
+                _repair_text(a, lang, counts, f"actions[{i}]", found)
+                for i, a in enumerate(t.actions)
+            ],
+        )
+    return (AdvisoryTexts(**out) if found else templates), found
+
 
 # --- Filling ------------------------------------------------------------------------------------
 
