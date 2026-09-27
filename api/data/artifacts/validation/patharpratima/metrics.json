@@ -17,27 +17,27 @@
     ]
   },
   "metrics": {
-    "iou": 0.4211,
-    "precision": 0.5333,
-    "recall": 0.6667,
-    "f1_score": 0.5926,
-    "accuracy": 0.45,
-    "specificity": 0.125,
-    "cohens_kappa": -0.2222,
-    "flooded_area_observed_km2": 286.62,
+    "iou": 0.0,
+    "precision": 0.0,
+    "recall": 0.0,
+    "f1_score": 0.0,
+    "accuracy": 0.25,
+    "specificity": 0.25,
+    "cohens_kappa": 0.0,
+    "flooded_area_observed_km2": 0.0,
     "flooded_area_predicted_km2": 358.27,
-    "intersection_area_km2": 191.08,
-    "union_area_km2": 453.81,
-    "flooded_area_agreement": 0.8,
+    "intersection_area_km2": 0.0,
+    "union_area_km2": 358.27,
+    "flooded_area_agreement": 0.0,
     "confusion_matrix": {
-      "tp_km2": 191.08,
-      "fp_km2": 167.19,
-      "fn_km2": 95.54,
-      "tn_km2": 23.88,
-      "tp_cells": 16,
-      "fp_cells": 14,
-      "fn_cells": 8,
-      "tn_cells": 2
+      "tp_km2": 0.0,
+      "fp_km2": 358.27,
+      "fn_km2": 0.0,
+      "tn_km2": 119.42,
+      "tp_cells": 0,
+      "fp_cells": 30,
+      "fn_cells": 0,
+      "tn_cells": 10
     }
   }
 }

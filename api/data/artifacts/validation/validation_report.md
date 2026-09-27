@@ -1,6 +1,6 @@
 # Sentinel-1 Validation Benchmark Report: Cyclone Amphan
 
-- **Execution Timestamp:** `2026-09-27T07:15:39Z`
+- **Execution Timestamp:** `2026-09-27T12:47:58Z`
 - **Landfall Timestamp:** `2020-05-20T12:00:00Z`
 - **Earth Engine Status:** `Authenticated`
 - **Target CRS:** `EPSG:4326`
@@ -9,19 +9,19 @@
 
 | Administrative Block | Census Code | Area (km²) | Observed Flood (km²) | Predicted Flood (km²) | IoU | Precision | Recall | F1 Score | Accuracy |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Sagar** | `02438` | 235.5 | 134.6 | 201.9 | **0.579** | 0.611 | 0.917 | **0.733** | 0.619 |
-| **Namkhana** | `02439` | 243.6 | 81.2 | 220.4 | **0.368** | 0.368 | 1.000 | **0.538** | 0.429 |
-| **Gosaba** | `02435` | 1918.6 | 34.0 | 781.0 | **0.000** | 0.000 | 0.000 | **0.000** | 0.575 |
-| **Patharpratima** | `02440` | 477.7 | 286.6 | 358.3 | **0.421** | 0.533 | 0.667 | **0.593** | 0.450 |
+| **Sagar** | `02438` | 235.5 | 0.0 | 201.9 | **0.000** | 0.000 | 0.000 | **0.000** | 0.143 |
+| **Namkhana** | `02439` | 243.6 | 0.0 | 220.4 | **0.000** | 0.000 | 0.000 | **0.000** | 0.095 |
+| **Gosaba** | `02435` | 1918.6 | 0.0 | 747.1 | **0.000** | 0.000 | 0.000 | **0.000** | 0.611 |
+| **Patharpratima** | `02440` | 477.7 | 0.0 | 358.3 | **0.000** | 0.000 | 0.000 | **0.000** | 0.250 |
 
 ### Aggregate Portfolio Metrics across Coastal Blocks
-- **Mean Intersection over Union (IoU):** `0.342`
-- **Mean F1 Score (Dice):** `0.466`
-- **Mean Precision:** `0.378`
-- **Mean Recall:** `0.646`
-- **Mean Overall Accuracy:** `0.518`
-- **Total Observed Flood Extent:** `536.4 km²`
-- **Total Predicted Flood Extent:** `1561.5 km²`
+- **Mean Intersection over Union (IoU):** `0.000`
+- **Mean F1 Score (Dice):** `0.000`
+- **Mean Precision:** `0.000`
+- **Mean Recall:** `0.000`
+- **Mean Overall Accuracy:** `0.275`
+- **Total Observed Flood Extent:** `0.0 km²`
+- **Total Predicted Flood Extent:** `1527.6 km²`
 
 ---
 
@@ -44,28 +44,28 @@
   - Platform: `S1A` | Orbit Pass: `DESCENDING` | Relative Orbit: `48`
 - **Orbit Geometry Match:** `Matched`
 
-#### Quantitative Confusion Matrix
+#### Quantitative Confusion Matrix (cell-level, ~5.5 km resolution)
 | Metric | Square Kilometers (km²) | Evaluated Grid Cells |
 | :--- | :--- | :--- |
-| **True Positives (TP)** | `123.36` | `11` |
-| **False Positives (FP)** | `78.50` | `7` |
-| **False Negatives (FN)** | `11.21` | `1` |
-| **True Negatives (TN)** | `22.43` | `2` |
+| **True Positives (TP)** | `0.00` | `0` |
+| **False Positives (FP)** | `201.86` | `18` |
+| **False Negatives (FN)** | `0.00` | `0` |
+| **True Negatives (TN)** | `33.64` | `3` |
 
 #### Performance Metrics
-- **IoU (Jaccard Index):** `0.5790`
-- **F1 Score (Dice):** `0.7333`
-- **Precision (Positive Predictive Value):** `0.6111`
-- **Recall (Sensitivity / True Positive Rate):** `0.9167`
-- **Specificity (True Negative Rate):** `0.2222`
-- **Cohen's Kappa:** `0.1516`
-- **Flooded Area Agreement:** `0.6667`
+- **IoU (Jaccard Index):** `0.0000`
+- **F1 Score (Dice):** `0.0000`
+- **Precision (Positive Predictive Value):** `0.0000`
+- **Recall (Sensitivity / True Positive Rate):** `0.0000`
+- **Specificity (True Negative Rate):** `0.1428`
+- **Cohen's Kappa:** `0.0000`
+- **Flooded Area Agreement:** `0.0000`
 
-#### Exported Artifacts
-- Observed Flood GeoTIFF: `observed_flood.tif`
-- Predicted Flood GeoTIFF: `predicted_flood.tif`
-- Agreement GeoTIFF: `agreement.tif`
-- Disagreement GeoTIFF: `disagreement.tif`
+#### Exported Cell-Label Artifacts
+- Observed Cell-Label GeoTIFF: `observed_flood.tif`
+- Predicted Cell-Label GeoTIFF: `predicted_flood.tif`
+- Agreement Cell-Label GeoTIFF: `agreement.tif`
+- Disagreement Cell-Label GeoTIFF: `disagreement.tif`
 - Observed Flood GeoJSON: `observed_flood.geojson`
 - Overlap Layer GeoJSON: `validation_overlap.geojson`
 - Metrics JSON: `metrics.json`
@@ -91,28 +91,28 @@
   - Platform: `S1A` | Orbit Pass: `DESCENDING` | Relative Orbit: `48`
 - **Orbit Geometry Match:** `Matched`
 
-#### Quantitative Confusion Matrix
+#### Quantitative Confusion Matrix (cell-level, ~5.5 km resolution)
 | Metric | Square Kilometers (km²) | Evaluated Grid Cells |
 | :--- | :--- | :--- |
-| **True Positives (TP)** | `81.20` | `7` |
-| **False Positives (FP)** | `139.20` | `12` |
+| **True Positives (TP)** | `0.00` | `0` |
+| **False Positives (FP)** | `220.40` | `19` |
 | **False Negatives (FN)** | `0.00` | `0` |
 | **True Negatives (TN)** | `23.20` | `2` |
 
 #### Performance Metrics
-- **IoU (Jaccard Index):** `0.3684`
-- **F1 Score (Dice):** `0.5385`
-- **Precision (Positive Predictive Value):** `0.3684`
-- **Recall (Sensitivity / True Positive Rate):** `1.0000`
-- **Specificity (True Negative Rate):** `0.1429`
-- **Cohen's Kappa:** `0.1000`
-- **Flooded Area Agreement:** `0.3684`
+- **IoU (Jaccard Index):** `0.0000`
+- **F1 Score (Dice):** `0.0000`
+- **Precision (Positive Predictive Value):** `0.0000`
+- **Recall (Sensitivity / True Positive Rate):** `0.0000`
+- **Specificity (True Negative Rate):** `0.0952`
+- **Cohen's Kappa:** `0.0000`
+- **Flooded Area Agreement:** `0.0000`
 
-#### Exported Artifacts
-- Observed Flood GeoTIFF: `observed_flood.tif`
-- Predicted Flood GeoTIFF: `predicted_flood.tif`
-- Agreement GeoTIFF: `agreement.tif`
-- Disagreement GeoTIFF: `disagreement.tif`
+#### Exported Cell-Label Artifacts
+- Observed Cell-Label GeoTIFF: `observed_flood.tif`
+- Predicted Cell-Label GeoTIFF: `predicted_flood.tif`
+- Agreement Cell-Label GeoTIFF: `agreement.tif`
+- Disagreement Cell-Label GeoTIFF: `disagreement.tif`
 - Observed Flood GeoJSON: `observed_flood.geojson`
 - Overlap Layer GeoJSON: `validation_overlap.geojson`
 - Metrics JSON: `metrics.json`
@@ -138,33 +138,33 @@
   - Platform: `S1A` | Orbit Pass: `DESCENDING` | Relative Orbit: `48`
 - **Orbit Geometry Match:** `Matched`
 
-#### Quantitative Confusion Matrix
+#### Quantitative Confusion Matrix (cell-level, ~5.5 km resolution)
 | Metric | Square Kilometers (km²) | Evaluated Grid Cells |
 | :--- | :--- | :--- |
 | **True Positives (TP)** | `0.00` | `0` |
-| **False Positives (FP)** | `781.02` | `46` |
-| **False Negatives (FN)** | `33.96` | `2` |
-| **True Negatives (TN)** | `1103.62` | `65` |
+| **False Positives (FP)** | `747.07` | `44` |
+| **False Negatives (FN)** | `0.00` | `0` |
+| **True Negatives (TN)** | `1171.53` | `69` |
 
 #### Performance Metrics
 - **IoU (Jaccard Index):** `0.0000`
 - **F1 Score (Dice):** `0.0000`
 - **Precision (Positive Predictive Value):** `0.0000`
 - **Recall (Sensitivity / True Positive Rate):** `0.0000`
-- **Specificity (True Negative Rate):** `0.5856`
-- **Cohen's Kappa:** `-0.0351`
-- **Flooded Area Agreement:** `0.0435`
+- **Specificity (True Negative Rate):** `0.6106`
+- **Cohen's Kappa:** `0.0000`
+- **Flooded Area Agreement:** `0.0000`
 
 #### Scientific Root Cause Analysis (IoU = 0.000)
-- **Sundarbans Mangrove Canopy Scattering:** Over 70% of Gosaba (1,918.6 km²) consists of dense, multi-tiered mangrove forest reserve in the south. C-band microwave pulses (~5.6 cm) scatter within the upper tree canopy and cannot penetrate to floodwater beneath, while perennial tidal creeks are excluded by the JRC surface water occurrence mask (>=20%).
-- **Hydrodynamic Wave Attenuation Omission:** The Tempest open-water surge model does not simulate mangrove root drag / vegetative bottom friction (Manning's n), predicting surge ingress up to 2.3m across 46 southern cells.
-- **Spatial Disconnect (North vs South):** Sentinel-1 observed standing water exclusively in 2 breached northern agricultural polders (Lat 22.18°N–22.23°N) where surge had already dissipated (0.0m). This produced 46 southern False Positives and 2 northern False Negatives with 0 True Positives.
+- **Sundarbans Mangrove Canopy Scattering:** A large proportion of Gosaba (1918.6 km²) consists of dense mangrove forest reserve. C-band microwave pulses (~5.6 cm) scatter within the upper tree canopy and cannot penetrate to floodwater beneath, while perennial tidal creeks are excluded by the JRC surface water occurrence mask (>=20%).
+- **Hydrodynamic Wave Attenuation Omission:** The Tempest open-water surge model does not simulate mangrove root drag / vegetative bottom friction (Manning's n), predicting surge ingress across 44 southern cells (747.1 km² FP).
+- **Spatial Disconnect (North vs South):** Sentinel-1 observed standing water in 0 northern agricultural polder(s) where surge had already dissipated. This produced 44 False Positives and 0 False Negatives with 0 True Positive(s).
 
-#### Exported Artifacts
-- Observed Flood GeoTIFF: `observed_flood.tif`
-- Predicted Flood GeoTIFF: `predicted_flood.tif`
-- Agreement GeoTIFF: `agreement.tif`
-- Disagreement GeoTIFF: `disagreement.tif`
+#### Exported Cell-Label Artifacts
+- Observed Cell-Label GeoTIFF: `observed_flood.tif`
+- Predicted Cell-Label GeoTIFF: `predicted_flood.tif`
+- Agreement Cell-Label GeoTIFF: `agreement.tif`
+- Disagreement Cell-Label GeoTIFF: `disagreement.tif`
 - Observed Flood GeoJSON: `observed_flood.geojson`
 - Overlap Layer GeoJSON: `validation_overlap.geojson`
 - Metrics JSON: `metrics.json`
@@ -190,28 +190,28 @@
   - Platform: `S1A` | Orbit Pass: `DESCENDING` | Relative Orbit: `48`
 - **Orbit Geometry Match:** `Matched`
 
-#### Quantitative Confusion Matrix
+#### Quantitative Confusion Matrix (cell-level, ~5.5 km resolution)
 | Metric | Square Kilometers (km²) | Evaluated Grid Cells |
 | :--- | :--- | :--- |
-| **True Positives (TP)** | `191.08` | `16` |
-| **False Positives (FP)** | `167.19` | `14` |
-| **False Negatives (FN)** | `95.54` | `8` |
-| **True Negatives (TN)** | `23.88` | `2` |
+| **True Positives (TP)** | `0.00` | `0` |
+| **False Positives (FP)** | `358.27` | `30` |
+| **False Negatives (FN)** | `0.00` | `0` |
+| **True Negatives (TN)** | `119.42` | `10` |
 
 #### Performance Metrics
-- **IoU (Jaccard Index):** `0.4211`
-- **F1 Score (Dice):** `0.5926`
-- **Precision (Positive Predictive Value):** `0.5333`
-- **Recall (Sensitivity / True Positive Rate):** `0.6667`
-- **Specificity (True Negative Rate):** `0.1250`
-- **Cohen's Kappa:** `-0.2222`
-- **Flooded Area Agreement:** `0.8000`
+- **IoU (Jaccard Index):** `0.0000`
+- **F1 Score (Dice):** `0.0000`
+- **Precision (Positive Predictive Value):** `0.0000`
+- **Recall (Sensitivity / True Positive Rate):** `0.0000`
+- **Specificity (True Negative Rate):** `0.2500`
+- **Cohen's Kappa:** `0.0000`
+- **Flooded Area Agreement:** `0.0000`
 
-#### Exported Artifacts
-- Observed Flood GeoTIFF: `observed_flood.tif`
-- Predicted Flood GeoTIFF: `predicted_flood.tif`
-- Agreement GeoTIFF: `agreement.tif`
-- Disagreement GeoTIFF: `disagreement.tif`
+#### Exported Cell-Label Artifacts
+- Observed Cell-Label GeoTIFF: `observed_flood.tif`
+- Predicted Cell-Label GeoTIFF: `predicted_flood.tif`
+- Agreement Cell-Label GeoTIFF: `agreement.tif`
+- Disagreement Cell-Label GeoTIFF: `disagreement.tif`
 - Observed Flood GeoJSON: `observed_flood.geojson`
 - Overlap Layer GeoJSON: `validation_overlap.geojson`
 - Metrics JSON: `metrics.json`

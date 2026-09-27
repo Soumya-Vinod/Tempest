@@ -38,8 +38,9 @@
         "surge_depth_m": 1.87,
         "flood_index": 0.87,
         "predicted_flooded": true,
-        "observed_flooded": true,
-        "status": "tp",
+        "susceptibility_flagged": true,
+        "observed_flooded": false,
+        "status": "fp",
         "elevation_m": 0.03,
         "dist_to_coast_km": 8.34
       }
@@ -81,8 +82,9 @@
         "surge_depth_m": 1.64,
         "flood_index": 0.72,
         "predicted_flooded": true,
-        "observed_flooded": true,
-        "status": "tp",
+        "susceptibility_flagged": true,
+        "observed_flooded": false,
+        "status": "fp",
         "elevation_m": 1.42,
         "dist_to_coast_km": 8.34
       }
@@ -124,8 +126,9 @@
         "surge_depth_m": 1.76,
         "flood_index": 0.73,
         "predicted_flooded": true,
-        "observed_flooded": true,
-        "status": "tp",
+        "susceptibility_flagged": true,
+        "observed_flooded": false,
+        "status": "fp",
         "elevation_m": 1.46,
         "dist_to_coast_km": 8.34
       }
@@ -167,6 +170,7 @@
         "surge_depth_m": 2.21,
         "flood_index": 0.87,
         "predicted_flooded": true,
+        "susceptibility_flagged": true,
         "observed_flooded": false,
         "status": "fp",
         "elevation_m": 0.2,
@@ -210,8 +214,9 @@
         "surge_depth_m": 1.5,
         "flood_index": 0.79,
         "predicted_flooded": true,
-        "observed_flooded": true,
-        "status": "tp",
+        "susceptibility_flagged": true,
+        "observed_flooded": false,
+        "status": "fp",
         "elevation_m": 0.7,
         "dist_to_coast_km": 13.9
       }
@@ -253,8 +258,9 @@
         "surge_depth_m": 0.76,
         "flood_index": 0.51,
         "predicted_flooded": true,
-        "observed_flooded": true,
-        "status": "tp",
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "fp",
         "elevation_m": 4.09,
         "dist_to_coast_km": 13.9
       }
@@ -296,8 +302,9 @@
         "surge_depth_m": 0.83,
         "flood_index": 0.5,
         "predicted_flooded": true,
-        "observed_flooded": true,
-        "status": "tp",
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "fp",
         "elevation_m": 4.34,
         "dist_to_coast_km": 13.9
       }
@@ -339,6 +346,7 @@
         "surge_depth_m": 1.72,
         "flood_index": 0.78,
         "predicted_flooded": true,
+        "susceptibility_flagged": true,
         "observed_flooded": false,
         "status": "fp",
         "elevation_m": 1.35,
@@ -382,6 +390,7 @@
         "surge_depth_m": 1.47,
         "flood_index": 0.79,
         "predicted_flooded": true,
+        "susceptibility_flagged": true,
         "observed_flooded": false,
         "status": "fp",
         "elevation_m": 0.03,
@@ -425,8 +434,9 @@
         "surge_depth_m": 0.61,
         "flood_index": 0.49,
         "predicted_flooded": true,
-        "observed_flooded": true,
-        "status": "tp",
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "fp",
         "elevation_m": 3.94,
         "dist_to_coast_km": 19.46
       }
@@ -468,8 +478,9 @@
         "surge_depth_m": 0.56,
         "flood_index": 0.48,
         "predicted_flooded": true,
-        "observed_flooded": true,
-        "status": "tp",
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "fp",
         "elevation_m": 4.64,
         "dist_to_coast_km": 19.46
       }
@@ -511,8 +522,9 @@
         "surge_depth_m": 1.46,
         "flood_index": 0.74,
         "predicted_flooded": true,
-        "observed_flooded": true,
-        "status": "tp",
+        "susceptibility_flagged": true,
+        "observed_flooded": false,
+        "status": "fp",
         "elevation_m": 1.64,
         "dist_to_coast_km": 19.46
       }
@@ -554,8 +566,9 @@
         "surge_depth_m": 0.58,
         "flood_index": 0.57,
         "predicted_flooded": true,
-        "observed_flooded": true,
-        "status": "tp",
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "fp",
         "elevation_m": 2.54,
         "dist_to_coast_km": 25.02
       }
@@ -597,8 +610,9 @@
         "surge_depth_m": 0.03,
         "flood_index": 0.45,
         "predicted_flooded": false,
-        "observed_flooded": true,
-        "status": "fn",
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
         "elevation_m": 5.14,
         "dist_to_coast_km": 25.02
       }
@@ -640,6 +654,7 @@
         "surge_depth_m": 0.89,
         "flood_index": 0.69,
         "predicted_flooded": true,
+        "susceptibility_flagged": true,
         "observed_flooded": false,
         "status": "fp",
         "elevation_m": 2.14,
@@ -683,6 +698,7 @@
         "surge_depth_m": 0.97,
         "flood_index": 0.72,
         "predicted_flooded": true,
+        "susceptibility_flagged": true,
         "observed_flooded": false,
         "status": "fp",
         "elevation_m": 0.36,
@@ -726,6 +742,7 @@
         "surge_depth_m": 0.0,
         "flood_index": 0.37,
         "predicted_flooded": false,
+        "susceptibility_flagged": false,
         "observed_flooded": false,
         "status": "tn",
         "elevation_m": 5.78,
@@ -769,6 +786,7 @@
         "surge_depth_m": 0.8,
         "flood_index": 0.7,
         "predicted_flooded": true,
+        "susceptibility_flagged": true,
         "observed_flooded": false,
         "status": "fp",
         "elevation_m": 1.87,
@@ -812,6 +830,7 @@
         "surge_depth_m": 0.67,
         "flood_index": 0.64,
         "predicted_flooded": true,
+        "susceptibility_flagged": false,
         "observed_flooded": false,
         "status": "fp",
         "elevation_m": 1.4,
@@ -855,8 +874,9 @@
         "surge_depth_m": 0.58,
         "flood_index": 0.68,
         "predicted_flooded": true,
-        "observed_flooded": true,
-        "status": "tp",
+        "susceptibility_flagged": true,
+        "observed_flooded": false,
+        "status": "fp",
         "elevation_m": 1.15,
         "dist_to_coast_km": 41.7
       }
@@ -898,6 +918,7 @@
         "surge_depth_m": 0.08,
         "flood_index": 0.49,
         "predicted_flooded": false,
+        "susceptibility_flagged": false,
         "observed_flooded": false,
         "status": "tn",
         "elevation_m": 3.45,

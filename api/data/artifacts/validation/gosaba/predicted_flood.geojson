@@ -38,6 +38,7 @@
         "surge_depth_m": 2.27,
         "flood_index": 0.7,
         "predicted_flooded": true,
+        "susceptibility_flagged": true,
         "observed_flooded": false,
         "status": "fp",
         "elevation_m": 2.01,
@@ -81,6 +82,7 @@
         "surge_depth_m": 2.29,
         "flood_index": 0.77,
         "predicted_flooded": true,
+        "susceptibility_flagged": true,
         "observed_flooded": false,
         "status": "fp",
         "elevation_m": 1.61,
@@ -124,6 +126,7 @@
         "surge_depth_m": 2.22,
         "flood_index": 0.77,
         "predicted_flooded": true,
+        "susceptibility_flagged": true,
         "observed_flooded": false,
         "status": "fp",
         "elevation_m": 1.49,
@@ -167,6 +170,7 @@
         "surge_depth_m": 1.61,
         "flood_index": 0.66,
         "predicted_flooded": true,
+        "susceptibility_flagged": true,
         "observed_flooded": false,
         "status": "fp",
         "elevation_m": 3.49,
@@ -210,6 +214,7 @@
         "surge_depth_m": 1.7,
         "flood_index": 0.6,
         "predicted_flooded": true,
+        "susceptibility_flagged": false,
         "observed_flooded": false,
         "status": "fp",
         "elevation_m": 3.39,
@@ -253,6 +258,7 @@
         "surge_depth_m": 1.75,
         "flood_index": 0.67,
         "predicted_flooded": true,
+        "susceptibility_flagged": true,
         "observed_flooded": false,
         "status": "fp",
         "elevation_m": 2.79,
@@ -296,6 +302,7 @@
         "surge_depth_m": 1.88,
         "flood_index": 0.77,
         "predicted_flooded": true,
+        "susceptibility_flagged": true,
         "observed_flooded": false,
         "status": "fp",
         "elevation_m": 1.84,
@@ -339,6 +346,7 @@
         "surge_depth_m": 2.16,
         "flood_index": 0.87,
         "predicted_flooded": true,
+        "susceptibility_flagged": true,
         "observed_flooded": false,
         "status": "fp",
         "elevation_m": 0.3,
@@ -382,6 +390,7 @@
         "surge_depth_m": 1.96,
         "flood_index": 0.82,
         "predicted_flooded": true,
+        "susceptibility_flagged": true,
         "observed_flooded": false,
         "status": "fp",
         "elevation_m": 0.7,
@@ -425,6 +434,7 @@
         "surge_depth_m": 1.02,
         "flood_index": 0.54,
         "predicted_flooded": true,
+        "susceptibility_flagged": false,
         "observed_flooded": false,
         "status": "fp",
         "elevation_m": 4.06,
@@ -468,6 +478,7 @@
         "surge_depth_m": 0.87,
         "flood_index": 0.55,
         "predicted_flooded": true,
+        "susceptibility_flagged": false,
         "observed_flooded": false,
         "status": "fp",
         "elevation_m": 4.33,
@@ -511,6 +522,7 @@
         "surge_depth_m": 1.28,
         "flood_index": 0.73,
         "predicted_flooded": true,
+        "susceptibility_flagged": true,
         "observed_flooded": false,
         "status": "fp",
         "elevation_m": 2.3,
@@ -554,6 +566,7 @@
         "surge_depth_m": 2.29,
         "flood_index": 0.81,
         "predicted_flooded": true,
+        "susceptibility_flagged": true,
         "observed_flooded": false,
         "status": "fp",
         "elevation_m": 0.55,
@@ -597,6 +610,7 @@
         "surge_depth_m": 1.41,
         "flood_index": 0.56,
         "predicted_flooded": true,
+        "susceptibility_flagged": false,
         "observed_flooded": false,
         "status": "fp",
         "elevation_m": 3.66,
@@ -640,6 +654,7 @@
         "surge_depth_m": 1.41,
         "flood_index": 0.65,
         "predicted_flooded": true,
+        "susceptibility_flagged": true,
         "observed_flooded": false,
         "status": "fp",
         "elevation_m": 3.25,
@@ -683,6 +698,7 @@
         "surge_depth_m": 1.4,
         "flood_index": 0.61,
         "predicted_flooded": true,
+        "susceptibility_flagged": false,
         "observed_flooded": false,
         "status": "fp",
         "elevation_m": 2.86,
@@ -726,6 +742,7 @@
         "surge_depth_m": 1.61,
         "flood_index": 0.78,
         "predicted_flooded": true,
+        "susceptibility_flagged": true,
         "observed_flooded": false,
         "status": "fp",
         "elevation_m": 1.6,
@@ -769,6 +786,7 @@
         "surge_depth_m": 1.01,
         "flood_index": 0.55,
         "predicted_flooded": true,
+        "susceptibility_flagged": false,
         "observed_flooded": false,
         "status": "fp",
         "elevation_m": 3.57,
@@ -812,6 +830,7 @@
         "surge_depth_m": 0.82,
         "flood_index": 0.68,
         "predicted_flooded": true,
+        "susceptibility_flagged": true,
         "observed_flooded": false,
         "status": "fp",
         "elevation_m": 3.25,
@@ -855,6 +874,7 @@
         "surge_depth_m": 2.02,
         "flood_index": 0.72,
         "predicted_flooded": true,
+        "susceptibility_flagged": true,
         "observed_flooded": false,
         "status": "fp",
         "elevation_m": 1.26,
@@ -898,6 +918,7 @@
         "surge_depth_m": 2.19,
         "flood_index": 0.81,
         "predicted_flooded": true,
+        "susceptibility_flagged": true,
         "observed_flooded": false,
         "status": "fp",
         "elevation_m": 0.16,
@@ -941,6 +962,7 @@
         "surge_depth_m": 1.14,
         "flood_index": 0.52,
         "predicted_flooded": true,
+        "susceptibility_flagged": false,
         "observed_flooded": false,
         "status": "fp",
         "elevation_m": 3.96,
@@ -984,6 +1006,7 @@
         "surge_depth_m": 1.23,
         "flood_index": 0.67,
         "predicted_flooded": true,
+        "susceptibility_flagged": true,
         "observed_flooded": false,
         "status": "fp",
         "elevation_m": 3.15,
@@ -1027,6 +1050,7 @@
         "surge_depth_m": 0.98,
         "flood_index": 0.56,
         "predicted_flooded": true,
+        "susceptibility_flagged": false,
         "observed_flooded": false,
         "status": "fp",
         "elevation_m": 3.69,
@@ -1070,6 +1094,7 @@
         "surge_depth_m": 1.22,
         "flood_index": 0.73,
         "predicted_flooded": true,
+        "susceptibility_flagged": true,
         "observed_flooded": false,
         "status": "fp",
         "elevation_m": 2.28,
@@ -1113,6 +1138,7 @@
         "surge_depth_m": 0.73,
         "flood_index": 0.58,
         "predicted_flooded": true,
+        "susceptibility_flagged": false,
         "observed_flooded": false,
         "status": "fp",
         "elevation_m": 3.84,
@@ -1156,6 +1182,7 @@
         "surge_depth_m": 1.17,
         "flood_index": 0.77,
         "predicted_flooded": true,
+        "susceptibility_flagged": true,
         "observed_flooded": false,
         "status": "fp",
         "elevation_m": 1.08,
@@ -1199,6 +1226,7 @@
         "surge_depth_m": 1.4,
         "flood_index": 0.64,
         "predicted_flooded": true,
+        "susceptibility_flagged": false,
         "observed_flooded": false,
         "status": "fp",
         "elevation_m": 1.66,
@@ -1242,6 +1270,7 @@
         "surge_depth_m": 1.72,
         "flood_index": 0.81,
         "predicted_flooded": true,
+        "susceptibility_flagged": true,
         "observed_flooded": false,
         "status": "fp",
         "elevation_m": 0.04,
@@ -1285,6 +1314,7 @@
         "surge_depth_m": 0.84,
         "flood_index": 0.54,
         "predicted_flooded": true,
+        "susceptibility_flagged": false,
         "observed_flooded": false,
         "status": "fp",
         "elevation_m": 3.15,
@@ -1328,6 +1358,7 @@
         "surge_depth_m": 0.71,
         "flood_index": 0.61,
         "predicted_flooded": true,
+        "susceptibility_flagged": false,
         "observed_flooded": false,
         "status": "fp",
         "elevation_m": 3.32,
@@ -1371,6 +1402,7 @@
         "surge_depth_m": 0.72,
         "flood_index": 0.65,
         "predicted_flooded": true,
+        "susceptibility_flagged": true,
         "observed_flooded": false,
         "status": "fp",
         "elevation_m": 2.91,
@@ -1414,6 +1446,7 @@
         "surge_depth_m": 0.61,
         "flood_index": 0.65,
         "predicted_flooded": true,
+        "susceptibility_flagged": true,
         "observed_flooded": false,
         "status": "fp",
         "elevation_m": 3.02,
@@ -1457,6 +1490,7 @@
         "surge_depth_m": 0.54,
         "flood_index": 0.69,
         "predicted_flooded": true,
+        "susceptibility_flagged": true,
         "observed_flooded": false,
         "status": "fp",
         "elevation_m": 2.44,
@@ -1500,6 +1534,7 @@
         "surge_depth_m": 1.04,
         "flood_index": 0.57,
         "predicted_flooded": true,
+        "susceptibility_flagged": false,
         "observed_flooded": false,
         "status": "fp",
         "elevation_m": 2.55,
@@ -1543,6 +1578,7 @@
         "surge_depth_m": 1.56,
         "flood_index": 0.81,
         "predicted_flooded": true,
+        "susceptibility_flagged": true,
         "observed_flooded": false,
         "status": "fp",
         "elevation_m": 0.04,
@@ -1586,6 +1622,7 @@
         "surge_depth_m": 0.67,
         "flood_index": 0.52,
         "predicted_flooded": true,
+        "susceptibility_flagged": false,
         "observed_flooded": false,
         "status": "fp",
         "elevation_m": 3.23,
@@ -1629,6 +1666,7 @@
         "surge_depth_m": 0.62,
         "flood_index": 0.61,
         "predicted_flooded": true,
+        "susceptibility_flagged": false,
         "observed_flooded": false,
         "status": "fp",
         "elevation_m": 3.03,
@@ -1672,52 +1710,10 @@
         "surge_depth_m": 0.67,
         "flood_index": 0.68,
         "predicted_flooded": true,
+        "susceptibility_flagged": true,
         "observed_flooded": false,
         "status": "fp",
         "elevation_m": 2.5,
-        "dist_to_coast_km": 30.58
-      }
-    },
-    {
-      "type": "Feature",
-      "id": "val__02435__c0620",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              89.0,
-              21.8
-            ],
-            [
-              89.05,
-              21.8
-            ],
-            [
-              89.05,
-              21.85
-            ],
-            [
-              89.0,
-              21.85
-            ],
-            [
-              89.0,
-              21.8
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "cell_id": "c0620",
-        "block_name": "Gosaba",
-        "block_code": "02435",
-        "surge_depth_m": 0.42,
-        "flood_index": 0.69,
-        "predicted_flooded": true,
-        "observed_flooded": false,
-        "status": "fp",
-        "elevation_m": 2.34,
         "dist_to_coast_km": 30.58
       }
     },
@@ -1758,6 +1754,7 @@
         "surge_depth_m": 1.38,
         "flood_index": 0.76,
         "predicted_flooded": true,
+        "susceptibility_flagged": true,
         "observed_flooded": false,
         "status": "fp",
         "elevation_m": 0.16,
@@ -1801,52 +1798,10 @@
         "surge_depth_m": 0.52,
         "flood_index": 0.66,
         "predicted_flooded": true,
+        "susceptibility_flagged": true,
         "observed_flooded": false,
         "status": "fp",
         "elevation_m": 2.46,
-        "dist_to_coast_km": 36.14
-      }
-    },
-    {
-      "type": "Feature",
-      "id": "val__02435__c0720",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              89.0,
-              21.85
-            ],
-            [
-              89.05,
-              21.85
-            ],
-            [
-              89.05,
-              21.9
-            ],
-            [
-              89.0,
-              21.9
-            ],
-            [
-              89.0,
-              21.85
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "cell_id": "c0720",
-        "block_name": "Gosaba",
-        "block_code": "02435",
-        "surge_depth_m": 0.38,
-        "flood_index": 0.68,
-        "predicted_flooded": true,
-        "observed_flooded": false,
-        "status": "fp",
-        "elevation_m": 1.95,
         "dist_to_coast_km": 36.14
       }
     },
@@ -1887,6 +1842,7 @@
         "surge_depth_m": 1.19,
         "flood_index": 0.7,
         "predicted_flooded": true,
+        "susceptibility_flagged": true,
         "observed_flooded": false,
         "status": "fp",
         "elevation_m": 0.32,
@@ -1930,6 +1886,7 @@
         "surge_depth_m": 0.75,
         "flood_index": 0.65,
         "predicted_flooded": true,
+        "susceptibility_flagged": true,
         "observed_flooded": false,
         "status": "fp",
         "elevation_m": 1.68,
@@ -1973,6 +1930,7 @@
         "surge_depth_m": 0.64,
         "flood_index": 0.65,
         "predicted_flooded": true,
+        "susceptibility_flagged": true,
         "observed_flooded": false,
         "status": "fp",
         "elevation_m": 1.52,
