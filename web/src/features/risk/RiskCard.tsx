@@ -3,6 +3,9 @@ import { CARD_BOTTOM, CARD_TOP_CLEARANCE, PANEL_WIDTH, UI_GAP } from '../../lib/
 import type { RiskBlockBreakdown, RiskReach, RiskScore } from '../../types/contracts'
 import { cssColor, DRIVER_LABEL, PART_LABEL, riskColor } from './style'
 
+/** Below this score a block's "main driver" is noise: the card says so instead. */
+const SIGNIFICANT_SCORE = 0.05
+
 export interface RiskCardProps {
   timestepIndex: number
   selected: RiskScore | null
@@ -92,10 +95,14 @@ export default function RiskCard({ timestepIndex, selected, breakdown, onClose }
         <span className="text-2xl font-semibold tabular-nums">{p.score.toFixed(2)}</span>
         <span className="text-xs text-slate-500">risk score (0–1)</span>
       </div>
-      {p.top_driver && (
-        <p className="mt-1 text-xs">
-          Main driver: <span className="font-medium">{DRIVER_LABEL[p.top_driver]}</span>
-        </p>
+      {p.score < SIGNIFICANT_SCORE ? (
+        <p className="mt-1 text-xs text-slate-500">No significant risk</p>
+      ) : (
+        p.top_driver && (
+          <p className="mt-1 text-xs">
+            Main driver: <span className="font-medium">{DRIVER_LABEL[p.top_driver]}</span>
+          </p>
+        )
       )}
       {bd && p.score > 0 && (
         <p className="mt-0.5 text-xs">

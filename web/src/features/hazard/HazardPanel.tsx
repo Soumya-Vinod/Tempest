@@ -117,7 +117,7 @@ export default function HazardPanel(props: HazardPanelProps) {
   const hazard = props.view === 'hazard'
   return (
     <>
-      <section className="mt-5">
+      <section>
         <h3 className={`${HEADING} mb-2`}>Map view</h3>
         <div className="flex gap-2">
           <Segmented

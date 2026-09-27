@@ -131,3 +131,22 @@ For a production build against a deployed API, copy `.env.example` to `.env` and
 
 `DEMO_MODE` defaults to `true`, which serves the curated fixtures in `api\data\demo\` instead of
 calling external services. Set `DEMO_MODE=false` in `api\.env` for live calls.
+
+## About the data
+
+The full list is in the app (side panel → About the data), from
+`web/src/features/about/sources.ts`.
+
+- **Real:** OpenStreetMap infrastructure and protected areas (downloaded 25 Sep 2026); the
+  IBTrACS track for Cyclone Amphan; SRTM elevation (sampled at 90 m, averaged per 5.5 km cell);
+  Census 2011 block population (via Wikidata, citing the Census PCA); geoBoundaries block
+  boundaries.
+- **Modelled:** wind (Holland profile with an outer envelope), storm surge (parametric), flood
+  susceptibility (3 of its 6 inputs are simplified proxies, not the JRC, IMERG or WorldCover
+  datasets), and impact and risk (Tempest's own engine).
+- **Limits:** 5.5 km hazard grid; the "Next 24 h" view is a perfect-forecast replay (the worst
+  case over the replay's next 24 h); OpenStreetMap has no designated cyclone shelters here, so
+  schools and public buildings stand in; health facilities include nursing homes; insurance
+  figures are illustrative; literacy isn't used (the Census file was unreachable).
+- **AI:** advisories are drafted by Gemini 3.7 Flash (Groq as a labelled fallback); every figure
+  comes from the engine, not the model; a named official approves every advisory.

@@ -2,20 +2,22 @@ import type { Color } from '@deck.gl/core'
 import type { ReactNode } from 'react'
 
 import type { InfraFeatureCollection, InfraType } from '../../types/contracts'
-import { COLOR, cssColor, INFRA_TYPES, STAND_IN, TYPE_LABEL } from './style'
+import { COLOR, cssColor, INFRA_TYPES, MUTED, STAND_IN, TYPE_LABEL } from './style'
 import type { InfraByType } from './useInfra'
 
 interface Props {
   state: InfraByType
   visible: Record<InfraType, boolean>
   onToggle: (infraType: InfraType) => void
+  /** Impact is showing: the map's exposure colours are muted, so the swatches are too. */
+  muted?: boolean
 }
 
 const count = (fc: InfraFeatureCollection, key: string, value: unknown) =>
   fc.features.filter((f) => f.properties.attributes[key] === value).length
 
 /** Legend-style breakdown under a row, e.g. hollow vs filled shelters. */
-function breakdown(infraType: InfraType, fc: InfraFeatureCollection): ReactNode {
+function breakdown(infraType: InfraType, fc: InfraFeatureCollection, muted: boolean): ReactNode {
   const n = (v: number) => v.toLocaleString()
   switch (infraType) {
     case 'road': {
@@ -37,12 +39,15 @@ function breakdown(infraType: InfraType, fc: InfraFeatureCollection): ReactNode 
       return (
         <ul className="space-y-0.5">
           <li className="flex items-center gap-1.5">
-            <Dot fill={COLOR.shelter} ring={COLOR.shelter} />
+            <Dot
+              fill={muted ? MUTED.shelter : COLOR.shelter}
+              ring={muted ? MUTED.shelter : COLOR.shelter}
+            />
             {n(real)} designated shelters
           </li>
           {standIns.map((s) => (
             <li key={s.label} className="flex items-center gap-1.5">
-              <Dot fill={[255, 255, 255]} ring={s.ring} />
+              <Dot fill={[255, 255, 255]} ring={muted ? MUTED.standInRing : s.ring} />
               {n(s.n)} {s.plural} (stand-ins)
             </li>
           ))}
@@ -64,16 +69,33 @@ function Dot({ fill, ring }: { fill: Color; ring: Color }) {
   )
 }
 
-const SWATCH: Record<InfraType, { color: Color; line: boolean }> = {
-  road: { color: COLOR.roadMajor, line: true },
-  power_line: { color: COLOR.powerLine, line: true },
-  substation: { color: COLOR.substation, line: false },
-  hospital: { color: COLOR.hospital, line: false },
-  shelter: { color: COLOR.shelter, line: false },
+const LINES: Record<InfraType, boolean> = {
+  road: true,
+  power_line: true,
+  substation: false,
+  hospital: false,
+  shelter: false,
 }
 
-function Swatch({ infraType }: { infraType: InfraType }) {
-  const { color, line } = SWATCH[infraType]
+function swatchColor(infraType: InfraType, muted: boolean): Color {
+  const palette = muted ? MUTED : COLOR
+  switch (infraType) {
+    case 'road':
+      return palette.roadMajor
+    case 'power_line':
+      return palette.powerLine
+    case 'substation':
+      return palette.substation
+    case 'hospital':
+      return palette.hospital
+    case 'shelter':
+      return palette.shelter
+  }
+}
+
+function Swatch({ infraType, muted }: { infraType: InfraType; muted: boolean }) {
+  const color = swatchColor(infraType, muted)
+  const line = LINES[infraType]
   return line ? (
     <span className="h-1 w-4 rounded-full" style={{ background: cssColor(color) }} aria-hidden />
   ) : (
@@ -86,7 +108,7 @@ function Swatch({ infraType }: { infraType: InfraType }) {
 }
 
 /** "Infrastructure" side-panel section: one toggle and count per type. */
-export default function InfraPanel({ state, visible, onToggle }: Props) {
+export default function InfraPanel({ state, visible, onToggle, muted = false }: Props) {
   return (
     <section className="mt-5">
       <h2 className="mb-2 text-xs font-semibold tracking-wide text-slate-500 uppercase">
@@ -95,7 +117,7 @@ export default function InfraPanel({ state, visible, onToggle }: Props) {
       <ul className="space-y-2">
         {INFRA_TYPES.map((infraType) => {
           const s = state[infraType]
-          const detail = s.status === 'ok' ? breakdown(infraType, s.data) : null
+          const detail = s.status === 'ok' ? breakdown(infraType, s.data, muted) : null
           return (
             <li key={infraType}>
               <label className="flex cursor-pointer items-center gap-2">
@@ -105,7 +127,7 @@ export default function InfraPanel({ state, visible, onToggle }: Props) {
                   onChange={() => onToggle(infraType)}
                   className="accent-slate-700"
                 />
-                <Swatch infraType={infraType} />
+                <Swatch infraType={infraType} muted={muted} />
                 <span className="font-medium">{TYPE_LABEL[infraType]}</span>
                 <span className="ml-auto text-xs text-slate-500 tabular-nums">
                   {s.status === 'loading' && 'loading…'}

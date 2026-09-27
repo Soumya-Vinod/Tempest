@@ -5,6 +5,7 @@ import { useCallback, useMemo, useState } from 'react'
 import HealthPanel from './components/HealthPanel'
 import MapView from './components/MapView'
 import TimelineScrubber from './components/TimelineScrubber'
+import { AboutPanel } from './features/about'
 import { AdvisoryDrawer, AdvisoryPanel, useAdvisories } from './features/advisory'
 import { InfraPanel, infraTooltip, useInfraLayers, useInfraMap } from './features/exposure'
 import { HazardPanel, type MapViewMode, StormEdge, useHazardMap } from './features/hazard'
@@ -101,11 +102,17 @@ export default function App() {
       <StormEdge {...hazard.edge} />
       <HealthPanel>
         <HazardPanel {...hazard.panel} />
-        <InfraPanel state={infra.state} visible={infra.visible} onToggle={infra.toggle} />
+        <InfraPanel
+          state={infra.state}
+          visible={infra.visible}
+          onToggle={infra.toggle}
+          muted={impact.active}
+        />
         <RiskPanel {...risk.panel} />
         <ImpactPanel {...impact.panel} />
         <InsurancePanel {...insurance.panel} />
         <AdvisoryPanel {...advisory.panel} />
+        <AboutPanel />
       </HealthPanel>
       <PathwayCard {...impact.card} />
       <RiskCard {...risk.card} />
