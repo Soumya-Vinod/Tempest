@@ -300,8 +300,8 @@ STANDIN_COUNT = "standin_count"
 
 def fact_problems(templates: AdvisoryTexts, citations: list[Citation]) -> list[Problem]:
     """Rules that depend on the figures: one count per statement (no sentence with two count
-    placeholders of equal value, e.g. a total and an equal subtotal), and, when the block has no
-    stand-in shelters, an action that says so by citing {{standin_count}}."""
+    placeholders of equal value, e.g. a total and an equal subtotal). (The no-shelters action is
+    added by the server: add_shelter_action.)"""
     values = {c.key: c.value for c in citations}
     problems = []
     for lang in LANGUAGES:
@@ -317,11 +317,53 @@ def fact_problems(templates: AdvisoryTexts, citations: list[Citation]) -> list[P
                     for b in counts[i + 1 :]:
                         if a in values and b in values and values[a] == values[b]:
                             problems.append(Problem(lang, field, "duplicate_count", f"{a}={b}"))
-        if values.get(STANDIN_COUNT) == 0 and not any(
-            STANDIN_COUNT in PLACEHOLDER.findall(a) for a in t.actions
-        ):
-            problems.append(Problem(lang, "actions", "missing_standin_action", STANDIN_COUNT))
     return problems
+
+
+# --- No mapped shelters: one fixed, pre-translated action, added by the server ------------------
+
+# The model is told not to write shelter actions when a block has none mapped; the server adds
+# this one to every language instead (no figures, so nothing for the number check).
+NO_SHELTERS_ACTION = {
+    "en": (
+        "No shelters are mapped in this block: identify safe concrete buildings (schools, "
+        "panchayat offices) locally before the storm."
+    ),
+    "bn": (
+        "এই ব্লকে কোনো আশ্রয়কেন্দ্র চিহ্নিত নেই: ঝড়ের আগেই স্থানীয়ভাবে নিরাপদ পাকা ভবন "
+        "(স্কুল, পঞ্চায়েত অফিস) খুঁজে বের করুন।"
+    ),
+    "hi": (
+        "इस ब्लॉक में कोई आश्रय स्थल चिह्नित नहीं है: तूफ़ान से पहले स्थानीय स्तर पर सुरक्षित "
+        "पक्की इमारतें (स्कूल, पंचायत कार्यालय) पहचानें।"
+    ),
+}
+MAX_ACTIONS = 5  # AdvisoryText: 3 to 5 actions
+
+
+def no_shelters(citations: list[Citation]) -> bool:
+    return any(c.key == STANDIN_COUNT and c.value == 0 for c in citations)
+
+
+def add_shelter_action(
+    templates: AdvisoryTexts, citations: list[Citation]
+) -> tuple[AdvisoryTexts, list[Problem]]:
+    """With no mapped shelters: the fixed action appended to every language (once). A language
+    that already has MAX_ACTIONS actions can't take it: that is a problem for a retry."""
+    if not no_shelters(citations):
+        return templates, []
+    out, problems = {}, []
+    for lang in LANGUAGES:
+        t = getattr(templates, lang)
+        action = NO_SHELTERS_ACTION[lang]
+        if action in t.actions:
+            out[lang] = t
+        elif len(t.actions) >= MAX_ACTIONS:
+            out[lang] = t
+            problems.append(Problem(lang, "actions", "too_many_actions", str(len(t.actions))))
+        else:
+            out[lang] = AdvisoryText(headline=t.headline, body=t.body, actions=[*t.actions, action])
+    return AdvisoryTexts(**out), problems
 
 
 def check(
@@ -392,14 +434,61 @@ def _starts_sentence(text: str, pos: int) -> bool:
     return not before.strip() or before.endswith(SENTENCE_END)
 
 
+# A unit the model wrote right after a placeholder that already renders one ("{{x}} minutes" ->
+# "20 min minutes"): the repeated unit word is dropped. Keyed by the citation's unit.
+_UNIT_WORDS = {
+    "min": {
+        "en": ["minutes", "minute", "mins", "min"],
+        "bn": ["মিনিট"],
+        "hi": ["मिनट"],
+    },
+    "h": {
+        "en": ["hours", "hour", "hrs", "hr", "h"],
+        "bn": ["ঘণ্টা", "ঘন্টা"],
+        "hi": ["घंटे", "घंटा", "घण्टे", "घण्टा"],
+    },
+    "km": {
+        "en": ["kilometres", "kilometre", "kilometers", "kilometer", "kms", "km"],
+        "bn": ["কিলোমিটার", "কিমি"],
+        "hi": ["किलोमीटर", "किमी"],
+    },
+    "m": {
+        "en": ["metres", "metre", "meters", "meter", "m"],
+        "bn": ["মিটার"],
+        "hi": ["मीटर"],
+    },
+    "m/s": {  # rendered as km/h
+        "en": ["km/h", "kmph", "kph", "km per hour"],
+        "bn": ["কিমি/ঘণ্টা", "কিমি/ঘন্টা", "কিলোমিটার/ঘণ্টা"],
+        "hi": ["किमी/घंटा", "किमी/घण्टा", "किलोमीटर/घंटा"],
+    },
+}
+_UNIT_RE = {
+    (unit, lang): re.compile(
+        rf"\s*(?:{'|'.join(map(re.escape, sorted(words, key=len, reverse=True)))})(?!{_LETTER})",
+        re.IGNORECASE if lang == "en" else 0,
+    )
+    for unit, by_lang in _UNIT_WORDS.items()
+    for lang, words in by_lang.items()
+}
+
+
 def fill(text: str, citations: dict[str, Citation], language: str) -> str:
-    def value(m: re.Match) -> str:
-        filled = format_value(citations[m.group(1)], language)
+    out: list[str] = []
+    pos = 0
+    for m in PLACEHOLDER.finditer(text):
+        out.append(text[pos : m.start()])
+        c = citations[m.group(1)]
+        filled = format_value(c, language)
         if language == "en" and filled and _starts_sentence(text, m.start()):
             filled = filled[0].upper() + filled[1:]
-        return filled
-
-    return PLACEHOLDER.sub(value, text)
+        out.append(filled)
+        pos = m.end()
+        repeat = _UNIT_RE.get((c.unit or "", language))
+        if repeat and not isinstance(c.value, str) and (dup := repeat.match(text, pos)):
+            pos = dup.end()
+    out.append(text[pos:])
+    return "".join(out)
 
 
 def render(templates: AdvisoryTexts, citations: list[Citation]) -> AdvisoryTexts:

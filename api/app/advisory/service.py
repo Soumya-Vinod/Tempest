@@ -141,10 +141,12 @@ def evaluate(
     except ValidationError as e:
         return None, "invalid_response", {"errors": [err["msg"] for err in e.errors()][:5]}
     repairs: list[dict] = []
+    added: list[render.Problem] = []
     if citations is not None:
         templates, found = render.repair_counts(templates, citations)
         repairs = [r.as_dict() for r in found]
-    problems = render.check(templates, keys, citations=citations)
+        templates, added = render.add_shelter_action(templates, citations)
+    problems = added + render.check(templates, keys, citations=citations)
     if not problems:
         return templates, None, ({"auto_repaired": repairs} if repairs else {})
     kind = (
@@ -201,11 +203,10 @@ def _retry_note(details: dict, facts: Facts) -> str:
                 f"{where} states {{{{{a}}}}} and {{{{{b}}}}} in one sentence, but they are "
                 "equal: state one count only"
             )
-        elif f["kind"] == "missing_standin_action":
+        elif f["kind"] == "too_many_actions":
             notes.append(
-                f"{f['language']} has no action citing {{{{standin_count}}}}: the block has no "
-                "mapped shelters, so one action must say so (with {{standin_count}}) and that "
-                "safe buildings must be identified locally"
+                f"{f['language']} has {f['text']} actions: the block has no mapped shelters and "
+                "the server adds an action about it, so write at most four"
             )
         else:
             notes.append(f"{where}: {f['kind']} {f['text']!r}")

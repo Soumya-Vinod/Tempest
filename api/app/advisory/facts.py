@@ -75,9 +75,20 @@ MODEL_SCORE_KEYS = frozenset(
 )
 
 
+# Trivial figures aren't offered either (the citations table keeps them): a surge under 0.1 m
+# and 0 km of cut roads say nothing worth a sentence.
+TRIVIAL_BELOW = {"peak_surge_m": 0.1, "cut_road_km": 1e-9}
+
+
+def _trivial(c: Citation) -> bool:
+    limit = TRIVIAL_BELOW.get(c.key)
+    return limit is not None and not isinstance(c.value, str) and c.value < limit
+
+
 def offered_citations(citations: list[Citation]) -> list[Citation]:
-    """The citations the model may use as {{placeholders}}."""
-    return [c for c in citations if c.key not in MODEL_SCORE_KEYS]
+    """The citations the model may use as {{placeholders}}: not the model scores, not trivial
+    figures."""
+    return [c for c in citations if c.key not in MODEL_SCORE_KEYS and not _trivial(c)]
 
 
 def offered_keys(citations: list[Citation]) -> set[str]:
@@ -280,11 +291,7 @@ def build_facts(block_id: str, timestep: str) -> Facts:
             )
         t = f.properties.attributes.get("hospital_travel_time_s")
         if t is not None:
-            label = (
-                "Next hospital by road"
-                if f.properties.infra_type == "hospital"
-                else "Nearest hospital by road"
-            )
+            label = "Normal road time to next hospital (before the storm)"
             c.append(
                 _cite(f"isolated_{i}_next_hospital_min", label, round(t / 60), "min", "exposure")
             )

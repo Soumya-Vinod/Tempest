@@ -1094,9 +1094,13 @@ def test_old_drafts_using_the_risk_score_can_still_be_edited(env):
 
 
 def test_isolated_facilities_are_labelled_already_cut_off():
-    assert "Tense: an isolated facility is already cut off now" in SYSTEM_PROMPT
-    assert 'never "before it is disrupted" or "while routes are open"' in SYSTEM_PROMPT
-    assert "Only things at risk may be" in SYSTEM_PROMPT
+    prompt_text = " ".join(SYSTEM_PROMPT.split())  # wrapping doesn't matter
+    assert "Tense: an isolated facility is already cut off now" in prompt_text
+    assert (
+        '"before it is disrupted", "while routes are open" or "before road routes become '
+        'impassable"'
+    ) in prompt_text
+    assert "Only things at risk may be described as threatened" in prompt_text
 
 
 EQUAL = with_citations(
@@ -1143,27 +1147,59 @@ def test_duplicate_count_check(hospitals, body, ok):
 
 
 NO_SHELTERS = with_citations(cite_count("standin_count", "Stand-in shelters (not designated)", 0))
-SHELTER_ACTION = "No shelters are mapped ({{standin_count}}): identify safe buildings locally."
 
 
-def test_no_shelters_needs_an_action_citing_standin_count(env, monkeypatch):
+def test_no_shelters_the_server_adds_one_fixed_action_to_every_language(env, monkeypatch):
     monkeypatch.setattr(service, "build_facts", lambda block_id, ts: NO_SHELTERS)
-    good = {
-        lang_: lang(actions=("Move patients from {{isolated_1_name}}.", SHELTER_ACTION, "c"))
+    resp, fake = create(env, CLEAN)  # three actions, none about shelters
+    assert resp.status_code == 200 and len(fake.calls) == 1  # no citation required any more
+    assert "do not write any shelter action" in fake.calls[0]
+    p = resp.json()["properties"]
+    for lang_ in ("en", "bn", "hi"):
+        assert p["templates"][lang_]["actions"][-1] == render.NO_SHELTERS_ACTION[lang_]
+        assert p["texts"][lang_]["actions"][-1] == render.NO_SHELTERS_ACTION[lang_]
+        assert p["texts"][lang_]["actions"].count(render.NO_SHELTERS_ACTION[lang_]) == 1
+    assert render.NO_SHELTERS_ACTION["en"] == (
+        "No shelters are mapped in this block: identify safe concrete buildings (schools, "
+        "panchayat offices) locally before the storm."
+    )
+
+
+def test_the_fixed_shelter_action_passes_the_number_check():
+    texts = {
+        lang_: lang(actions=("a", "b", render.NO_SHELTERS_ACTION[lang_]))
         for lang_ in ("en", "bn", "hi")
     }
-    resp, fake = create(env, CLEAN, good)
+    assert render.check(AdvisoryTexts.model_validate(texts), {c.key for c in CITATIONS}) == []
+
+
+def test_five_actions_leave_no_room_for_the_shelter_action_so_the_draft_is_retried(
+    env, monkeypatch
+):
+    monkeypatch.setattr(service, "build_facts", lambda block_id, ts: NO_SHELTERS)
+    five = {**CLEAN, "en": lang(actions=("a", "b", "c", "d", "e"))}
+    resp, fake = create(env, five, CLEAN)
     assert resp.status_code == 200 and len(fake.calls) == 2
-    assert "This block has NO mapped stand-in shelters" in fake.calls[0]
-    assert "en has no action citing {{standin_count}}" in fake.calls[1]
-    en = resp.json()["properties"]["texts"]["en"]["actions"][1]
-    assert en == "No shelters are mapped (0): identify safe buildings locally."
+    assert "en has 5 actions" in fake.calls[1] and "at most four" in fake.calls[1]
+    assert len(resp.json()["properties"]["texts"]["en"]["actions"]) == 4
+
+
+def test_an_edit_keeps_the_shelter_action_once(env, monkeypatch):
+    monkeypatch.setattr(service, "build_facts", lambda block_id, ts: NO_SHELTERS)
+    resp, _ = create(env, CLEAN)
+    templates = resp.json()["properties"]["templates"]
+    templates["en"]["headline"] = "Updated {{block_name}}"
+    r = client.patch(f"{URL}{resp.json()['id']}", json={"templates": templates})
+    assert r.status_code == 200, r.text
+    en = r.json()["properties"]["texts"]["en"]["actions"]
+    assert en.count(render.NO_SHELTERS_ACTION["en"]) == 1
 
 
 def test_shelter_action_not_required_when_shelters_exist():
     some = with_citations(cite_count("standin_count", "Stand-in shelters (not designated)", 4))
     templates = AdvisoryTexts.model_validate(CLEAN)
     assert render.fact_problems(templates, some.citations) == []
+    assert render.add_shelter_action(templates, some.citations) == (templates, [])
     assert "NO mapped stand-in shelters" not in user_message(some)
 
 
@@ -1408,3 +1444,100 @@ def test_edits_are_repaired_and_audited(env, monkeypatch):
     )
     event = next(e for e in store.events(advisory_id) if e.action == "edited")
     assert json.loads(event.details)["auto_repaired"][0]["original"] == "Two"
+
+
+# --- Duplicated units, road times, trivial facts, time to landfall --------------------------------
+
+UNITS = {
+    c.key: c
+    for c in [
+        Citation(key="t", label="t", value=20, unit="min", source="x"),
+        Citation(key="h", label="h", value=3, unit="h", source="x"),
+        Citation(key="k", label="k", value=12.5, unit="km", source="x"),
+        Citation(key="s", label="s", value=2.71, unit="m", source="x"),
+        Citation(key="w", label="w", value=37, unit="m/s", source="x"),
+    ]
+}
+
+
+@pytest.mark.parametrize(
+    ("language", "template", "expected"),
+    [
+        ("en", "within {{t}} minutes", "within 20 min"),
+        ("en", "within {{t}} min", "within 20 min"),
+        ("en", "in {{h}} hours", "in 3 hours"),
+        ("en", "in {{h}} h", "in 3 hours"),
+        ("en", "{{k}} km of road", "12.5 km of road"),
+        ("en", "{{k}} kilometres of road", "12.5 km of road"),
+        ("en", "{{s}} metres of surge", "2.7 m of surge"),
+        ("en", "{{s}} m surge", "2.7 m surge"),
+        ("en", "winds of {{w}} km/h", "winds of 135 km/h"),
+        ("en", "{{s}} more than before", "2.7 m more than before"),  # "more" isn't "m"
+        ("bn", "{{t}} মিনিট", "২০ মিনিট"),
+        ("bn", "{{h}} ঘন্টা পরে", "৩ ঘণ্টা পরে"),
+        ("bn", "{{k}} কিলোমিটার", "১২.৫ কিমি"),
+        ("bn", "{{w}} কিমি/ঘণ্টা", "১৩৫ কিমি/ঘণ্টা"),
+        ("hi", "{{t}} मिनट", "20 मिनट"),
+        ("hi", "{{h}} घंटे बाद", "3 घंटे बाद"),
+        ("hi", "{{s}} मीटर", "2.7 मीटर"),
+        ("hi", "{{w}} किमी/घंटा", "135 किमी/घंटा"),
+    ],
+)
+def test_a_unit_repeated_after_the_placeholder_is_dropped(language, template, expected):
+    assert render.fill(template, UNITS, language) == expected
+
+
+def test_road_times_are_labelled_normal_conditions(monkeypatch):
+    from app.exposure import service as exposure
+    from app.impact import service as impact
+    from app.risk import service as risk
+
+    s = settings(True, None)
+    for module in (impact, risk, exposure, demo_module):
+        monkeypatch.setattr(module, "get_settings", lambda: s)
+    for module in (impact, risk, exposure):
+        module.clear_cache()
+    try:
+        f = facts_module.build_facts(BLOCK, "2020-05-20T09:00:00Z")
+    finally:
+        for module in (impact, risk, exposure):
+            module.clear_cache()
+    labels = {c.label for c in f.citations if c.key.endswith("_next_hospital_min")}
+    assert labels == {"Normal road time to next hospital (before the storm)"}
+    prompt_text = " ".join(SYSTEM_PROMPT.split())
+    assert "road travel times in normal conditions, before the storm" in prompt_text
+    assert "never as boat times" in prompt_text
+
+
+def test_hours_to_landfall_rule():
+    prompt_text = " ".join(SYSTEM_PROMPT.split())
+    assert "{{hours_to_landfall}} is only the time until the cyclone makes landfall" in prompt_text
+    assert "Never use it as the time until something is cut off" in prompt_text
+
+
+@pytest.mark.parametrize(
+    ("surge", "road_km", "offered"),
+    [(0.05, 0.0, set()), (0.1, 0.0, {"peak_surge_m"}), (0.0, 3.2, {"cut_road_km"})],
+)
+def test_trivial_facts_are_cited_but_not_offered(surge, road_km, offered):
+    facts = with_citations(
+        Citation(key="peak_surge_m", label="Surge", value=surge, unit="m", source="hazard"),
+        Citation(key="cut_road_km", label="Cut roads", value=road_km, unit="km", source="impact"),
+    )
+    keys = facts_module.offered_keys(facts.citations)
+    assert {"peak_surge_m", "cut_road_km"} & keys == offered
+    assert {"peak_surge_m", "cut_road_km"} <= {c.key for c in facts.citations}  # still cited
+    message = user_message(facts)
+    assert ('"peak_surge_m"' in message) == ("peak_surge_m" in offered)
+
+
+def test_a_template_citing_a_trivial_surge_is_rejected(env, monkeypatch):
+    calm = with_citations(
+        Citation(key="peak_surge_m", label="Surge", value=0.03, unit="m", source="hazard")
+    )
+    monkeypatch.setattr(service, "build_facts", lambda block_id, ts: calm)
+    cites_surge = {**CLEAN, "en": lang(body="Surge up to {{peak_surge_m}}.")}
+    calm_draft = {lang_: lang(body="{{reach}}.") for lang_ in ("en", "bn", "hi")}
+    resp, fake = create(env, cites_surge, calm_draft)
+    assert resp.status_code == 200 and len(fake.calls) == 2
+    assert "{{peak_surge_m}} in en.body is not in the list" in fake.calls[1]
