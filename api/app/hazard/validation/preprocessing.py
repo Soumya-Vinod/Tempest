@@ -54,7 +54,15 @@ def apply_speckle_filter(
     """Apply speckle filter in the linear power domain and convert back to decibels (dB).
 
     SAR speckle is multiplicative noise. Filtering in the linear power domain (10^(dB/10))
-    preserves radiometric linearity and radiometric consistency.
+    preserves radiometric linearity and spatial consistency.
+
+    Refined Lee Filter Specification:
+    - Algorithm: Refined Lee local statistics filter
+    - Reference: Lee, J. S. (1981). "Refined filtering of image noise using local statistics",
+      Computer Graphics and Image Processing, 15(4), 380-389.
+    - Window Size: 7 x 7 pixels (kernel_size=7, radius=3)
+    - Equivalent Number of Looks (ENL): 4.4 (standard for Sentinel-1 GRDH IW mode at 10m spacing)
+    - Variance weighting: W = var_signal / (var_power * (1 + 1/ENL)), bounded to [0.0, 1.0]
     """
     if not is_ee_available() or ee_image is None:
         return ee_image

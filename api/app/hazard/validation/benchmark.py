@@ -279,7 +279,6 @@ def generate_benchmark_report(
             f"- **Specificity (True Negative Rate):** `{m.specificity:.4f}`",
             f"- **Cohen's Kappa:** `{m.cohens_kappa:.4f}`",
             f"- **Flooded Area Agreement:** `{m.flooded_area_agreement:.4f}`",
-            f"- **Confidence Score:** `{m.confidence_score:.4f}`",
             "",
             "#### Exported Artifacts",
             f"- Observed Flood GeoTIFF: `{b_res.artifacts.observed_flood_tif.name}`",
@@ -313,6 +312,12 @@ def generate_benchmark_report(
         (
             "4. **Full Provenance:** Every benchmark block references genuine Copernicus "
             "Sentinel-1 scene identifiers with verified acquisition timestamps and orbit metadata."
+        ),
+        (
+            "5. **Hazard Layer Scope:** Simulation benchmarking evaluates `generate_surge_layer()` "
+            "and `generate_flood_layer()`. The Holland wind field model is intentionally excluded "
+            "because Sentinel-1 SAR observes surface water backscatter rather than atmospheric "
+            "wind fields."
         ),
         "",
     ])

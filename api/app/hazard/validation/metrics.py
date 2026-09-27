@@ -35,7 +35,6 @@ class BenchmarkMetrics:
     union_area_km2: float  # TP + FP + FN
     flooded_area_agreement: float  # 1.0 - |obs - pred| / max(obs, pred)
     confusion_matrix: dict[str, float]
-    confidence_score: float  # Empirically derived confidence
 
     def to_dict(self) -> dict[str, Any]:
         """Convert metrics to JSON-serializable dictionary."""
@@ -53,7 +52,6 @@ class BenchmarkMetrics:
             "union_area_km2": self.union_area_km2,
             "flooded_area_agreement": self.flooded_area_agreement,
             "confusion_matrix": self.confusion_matrix,
-            "confidence_score": self.confidence_score,
         }
 
 
@@ -110,9 +108,6 @@ def compute_benchmark_metrics(
     max_area = max(obs_flood, pred_flood, 1e-6)
     area_agreement = max(0.0, 1.0 - (abs(obs_flood - pred_flood) / max_area))
 
-    # 9. Empirical confidence score (composite of F1, IoU, and physical accuracy)
-    confidence = (0.50 * f1_score) + (0.30 * iou) + (0.20 * accuracy)
-
     cm = {
         "tp_km2": round(tp, 2),
         "fp_km2": round(fp, 2),
@@ -138,5 +133,4 @@ def compute_benchmark_metrics(
         union_area_km2=round(union_area, 2),
         flooded_area_agreement=round(min(1.0, max(0.0, area_agreement)), 4),
         confusion_matrix=cm,
-        confidence_score=round(min(1.0, max(0.0, confidence)), 4),
     )

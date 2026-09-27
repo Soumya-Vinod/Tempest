@@ -70,7 +70,6 @@ def get_validation_overview() -> dict[str, Any]:
                 "accuracy": m.get("accuracy", 0.0),
                 "specificity": m.get("specificity", 0.0),
                 "cohens_kappa": m.get("cohens_kappa", 0.0),
-                "confidence_score": m.get("confidence_score", 0.0),
             }
         )
 

@@ -320,9 +320,6 @@ def test_metric_computation_mathematical_identities() -> None:
     assert m.union_area_km2 == 100.0
     assert m.flooded_area_agreement == 1.0  # exact equal areas
 
-    # Confidence score must be derived and bounded
-    assert 0.0 <= m.confidence_score <= 1.0
-
 
 def test_metric_edge_cases_zero_division() -> None:
     """Verify metric computation handles empty predictions or empty observations safely."""
@@ -550,25 +547,51 @@ def test_hazard_engine_immutability() -> None:
 # 11. Scientific Integrity Verification
 # ---------------------------------------------------------------------------
 def test_scientific_integrity_no_fabricated_metrics() -> None:
-    """Verify that metrics are computed from raster overlap, not hardcoded constants."""
+    """Verify that every metric across all 4 blocks is derived strictly
+    from the confusion matrix.
+    """
     dataset = AdminBoundariesDataset()
-    sagar = dataset.get_block("sagar")
-    comparison = compare_hazard_with_sar(block=sagar)
-    metrics = compute_benchmark_metrics(comparison)
+    benchmark_blocks = dataset.get_benchmark_blocks()
+    assert len(benchmark_blocks) == 4
 
-    # In the old demo, metrics had hardcoded values like IoU=0.72, precision=0.86,
-    # recall=0.81, and a fixed area of 81.4 km2.
-    # Our new pipeline computes genuine numbers directly from raster overlap.
-    cm = metrics.confusion_matrix
-    assert "tp_km2" in cm
-    assert "fp_km2" in cm
-    assert "fn_km2" in cm
-    assert "tn_km2" in cm
+    for block in benchmark_blocks:
+        comparison = compare_hazard_with_sar(block=block)
+        metrics = compute_benchmark_metrics(comparison)
 
-    # Precision MUST equal TP / (TP + FP) exactly
-    expected_prec = cm["tp_km2"] / (cm["tp_km2"] + cm["fp_km2"])
-    assert abs(metrics.precision - round(expected_prec, 4)) < 1e-4
+        cm = metrics.confusion_matrix
+        tp = cm["tp_km2"]
+        fp = cm["fp_km2"]
+        fn = cm["fn_km2"]
+        tn = cm["tn_km2"]
+        total = tp + fp + fn + tn
+        union = tp + fp + fn
 
-    # Recall MUST equal TP / (TP + FN) exactly
-    expected_rec = cm["tp_km2"] / (cm["tp_km2"] + cm["fn_km2"])
-    assert abs(metrics.recall - round(expected_rec, 4)) < 1e-4
+        # 1. Precision = TP / (TP + FP)
+        if (tp + fp) > 0:
+            expected_prec = tp / (tp + fp)
+            assert abs(metrics.precision - round(expected_prec, 4)) < 1e-4
+
+        # 2. Recall = TP / (TP + FN)
+        if (tp + fn) > 0:
+            expected_rec = tp / (tp + fn)
+            assert abs(metrics.recall - round(expected_rec, 4)) < 1e-4
+
+        # 3. IoU = TP / (TP + FP + FN)
+        if union > 0:
+            expected_iou = tp / union
+            assert abs(metrics.iou - round(expected_iou, 4)) < 1e-4
+
+        # 4. F1 Score = 2*TP / (2*TP + FP + FN)
+        if (2 * tp + fp + fn) > 0:
+            expected_f1 = (2 * tp) / (2 * tp + fp + fn)
+            assert abs(metrics.f1_score - round(expected_f1, 4)) < 1e-4
+
+        # 5. Accuracy = (TP + TN) / Total
+        if total > 0:
+            expected_acc = (tp + tn) / total
+            assert abs(metrics.accuracy - round(expected_acc, 4)) < 1e-4
+
+        # 6. Specificity = TN / (TN + FP)
+        if (tn + fp) > 0:
+            expected_spec = tn / (tn + fp)
+            assert abs(metrics.specificity - round(expected_spec, 4)) < 1e-4

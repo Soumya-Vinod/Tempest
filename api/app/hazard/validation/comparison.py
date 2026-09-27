@@ -4,6 +4,8 @@ Strict Scope Boundary:
 The Tempest hazard engine (Holland wind model, surge model, flood susceptibility model)
 is NEVER modified. This module strictly queries simulated layers (generate_flood_layer,
 generate_surge_layer) and computes genuine spatial overlap against Sentinel-1 SAR masks.
+The Holland wind layer (generate_wind_layer) is intentionally excluded because
+Sentinel-1 SAR validates surface water inundation rather than atmospheric wind fields.
 
 Produces:
 - Agreement (True Positives + True Negatives)

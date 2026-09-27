@@ -1,16 +1,16 @@
 {
-  "execution_timestamp": "2026-09-27T06:09:33Z",
+  "execution_timestamp": "2026-09-27T06:44:56Z",
   "event_name": "Cyclone Amphan",
   "landfall_timestamp": "2020-05-20T12:00:00Z",
   "aggregate_metrics": {
-    "mean_iou": 0.579,
-    "mean_precision": 0.6111,
-    "mean_recall": 0.9167,
-    "mean_f1": 0.7333,
-    "mean_accuracy": 0.6191,
-    "total_observed_km2": 134.57,
-    "total_predicted_km2": 201.86,
-    "evaluated_blocks_count": 1
+    "mean_iou": 0.3619,
+    "mean_precision": 0.3997,
+    "mean_recall": 0.6492,
+    "mean_f1": 0.486,
+    "mean_accuracy": 0.5364,
+    "total_observed_km2": 559.89,
+    "total_predicted_km2": 1561.55,
+    "evaluated_blocks_count": 4
   },
   "blocks": {
     "sagar": {
@@ -83,8 +83,7 @@
           "fp_cells": 7,
           "fn_cells": 1,
           "tn_cells": 2
-        },
-        "confidence_score": 0.6642
+        }
       },
       "artifacts": {
         "observed_flood_tif": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\sagar\\observed_flood.tif",
@@ -96,6 +95,258 @@
         "validation_overlap_geojson": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\sagar\\validation_overlap.geojson",
         "metrics_json": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\sagar\\metrics.json",
         "acquisition_metadata_json": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\sagar\\acquisition_metadata.json"
+      }
+    },
+    "namkhana": {
+      "block": {
+        "identifier": "02439",
+        "name": "Namkhana",
+        "census_code": "02439",
+        "area_km2": 243.6,
+        "population": 182830,
+        "bbox": [
+          88.17075,
+          21.55897,
+          88.34945,
+          21.82107
+        ],
+        "centroid": [
+          88.25975,
+          21.68491
+        ]
+      },
+      "acquisition": {
+        "aoi_identifier": "02439",
+        "aoi_name": "Namkhana",
+        "matched_orbit": true,
+        "pairing_strategy": "post_first",
+        "before_acquisition": {
+          "image_id": "COPERNICUS/S1_GRD/S1B_IW_GRDH_1SDV_20200516T000357_20200516T000422_021599_029010_EE74",
+          "acquisition_time": "2020-05-16T00:03:57Z",
+          "platform": "S1B",
+          "orbit_pass": "DESCENDING",
+          "relative_orbit": 48,
+          "absolute_orbit": 21599,
+          "polarization": "VV",
+          "instrument_mode": "IW",
+          "slice_number": 3,
+          "footprint_bbox": null
+        },
+        "after_acquisition": {
+          "image_id": "COPERNICUS/S1_GRD/S1A_IW_GRDH_1SDV_20200522T000444_20200522T000509_032670_03C8AC_A6E3",
+          "acquisition_time": "2020-05-22T00:04:44Z",
+          "platform": "S1A",
+          "orbit_pass": "DESCENDING",
+          "relative_orbit": 48,
+          "absolute_orbit": 32670,
+          "polarization": "VV",
+          "instrument_mode": "IW",
+          "slice_number": 16,
+          "footprint_bbox": null
+        }
+      },
+      "metrics": {
+        "iou": 0.4211,
+        "precision": 0.4211,
+        "recall": 1.0,
+        "f1_score": 0.5926,
+        "accuracy": 0.4762,
+        "specificity": 0.1538,
+        "cohens_kappa": 0.1217,
+        "flooded_area_observed_km2": 92.8,
+        "flooded_area_predicted_km2": 220.4,
+        "intersection_area_km2": 92.8,
+        "union_area_km2": 220.4,
+        "flooded_area_agreement": 0.4211,
+        "confusion_matrix": {
+          "tp_km2": 92.8,
+          "fp_km2": 127.6,
+          "fn_km2": 0.0,
+          "tn_km2": 23.2,
+          "tp_cells": 8,
+          "fp_cells": 11,
+          "fn_cells": 0,
+          "tn_cells": 2
+        }
+      },
+      "artifacts": {
+        "observed_flood_tif": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\namkhana\\observed_flood.tif",
+        "predicted_flood_tif": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\namkhana\\predicted_flood.tif",
+        "agreement_tif": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\namkhana\\agreement.tif",
+        "disagreement_tif": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\namkhana\\disagreement.tif",
+        "observed_flood_geojson": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\namkhana\\observed_flood.geojson",
+        "predicted_flood_geojson": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\namkhana\\predicted_flood.geojson",
+        "validation_overlap_geojson": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\namkhana\\validation_overlap.geojson",
+        "metrics_json": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\namkhana\\metrics.json",
+        "acquisition_metadata_json": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\namkhana\\acquisition_metadata.json"
+      }
+    },
+    "gosaba": {
+      "block": {
+        "identifier": "02435",
+        "name": "Gosaba",
+        "census_code": "02435",
+        "area_km2": 1918.6,
+        "population": 246598,
+        "bbox": [
+          88.61201,
+          21.55748,
+          89.09394,
+          22.28568
+        ],
+        "centroid": [
+          88.87738,
+          21.91349
+        ]
+      },
+      "acquisition": {
+        "aoi_identifier": "02435",
+        "aoi_name": "Gosaba",
+        "matched_orbit": true,
+        "pairing_strategy": "post_first",
+        "before_acquisition": {
+          "image_id": "COPERNICUS/S1_GRD/S1B_IW_GRDH_1SDV_20200516T000357_20200516T000422_021599_029010_EE74",
+          "acquisition_time": "2020-05-16T00:03:57Z",
+          "platform": "S1B",
+          "orbit_pass": "DESCENDING",
+          "relative_orbit": 48,
+          "absolute_orbit": 21599,
+          "polarization": "VV",
+          "instrument_mode": "IW",
+          "slice_number": 3,
+          "footprint_bbox": null
+        },
+        "after_acquisition": {
+          "image_id": "COPERNICUS/S1_GRD/S1A_IW_GRDH_1SDV_20200522T000444_20200522T000509_032670_03C8AC_A6E3",
+          "acquisition_time": "2020-05-22T00:04:44Z",
+          "platform": "S1A",
+          "orbit_pass": "DESCENDING",
+          "relative_orbit": 48,
+          "absolute_orbit": 32670,
+          "polarization": "VV",
+          "instrument_mode": "IW",
+          "slice_number": 16,
+          "footprint_bbox": null
+        }
+      },
+      "metrics": {
+        "iou": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1_score": 0.0,
+        "accuracy": 0.5752,
+        "specificity": 0.5856,
+        "cohens_kappa": -0.0351,
+        "flooded_area_observed_km2": 33.96,
+        "flooded_area_predicted_km2": 781.02,
+        "intersection_area_km2": 0.0,
+        "union_area_km2": 814.98,
+        "flooded_area_agreement": 0.0435,
+        "confusion_matrix": {
+          "tp_km2": 0.0,
+          "fp_km2": 781.02,
+          "fn_km2": 33.96,
+          "tn_km2": 1103.62,
+          "tp_cells": 0,
+          "fp_cells": 46,
+          "fn_cells": 2,
+          "tn_cells": 65
+        }
+      },
+      "artifacts": {
+        "observed_flood_tif": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\gosaba\\observed_flood.tif",
+        "predicted_flood_tif": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\gosaba\\predicted_flood.tif",
+        "agreement_tif": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\gosaba\\agreement.tif",
+        "disagreement_tif": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\gosaba\\disagreement.tif",
+        "observed_flood_geojson": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\gosaba\\observed_flood.geojson",
+        "predicted_flood_geojson": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\gosaba\\predicted_flood.geojson",
+        "validation_overlap_geojson": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\gosaba\\validation_overlap.geojson",
+        "metrics_json": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\gosaba\\metrics.json",
+        "acquisition_metadata_json": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\gosaba\\acquisition_metadata.json"
+      }
+    },
+    "patharpratima": {
+      "block": {
+        "identifier": "02440",
+        "name": "Patharpratima",
+        "census_code": "02440",
+        "area_km2": 477.7,
+        "population": 331823,
+        "bbox": [
+          88.26004,
+          21.60326,
+          88.5192,
+          22.00271
+        ],
+        "centroid": [
+          88.39115,
+          21.80655
+        ]
+      },
+      "acquisition": {
+        "aoi_identifier": "02440",
+        "aoi_name": "Patharpratima",
+        "matched_orbit": true,
+        "pairing_strategy": "post_first",
+        "before_acquisition": {
+          "image_id": "COPERNICUS/S1_GRD/S1B_IW_GRDH_1SDV_20200516T000357_20200516T000422_021599_029010_EE74",
+          "acquisition_time": "2020-05-16T00:03:57Z",
+          "platform": "S1B",
+          "orbit_pass": "DESCENDING",
+          "relative_orbit": 48,
+          "absolute_orbit": 21599,
+          "polarization": "VV",
+          "instrument_mode": "IW",
+          "slice_number": 3,
+          "footprint_bbox": null
+        },
+        "after_acquisition": {
+          "image_id": "COPERNICUS/S1_GRD/S1A_IW_GRDH_1SDV_20200522T000444_20200522T000509_032670_03C8AC_A6E3",
+          "acquisition_time": "2020-05-22T00:04:44Z",
+          "platform": "S1A",
+          "orbit_pass": "DESCENDING",
+          "relative_orbit": 48,
+          "absolute_orbit": 32670,
+          "polarization": "VV",
+          "instrument_mode": "IW",
+          "slice_number": 16,
+          "footprint_bbox": null
+        }
+      },
+      "metrics": {
+        "iou": 0.4474,
+        "precision": 0.5667,
+        "recall": 0.68,
+        "f1_score": 0.6182,
+        "accuracy": 0.475,
+        "specificity": 0.1333,
+        "cohens_kappa": -0.2,
+        "flooded_area_observed_km2": 298.56,
+        "flooded_area_predicted_km2": 358.27,
+        "intersection_area_km2": 203.02,
+        "union_area_km2": 453.81,
+        "flooded_area_agreement": 0.8333,
+        "confusion_matrix": {
+          "tp_km2": 203.02,
+          "fp_km2": 155.25,
+          "fn_km2": 95.54,
+          "tn_km2": 23.88,
+          "tp_cells": 17,
+          "fp_cells": 13,
+          "fn_cells": 8,
+          "tn_cells": 2
+        }
+      },
+      "artifacts": {
+        "observed_flood_tif": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\patharpratima\\observed_flood.tif",
+        "predicted_flood_tif": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\patharpratima\\predicted_flood.tif",
+        "agreement_tif": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\patharpratima\\agreement.tif",
+        "disagreement_tif": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\patharpratima\\disagreement.tif",
+        "observed_flood_geojson": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\patharpratima\\observed_flood.geojson",
+        "predicted_flood_geojson": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\patharpratima\\predicted_flood.geojson",
+        "validation_overlap_geojson": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\patharpratima\\validation_overlap.geojson",
+        "metrics_json": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\patharpratima\\metrics.json",
+        "acquisition_metadata_json": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\patharpratima\\acquisition_metadata.json"
       }
     }
   }

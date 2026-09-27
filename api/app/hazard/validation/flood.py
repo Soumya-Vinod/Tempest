@@ -52,7 +52,20 @@ def apply_flood_thresholding(
     change_threshold_db: float = -2.5,
     absolute_threshold_db: float = -15.5,
 ) -> Any:
-    """Apply dual thresholding to isolate specular radar reflection caused by water."""
+    """Apply dual thresholding to isolate specular radar reflection caused by floodwater.
+
+    Physical Backscatter Rationale:
+    1. Calm standing floodwater forms a flat dielectric boundary that specularly reflects
+       C-band microwave pulses (wavelength ~5.6 cm) away from the satellite receiver,
+       producing a severe drop in backscatter intensity.
+    2. Relative change threshold (Delta sigma0 <= -2.5 dB): Enforces that the backscatter
+       dropped substantially relative to the dry pre-cyclone baseline, eliminating normal
+       seasonal fluctuations.
+    3. Absolute ceiling threshold (sigma0_post <= -15.5 dB): Enforces that the post-landfall
+       surface backscatter actually reaches water-characteristic levels (typically -15 to
+       -22 dB in VV polarization). This prevents false detections in areas where backscatter
+       dropped but remained within non-inundated vegetation/soil ranges (-8 to -12 dB).
+    """
     if not is_ee_available() or difference_img is None or after_img is None:
         return None
 
@@ -93,7 +106,15 @@ def apply_morphological_cleanup(
     radius: int = 1,
     min_cluster_size_pixels: int = 5,
 ) -> Any:
-    """Remove single-pixel speckle noise and bridge micro-gaps via morphological opening."""
+    """Remove single-pixel speckle noise and bridge micro-gaps via morphological opening.
+
+    Morphological Specification:
+    - Operation: Morphological opening (focal erosion followed by focal dilation)
+    - Kernel Geometry: Circular structuring element of radius = 1 pixel (3 x 3 window)
+    - Connectivity: 8-connected neighborhood (cardinal and diagonal adjacencies)
+    - Minimum Cluster Size: 5 pixels (connectedPixelCount < 5 set to 0)
+    - Iterations: 1 opening pass (erosion r=1, dilation r=1)
+    """
     if not is_ee_available() or binary_mask is None:
         return binary_mask
 

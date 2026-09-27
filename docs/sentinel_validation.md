@@ -127,11 +127,15 @@ Every preprocessing step exists as executable code in `app.hazard.validation.pre
 
 1. **Boundary Clipping:** Clipped to the exact administrative block bounding box.
 2. **Border Noise Removal:** Radiometric cutoff masking invalid margin samples and low-intensity border noise ($\sigma^0 < -30\text{ dB}$).
-3. **Multiplicative Speckle Reduction:** SAR speckle noise is multiplicative. Filtering is applied in the **linear power domain** before transforming back to decibels:
-   $$P = 10^{\frac{\sigma^0_{\text{dB}}}{10}}$$
-   The pipeline supports **Refined Lee** filtering (using Equivalent Number of Looks $\text{ENL} = 4.4$ for Sentinel-1 IW GRD) and **Median** filtering:
-   $$\sigma^0_{\text{filtered, dB}} = 10 \cdot \log_{10}(P_{\text{filtered}})$$
-4. **Topographic Slope Masking:** Topographic radar shadows and layover in sloped terrain produce false low backscatter. Terrain slope gradient is calculated from global elevation assets; pixels with slope $> 5.0^\circ$ are masked.
+3. **Multiplicative Speckle Reduction (Refined Lee):**
+   - **Linear Power Domain:** SAR speckle noise is inherently multiplicative. Filtering is performed in the linear power domain ($P = 10^{\frac{\sigma^0_{\text{dB}}}{10}}$) to maintain radiometric linearity before conversion back to decibels:
+     $$\sigma^0_{\text{filtered, dB}} = 10 \cdot \log_{10}(P_{\text{filtered}})$$
+   - **Filter Algorithm:** Refined Lee local statistics filter.
+   - **Reference Paper:** Lee, J. S. (1981). *"Refined filtering of image noise using local statistics"*, Computer Graphics and Image Processing, 15(4), 380–389.
+   - **Window Size:** $7 \times 7$ pixels (kernel size = 7, pixel radius = 3).
+   - **Equivalent Number of Looks (ENL):** $\text{ENL} = 4.4$ (standard calibrated parameter for Sentinel-1 GRDH IW mode at 10m pixel spacing).
+   - **Variance Weighting:** $W = \frac{\text{Var}(x) - \bar{x}^2 \cdot \sigma_v^2}{\text{Var}(x) \cdot (1 + \sigma_v^2)}$ where $\sigma_v^2 = \frac{1}{\text{ENL}}$, clamping weights to $[0.0, 1.0]$.
+4. **Topographic Slope Masking:** Topographic radar shadows and layover in sloped terrain produce false low backscatter. Terrain slope gradient is calculated from global elevation assets (Copernicus DEM GLO-30 / SRTM GL1); pixels with slope $> 5.0^\circ$ are masked.
 5. **Spatial Standardization:** Standardized to EPSG:4326 at 30m resolution.
 
 ---
@@ -142,10 +146,18 @@ Flood inundation is extracted using bitemporal change detection:
 
 $$\Delta \sigma^0 = \sigma^0_{\text{post}} - \sigma^0_{\text{pre}} \quad (\text{dB})$$
 
-1. **Specular Reflection Condition:** Smooth water surfaces scatter radar pulses away from the antenna, causing sharp backscatter drops:
-   $$\text{Candidate} = (\Delta \sigma^0 \le -2.5\text{ dB}) \land (\sigma^0_{\text{post}} \le -15.0\text{ dB})$$
+1. **Specular Reflection Condition & Dual Thresholding:**
+   - **Physical Rationale:** Calm standing floodwater forms a flat dielectric boundary that specularly reflects C-band radar pulses ($\lambda \approx 5.6\text{ cm}$) away from the satellite antenna line-of-sight, producing a sharp attenuation in received backscatter.
+   - **Relative Change Threshold ($\Delta \sigma^0 \le -2.5\text{ dB}$):** Enforces that backscatter dropped significantly relative to the pre-cyclone baseline, eliminating normal seasonal vegetation and moisture variance.
+   - **Absolute Backscatter Floor ($\sigma^0_{\text{post}} \le -15.5\text{ dB}$):** Enforces that the post-landfall surface backscatter actually reaches water-characteristic levels (typically $-15\text{ dB}$ to $-22\text{ dB}$ for open water vs $-8\text{ dB}$ to $-12\text{ dB}$ for dry soil/crops in VV polarization). This prevents false detections in areas where backscatter dropped but remained within normal dry terrestrial ranges.
+   $$\text{Candidate} = (\Delta \sigma^0 \le -2.5\text{ dB}) \land (\sigma^0_{\text{post}} \le -15.5\text{ dB})$$
 2. **Permanent Water Removal:** To distinguish temporary cyclonic inundation from perennial rivers, creeks, and open sea, the JRC Global Surface Water occurrence dataset is queried. Pixels with $\text{occurrence} \ge 20\%$ are excluded.
-3. **Morphological Filtering:** Morphological opening (erosion followed by dilation) bridges micro-gaps and suppresses isolated single-pixel radar noise.
+3. **Morphological Filtering & Noise Suppression:**
+   - **Operation:** Morphological opening (focal erosion followed by focal dilation) to eliminate single-pixel speckle artifacts and bridge micro-discontinuities.
+   - **Kernel Geometry:** Circular structuring element with radius $r = 1\text{ pixel}$ ($3 \times 3$ moving window).
+   - **Neighborhood Connectivity:** 8-connected neighborhood (evaluating cardinal and diagonal adjacent pixels).
+   - **Minimum Cluster Size:** 5 connected pixels ($\approx 4,500\text{ m}^2$ at 30m resolution). Isolated clusters smaller than 5 pixels are discarded (`connectedPixelCount < 5` set to 0).
+   - **Iterations:** 1 opening pass (erosion $r=1$ followed by dilation $r=1$).
 4. **Output Product:** Binary raster mask where $1 = \text{flooded}$, $0 = \text{dry}$.
 
 ---
@@ -154,6 +166,9 @@ $$\Delta \sigma^0 = \sigma^0_{\text{post}} - \sigma^0_{\text{pre}} \quad (\text{
 
 ### Scope Boundary Rule:
 The deterministic hazard engine (`generate_surge_layer`, `generate_flood_layer`) is **never modified, re-weighted, or calibrated** during validation.
+
+> **Atmospheric Wind Exclusion:**  
+> The Holland wind field model (`generate_wind_layer`) is **intentionally excluded** from SAR validation because Sentinel-1 Synthetic Aperture Radar observes terrestrial surface water backscatter rather than atmospheric wind velocity fields.
 
 ### Spatial Overlay:
 Simulated storm surge depths ($h_{\text{surge}}$) and flood susceptibility indices ($I_{\text{flood}}$) at landfall timestep (`2020-05-20T12:00:00Z`) are queried for every grid cell intersecting the block:
