@@ -1,4 +1,4 @@
-// TypeScript mirror of shared/contracts.md v1.1 (FROZEN).
+// TypeScript mirror of shared/contracts.md v1.2 (FROZEN).
 // Keep in sync with api/app/schemas/. Changing anything here breaks the other dev: flag it.
 
 // ---------- GeoJSON (EPSG:4326, [lon, lat]) ----------
@@ -48,9 +48,9 @@ export type InfraType = "substation" | "power_line" | "road" | "hospital" | "she
 export type ImpactStatus = "ok" | "at_risk" | "cut" | "isolated";
 export type StepType = "hazard" | "infra" | "service";
 export type Language = "en" | "bn" | "hi";
-/** "rejected": v1.2 change, pending Dev A. */
+/** "rejected": added in v1.2. */
 export type AdvisoryStatus = "draft" | "approved" | "sent" | "rejected";
-/** Advisory audit log actions (§4.5, v1.2 change pending Dev A). */
+/** Advisory audit log actions (§4.5, added in v1.2). */
 export type AuditAction =
   | "generated"
   | "number_check_failed"
@@ -61,7 +61,7 @@ export type AuditAction =
   | "new_draft"
   | "copied"
   | "sent"
-  | "dispatched"; // one per channel attempt (v1.2 change pending Dev A)
+  | "dispatched"; // one per channel attempt (added in v1.2)
 export type TriggerMetric = "wind_speed" | "surge_depth";
 export type BlockSource = "census2011_cd" | "h3_r7";
 /** The largest contributing part of a RiskScore (§4.4, added in v1.1). */
@@ -79,11 +79,16 @@ export type RiskDriver =
 /** How the cyclone reaches a block (§4.4 risk breakdown, added in v1.1). */
 export type RiskReach = "direct" | "cut_off";
 export type Channel = "telegram" | "email";
-/** dry_run: built and validated, not sent (v1.2 change pending Dev A). */
+/** dry_run: built and validated, not sent (added in v1.2). */
 export type ChannelStatus = "sent" | "failed" | "dry_run";
-/** v1.2 change pending Dev A. */
+/**
+ * Forecast horizon in hours (v1.3 change pending Dev A): 0 = now, 24 = expected within 24 h
+ * (the cell-wise max of the hazard over the next 24 h; a perfect-forecast replay).
+ */
+export type Horizon = 0 | 24;
+/** added in v1.2. */
 export type ModelProvider = "gemini" | "groq";
-/** The model that wrote an advisory draft (v1.2 change pending Dev A). */
+/** The model that wrote an advisory draft (added in v1.2). */
 export interface GeneratedBy {
   provider: ModelProvider;
   model: string;
@@ -139,6 +144,7 @@ export interface ImpactResultProperties {
   status: ImpactStatus;
   timestep: Timestep;
   pathway: PathwayStep[]; // ordered, cause first; empty when status is "ok"
+  horizon_h?: Horizon; // v1.3 change pending Dev A: 24 = expected within 24 h
 }
 export type ImpactResult = Feature<InfraGeometry, ImpactResultProperties>;
 export type ImpactResultCollection = FeatureCollection<ImpactResult>;
@@ -159,6 +165,7 @@ export interface RiskScoreProperties {
   score: number; // [0, 1]
   components: RiskComponents;
   top_driver?: RiskDriver | null; // added in v1.1; null when score is 0
+  horizon_h?: Horizon; // v1.3 change pending Dev A
 }
 export type RiskScore = Feature<AreaGeometry, RiskScoreProperties>;
 export type RiskScoreCollection = FeatureCollection<RiskScore>;
@@ -202,6 +209,7 @@ export interface RiskBlockBreakdown {
 export interface RiskBreakdown {
   timestep: Timestep;
   blocks: RiskBlockBreakdown[];
+  horizon_h?: Horizon; // v1.3 change pending Dev A
 }
 
 // ---------- §4.5 Advisory (Dev B) ----------
@@ -209,11 +217,11 @@ export interface RiskBreakdown {
 export interface Citation {
   key: string; // ^[a-z0-9_]+$
   label: string;
-  value: number | string; // string: v1.2 change pending Dev A (names, causes)
+  value: number | string; // string: added in v1.2 (names, causes)
   unit: string | null;
   source: string;
 }
-/** v1.2 change pending Dev A: one Advisory per block and timestep, all three languages. */
+/** added in v1.2: one Advisory per block and timestep, all three languages. */
 export interface AdvisoryText {
   headline: string;
   body: string;
@@ -223,7 +231,7 @@ export type AdvisoryTexts = Record<Language, AdvisoryText>;
 export interface AdvisoryProperties {
   id: AdvisoryId;
   block_id: BlockId;
-  block_name: string; // v1.2 change pending Dev A
+  block_name: string; // added in v1.2
   timestep: Timestep;
   texts: AdvisoryTexts; // figures filled in; body starts with the exercise label
   templates: AdvisoryTexts; // {{key}} placeholders, no label
@@ -231,13 +239,13 @@ export interface AdvisoryProperties {
   status: AdvisoryStatus;
   approved_by: string | null; // required once approved or sent: "Name (Designation)"
   approved_at: IsoDateTime | null; // required once approved or sent
-  rejection_reason: string | null; // required once rejected (v1.2 change pending Dev A)
+  rejection_reason: string | null; // required once rejected (added in v1.2)
   rejected_at: IsoDateTime | null; // required once rejected
-  created_from: AdvisoryId | null; // "New draft from this" (v1.2 change pending Dev A)
+  created_from: AdvisoryId | null; // "New draft from this" (added in v1.2)
   created_at: IsoDateTime;
-  generated_by?: GeneratedBy | null; // v1.2 change pending Dev A; null on older advisories
+  generated_by?: GeneratedBy | null; // added in v1.2; null on older advisories
 }
-/** v1.2 change pending Dev A. advisory_id null: a generation that produced no advisory. */
+/** added in v1.2. advisory_id null: a generation that produced no advisory. */
 export interface AuditEvent {
   id: number;
   advisory_id: AdvisoryId | null;
@@ -249,7 +257,7 @@ export interface AuditEvent {
 export interface AuditLog {
   events: AuditEvent[];
 }
-/** v1.2 change pending Dev A. */
+/** added in v1.2. */
 export interface AdvisorySuggestion {
   block_id: BlockId;
   block_name: string;
@@ -273,20 +281,23 @@ export interface TriggerEventProperties {
   metric: TriggerMetric;
   unit: "m/s" | "m";
   threshold: number;
-  observed: number; // v1.2 change pending Dev A: 90th percentile over inhabited land (was max)
+  observed: number; // added in v1.2: 90th percentile over inhabited land (was max)
   triggered: boolean;
   payout_estimate_inr: number; // 0 when not triggered; the current reading
-  // v1.2 change pending Dev A: the governing metric's tier, and what has been released so far.
+  // added in v1.2: the governing metric's tier, and what has been released so far.
   tier: number; // 0 = not triggered
   payout_fraction: number;
   sum_insured_inr: number;
   released_tier: number; // highest tier up to this timestep (never taken back)
   released_payout_inr: number;
+  // v1.3 change pending Dev A: the tier the expected hazard (next 24 h) would reach; information
+  // only (payouts follow the observed hazard).
+  expected_tier_24h?: number;
 }
 export type TriggerEvent = Feature<AreaGeometry, TriggerEventProperties>;
 export type TriggerEventCollection = FeatureCollection<TriggerEvent>;
 
-/** GET /api/insurance/summary (v1.2 change pending Dev A). */
+/** GET /api/insurance/summary (added in v1.2). */
 export interface InsuranceDistrictTotal {
   timestep: Timestep;
   released_payout_inr: number;
@@ -312,7 +323,7 @@ export interface InsuranceSummary {
 
 // ---------- §4.7 DispatchReceipt (Dev B) ----------
 
-/** v1.2 change pending Dev A: status / provider_message_id / at replace ok. */
+/** added in v1.2: status / provider_message_id / at replace ok. */
 export interface ChannelResult {
   channel: Channel;
   status: ChannelStatus;
@@ -320,7 +331,7 @@ export interface ChannelResult {
   error: string | null;
   at: IsoDateTime;
 }
-/** v1.2 change pending Dev A: dispatched_at (was sent_at), dry_run, resend. */
+/** added in v1.2: dispatched_at (was sent_at), dry_run, resend. */
 export interface DispatchReceipt {
   advisory_id: AdvisoryId;
   dispatched_at: IsoDateTime;
@@ -328,11 +339,11 @@ export interface DispatchReceipt {
   resend: boolean;
   channels: ChannelResult[];
 }
-/** GET /api/dispatch/{advisory_id}/receipts (v1.2 change pending Dev A). */
+/** GET /api/dispatch/{advisory_id}/receipts (added in v1.2). */
 export interface DispatchReceipts {
   receipts: DispatchReceipt[];
 }
-/** GET /api/dispatch/recipients, masked (v1.2 change pending Dev A). */
+/** GET /api/dispatch/recipients, masked (added in v1.2). */
 export interface DispatchRecipients {
   telegram: { configured: boolean; chat_id: string | null };
   email: { configured: boolean; to: string[] };
@@ -370,13 +381,13 @@ export interface AdvisoryCreate {
   timestep: TimestepParam;
 }
 export interface AdvisoryUpdate {
-  templates: AdvisoryTexts; // v1.2 change pending Dev A (was { body })
+  templates: AdvisoryTexts; // added in v1.2 (was { body })
   edited_by?: string | null;
 }
 export interface AdvisoryApprove {
   approved_by: string; // "Name (Designation)"
 }
-/** v1.2 change pending Dev A. */
+/** added in v1.2. */
 export interface AdvisoryReject {
   reason: string;
   rejected_by?: string | null;
@@ -384,7 +395,7 @@ export interface AdvisoryReject {
 export interface AdvisoryNewDraft {
   created_by?: string | null;
 }
-/** v1.2 change pending Dev A: resend, dry_run, pin. Never recipients. */
+/** added in v1.2: resend, dry_run, pin. Never recipients. */
 export interface DispatchRequest {
   channels: Channel[];
   resend?: boolean;

@@ -1,0 +1,23 @@
+# Build context for api/Dockerfile: only requirements.txt, app/, data/demo and data/reference
+# are copied; everything local, generated or secret stays out.
+.venv/
+**/__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+tests/
+scripts/
+
+# Data not needed in DEMO_MODE (and large or git-ignored)
+data/raw/
+data/cache/
+data/processed/
+data/state/
+
+# Secrets: never in the image (Secret Manager provides keys as env vars)
+.env
+.env.*
+!.env.example
+**/.env
+secrets/
+*.json.key

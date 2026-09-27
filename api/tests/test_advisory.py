@@ -633,12 +633,14 @@ def test_suggestions(env, monkeypatch):
             "features": [score("1", "A", 0.2499), score("2", "B", 0.25), score("3", "C", 0.6)],
         }
     )
-    monkeypatch.setattr(service.risk, "get_scores", lambda ts: fc)
+    horizons = []
+    monkeypatch.setattr(service.risk, "get_scores", lambda ts, h=0: horizons.append(h) or fc)
     resp = client.get(f"{URL}suggestions", params={"timestep": TS})
     assert resp.status_code == 200
     body = resp.json()
     assert body["threshold"] == service.SUGGEST_MIN_SCORE == 0.25
     assert [b["block_name"] for b in body["blocks"]] == ["C", "B"]
+    assert horizons == [24]  # suggestions use the risk expected within 24 h (v1.3)
 
 
 # --- Facts --------------------------------------------------------------------------------------

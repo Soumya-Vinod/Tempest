@@ -59,7 +59,7 @@ export default function RiskCard({ timestepIndex, selected, breakdown, onClose }
   const bd = breakdown
   return (
     <aside
-      className="absolute overflow-y-auto rounded-lg bg-white p-3 text-sm text-slate-800 shadow-lg"
+      className="absolute z-20 overflow-y-auto rounded-lg bg-white p-3 text-sm text-slate-800 shadow-lg"
       style={{
         left: UI_GAP,
         bottom: CARD_BOTTOM,

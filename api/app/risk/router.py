@@ -4,6 +4,7 @@ from app.exposure.service import InfraDataMissing
 from app.impact.service import GraphMissing
 from app.risk import service
 from app.schemas import (
+    HorizonParam,
     RiskBreakdown,
     RiskScoreCollection,
     TimestepParam,
@@ -28,15 +29,17 @@ def _call(fn, *args):
 
 
 @router.get("/scores")
-def get_scores(timestep: TimestepParam) -> RiskScoreCollection:
-    """Risk score per block (contract §5). Sync `def`: it reaches Dev A's get_hazard_layer."""
-    return _call(service.get_scores, timestep)
+def get_scores(timestep: TimestepParam, horizon: HorizonParam = 0) -> RiskScoreCollection:
+    """Risk score per block (contract §5); horizon=24: expected within 24 h (v1.3 change,
+    pending Dev A). Sync `def`: it reaches Dev A's get_hazard_layer."""
+    return _call(service.get_scores, timestep, horizon)
 
 
 @router.get("/breakdown")
-def get_breakdown(timestep: TimestepParam) -> RiskBreakdown:
-    """Per-block parts, population and hospital travel time (added in v1.1)."""
-    return _call(service.get_breakdown, timestep)
+def get_breakdown(timestep: TimestepParam, horizon: HorizonParam = 0) -> RiskBreakdown:
+    """Per-block parts, population and hospital travel time (added in v1.1); horizon as for
+    the scores."""
+    return _call(service.get_breakdown, timestep, horizon)
 
 
 @router.get("/unscored-areas")

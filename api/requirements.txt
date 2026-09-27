@@ -1,4 +1,5 @@
-# Top-level dependencies, pinned. Install: .venv\Scripts\python -m pip install -r requirements.txt
+# Runtime dependencies, pinned (the API image installs only these). Development (tests, lint):
+# .venv\Scripts\python -m pip install -r requirements-dev.txt
 fastapi==0.141.1
 uvicorn[standard]==0.53.0
 pydantic-settings==2.15.0
@@ -11,5 +12,3 @@ networkx==3.7
 google-genai==2.25.0
 earthengine-api==1.7.45
 xmlschema==4.3.2  # CAP 1.2 validation (dispatch)
-pytest==9.1.1
-ruff==0.16.9

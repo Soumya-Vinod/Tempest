@@ -1,7 +1,7 @@
 // deck.gl layers for affected infrastructure. They sit above the exposure layers; unaffected
 // features aren't drawn here at all, so the exposure styling shows through unchanged.
 import type { Color, Layer, PickingInfo } from '@deck.gl/core'
-import { GeoJsonLayer, ScatterplotLayer } from '@deck.gl/layers'
+import { GeoJsonLayer, IconLayer, ScatterplotLayer } from '@deck.gl/layers'
 import type { Feature, Geometry } from 'geojson'
 
 import type {
@@ -67,20 +67,45 @@ const pulseMin = () => RADIUS.isolatedMin
 export interface ImpactLayerData {
   lines: AffectedFeature[]
   points: AffectedFeature[] // at_risk / cut points (substations, facilities)
-  isolated: Affected[]
+  isolated: Affected[] // cut off now: solid, pulsing ring
+  expected: Affected[] // expected within 24 h, not yet (v1.3): dashed ring
 }
 
-/** Split once per result set; layers are rebuilt from these stable arrays. */
-export function layerData(affected: Map<string, Affected>): ImpactLayerData {
+/**
+ * Split once per result set; layers are rebuilt from these stable arrays. `isolatedNow` (at
+ * horizon 24: what is isolated at horizon 0) separates expected isolation from the actual one;
+ * null at horizon 0, where every isolated feature is cut off now.
+ */
+export function layerData(
+  affected: Map<string, Affected>,
+  isolatedNow: Set<string> | null = null,
+): ImpactLayerData {
   const lines: AffectedFeature[] = []
   const points: AffectedFeature[] = []
   const isolated: Affected[] = []
+  const expected: Affected[] = []
   for (const a of affected.values()) {
     if (a.geometry.type !== 'Point') lines.push(asFeature(a))
-    else if (a.worst === 'isolated') isolated.push(a)
-    else points.push(asFeature(a))
+    else if (a.worst !== 'isolated') points.push(asFeature(a))
+    else if (isolatedNow && !isolatedNow.has(a.id)) expected.push(a)
+    else isolated.push(a)
   }
-  return { lines, points, isolated }
+  return { lines, points, isolated, expected }
+}
+
+// A dashed ring (deck.gl circles can't be dashed): an SVG icon in the isolated colour.
+const [ir, ig, ib] = IMPACT_COLOR.isolated
+const DASHED_RING = {
+  id: 'expected-ring',
+  url:
+    'data:image/svg+xml;charset=utf-8,' +
+    encodeURIComponent(
+      `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">` +
+        `<circle cx="32" cy="32" r="26" fill="rgba(${ir},${ig},${ib},0.12)" ` +
+        `stroke="rgb(${ir},${ig},${ib})" stroke-width="5" stroke-dasharray="9 7"/></svg>`,
+    ),
+  width: 64,
+  height: 64,
 }
 
 const HIGHLIGHT_LINE: Color = [...IMPACT_COLOR.highlight, 230]
@@ -123,6 +148,15 @@ export function buildImpactLayers(
     }),
     // Pulsing: only the target radius changes (every PULSE_MS); deck.gl animates the
     // transition on the GPU, so there's no per-frame React work.
+    new IconLayer<Affected>({
+      id: 'impact-expected',
+      data: data.expected,
+      pickable: true,
+      getPosition: position,
+      getIcon: () => DASHED_RING,
+      sizeUnits: 'pixels',
+      getSize: 2 * RADIUS.isolatedMax,
+    }),
     new ScatterplotLayer<Affected>({
       id: 'impact-isolated',
       data: data.isolated,
@@ -166,6 +200,6 @@ export function buildImpactLayers(
 export function pickedAffected(info: PickingInfo): Affected | null {
   const id = info.layer?.id ?? ''
   if (!info.object || !id.startsWith('impact-')) return null
-  if (id === 'impact-isolated') return info.object as Affected
+  if (id === 'impact-isolated' || id === 'impact-expected') return info.object as Affected
   return (info.object as AffectedFeature).properties.affected
 }

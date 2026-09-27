@@ -5,12 +5,16 @@ results per timestep), so a timestep's hazards and impacts are computed once for
 DEMO_MODE: the fixtures risk__scores__<ts>, risk__breakdown__<ts> and risk__unscored-areas,
 built from Dev A's real hazards by scripts/build_impact_risk_fixtures.py. Score fixtures carry no
 block polygons; they are added back from s24p_blocks.geojson (app/risk/fixtures.py).
+At horizon 24 (v1.3 change, pending Dev A): on the expected hazard and impacts; DEMO_MODE reads
+the deduplicated risk__scores-h24-<hash> / risk__breakdown-h24-<hash> fixtures through their
+indexes (app/impact/horizon.py).
 """
 
 from app.core.cache import SingleFlightLRU
 from app.core.config import get_settings
 from app.core.demo import load_fixture
 from app.exposure import service as exposure
+from app.impact import horizon as fh
 from app.impact import service as impact
 from app.impact.fixtures import compact_timestep
 from app.risk import blocks as block_data
@@ -44,7 +48,7 @@ def _build_context() -> RiskContext:
 
 _context_cache = SingleFlightLRU(lambda _: _build_context(), maxsize=1)
 # Evaluated blocks per timestep: scores and breakdown both come from one evaluation.
-_risk_cache = SingleFlightLRU(lambda ts: _compute(ts), CACHE_SIZE)
+_risk_cache = SingleFlightLRU(lambda ts, h: _compute(ts, h), CACHE_SIZE)  # (timestep, horizon)
 _unscored_cache = SingleFlightLRU(
     lambda _: block_data.unscored_areas(block_data.load_blocks()), maxsize=1
 )
@@ -55,11 +59,27 @@ def context() -> RiskContext:
     return _context_cache.get("context")
 
 
-def _compute(timestep: str) -> list[BlockRisk]:
+def _compute(timestep: str, horizon_h: int = 0) -> list[BlockRisk]:
     # Hazards first: Dev A's NotImplementedError stops here before anything heavy loads.
-    hazards = impact.hazard_layers(timestep)
-    impacts = impact.results(timestep)
+    hazards = impact.hazard_layers(timestep, horizon_h)
+    impacts = impact.results(timestep, horizon_h)
     return evaluate(hazards, impacts, context())
+
+
+def evaluated(timestep: str, horizon_h: int = 0) -> list[BlockRisk]:
+    """Evaluated blocks (live path), cached per timestep and horizon."""
+    return _risk_cache.get((timestep, horizon_h))
+
+
+SCORES_H24_PREFIX = "risk__scores-h24"
+BREAKDOWN_H24_PREFIX = "risk__breakdown-h24"
+
+
+def _demo_h24(prefix: str, timestep: str) -> dict:
+    index = _demo_fixture(fh.index_key(prefix))
+    if timestep not in index["files"]:
+        raise DemoFixtureMissing(f"no horizon-24 fixture for {timestep} ({prefix})")
+    return fh.restore(_demo_fixture(index["files"][timestep]), timestep)
 
 
 def _demo_fixture(key: str) -> dict:
@@ -84,18 +104,23 @@ def breakdown_fixture_key(timestep: str) -> str:
     return f"risk__breakdown__{compact_timestep(timestep)}"
 
 
-def get_scores(timestep: str) -> RiskScoreCollection:
+def get_scores(timestep: str, horizon_h: int = 0) -> RiskScoreCollection:
     if _demo(timestep):
-        fixture = _demo_fixture(fixture_key(timestep))
+        if horizon_h:
+            fixture = _demo_h24(SCORES_H24_PREFIX, timestep)
+        else:
+            fixture = _demo_fixture(fixture_key(timestep))
         return risk_fixtures.from_fixture(fixture, block_data.load_blocks())
-    return to_collection(_risk_cache.get(timestep), context(), timestep)
+    return to_collection(evaluated(timestep, horizon_h), context(), timestep, horizon_h)
 
 
-def get_breakdown(timestep: str) -> RiskBreakdown:
+def get_breakdown(timestep: str, horizon_h: int = 0) -> RiskBreakdown:
     """Every part per block (added in v1.1); same cache as get_scores."""
     if _demo(timestep):
+        if horizon_h:
+            return RiskBreakdown.model_validate(_demo_h24(BREAKDOWN_H24_PREFIX, timestep))
         return RiskBreakdown.model_validate(_demo_fixture(breakdown_fixture_key(timestep)))
-    return to_breakdown(_risk_cache.get(timestep), context(), timestep)
+    return to_breakdown(evaluated(timestep, horizon_h), context(), timestep, horizon_h)
 
 
 def get_unscored_areas() -> UnscoredAreaCollection:

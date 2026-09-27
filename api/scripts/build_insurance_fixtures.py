@@ -2,8 +2,7 @@
 
 Run from the repo root:  api\\.venv\\Scripts\\python api\\scripts\\build_insurance_fixtures.py
 
-Writes to api/data/demo/ (contracts.md §7; the summary and the extra fields: v1.2 change,
-pending Dev A):
+Writes to api/data/demo/ (contracts.md §7; the summary and the extra fields: added in v1.2):
 - insurance__triggers__<ts>.json  compact: TriggerEvents without block polygons (added on load)
 - insurance__summary.json         released district totals per timestep, first trigger per block
 It runs the live compute path (app/insurance/service.py) on the same hazard layers DEMO_MODE

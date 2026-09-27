@@ -28,7 +28,7 @@ const LANGUAGES: { id: Language; label: string }[] = [
 
 const MODEL_NAMES: Record<string, string> = { 'gemini-3.7-flash': 'Gemini 3.7 Flash' }
 
-/** "Gemini 3.7 Flash", or "Fallback: Groq / <model>" (v1.2 change pending Dev A). */
+/** "Gemini 3.7 Flash", or "Fallback: Groq / <model>" (added in v1.2). */
 function generatedByLabel(g: GeneratedBy): string {
   return g.provider === 'gemini'
     ? (MODEL_NAMES[g.model] ?? `Gemini / ${g.model}`)

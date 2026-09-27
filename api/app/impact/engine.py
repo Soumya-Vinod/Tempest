@@ -222,8 +222,10 @@ def compute_impacts(
     timestep: str,
     *,
     anchor: tuple[float, float] = T.ANCHOR_LONLAT,
+    horizon_h: int = 0,
 ) -> ImpactResultCollection:
-    """One ImpactResult per (infra feature, hazard type) at `timestep`, in infra order."""
+    """One ImpactResult per (infra feature, hazard type) at `timestep`, in infra order.
+    `horizon_h` only labels the results: the caller passes the expected hazard for 24."""
     net = network_for(graph, anchor)
     features = infra.features
     geoms = [shape(f.geometry.model_dump()) for f in features]
@@ -292,6 +294,7 @@ def compute_impacts(
                         status=STATUS[status],
                         timestep=timestep,
                         pathway=pathway,
+                        horizon_h=horizon_h,
                     ),
                 )
             )

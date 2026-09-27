@@ -1,4 +1,4 @@
-"""Pydantic mirror of shared/contracts.md v1.1 (FROZEN).
+"""Pydantic mirror of shared/contracts.md v1.2 (FROZEN).
 
 Keep in sync with web/src/types/contracts.ts.
 """
@@ -17,6 +17,7 @@ from app.schemas.common import (
     ChannelStatus,
     ContractModel,
     HazardType,
+    Horizon,
     ImpactStatus,
     InfraType,
     ModelProvider,
@@ -159,6 +160,9 @@ class ImpactResultProperties(ContractModel):
     status: ImpactStatus
     timestep: Timestep
     pathway: list[PathwayStep]
+    # v1.3 change, pending Dev A: 0 = the status now; 24 = expected within 24 h ("isolated" then
+    # means expected to be cut off).
+    horizon_h: Horizon = 0
 
     @model_validator(mode="after")
     def _ok_has_no_pathway(self) -> Self:
@@ -195,6 +199,7 @@ class RiskScoreProperties(ContractModel):
     components: RiskComponents
     # added in v1.1: the largest contributing part; null when score is 0.
     top_driver: RiskDriver | None = None
+    horizon_h: Horizon = 0  # v1.3 change, pending Dev A: 24 = on the expected hazard
 
 
 class RiskScore(Feature):
@@ -256,6 +261,7 @@ class RiskBlockBreakdown(ContractModel):
 class RiskBreakdown(ContractModel):
     timestep: Timestep
     blocks: list[RiskBlockBreakdown]
+    horizon_h: Horizon = 0  # v1.3 change, pending Dev A
 
 
 # --- 4.5 Advisory (Dev B) ---
@@ -264,12 +270,12 @@ class RiskBreakdown(ContractModel):
 class Citation(ContractModel):
     key: str = Field(pattern=r"^[a-z0-9_]+$")
     label: str
-    value: float | str  # str: v1.2 change, pending Dev A (names, causes)
+    value: float | str  # str: added in v1.2 (names, causes)
     unit: str | None
     source: str
 
 
-# v1.2 change, pending Dev A: one Advisory per block and timestep with all three languages.
+# added in v1.2: one Advisory per block and timestep with all three languages.
 class AdvisoryText(ContractModel):
     headline: str = Field(min_length=1)
     body: str = Field(min_length=1)
@@ -284,7 +290,7 @@ class AdvisoryTexts(ContractModel):
 
 class GeneratedBy(ContractModel):
     """The model that wrote the draft: Gemini, or Groq as the fallback when Gemini answered 429 /
-    503 (v1.2 change, pending Dev A)."""
+    503 (added in v1.2)."""
 
     provider: ModelProvider
     model: str
@@ -305,7 +311,7 @@ class AdvisoryProperties(ContractModel):
     rejected_at: AwareDatetime | None = None
     created_from: AdvisoryId | None = None  # "New draft from this"
     created_at: AwareDatetime
-    # v1.2 change, pending Dev A. Null on advisories stored before it existed.
+    # added in v1.2. Null on advisories stored before it existed.
     generated_by: GeneratedBy | None = None
 
     @model_validator(mode="after")
@@ -342,17 +348,20 @@ class TriggerEventProperties(ContractModel):
     observed: float
     triggered: bool
     payout_estimate_inr: float = Field(ge=0)
-    # v1.2 change, pending Dev A: the payout tier. The feature reports the metric that sets the
+    # added in v1.2: the payout tier. The feature reports the metric that sets the
     # payout (the higher of wind and surge tiers, never the sum); `threshold` is that metric's
     # threshold for the tier reached (its first tier when none); `observed` is its 90th-percentile
     # value over the zone's inhabited land (was: max over the zone).
     tier: int = Field(default=0, ge=0)  # 0 = not triggered
     payout_fraction: UnitFraction = 0.0  # of sum_insured_inr, for the current tier
     sum_insured_inr: float = Field(default=0.0, ge=0)
-    # v1.2 change, pending Dev A: payouts only go up during an event (released money is not taken
+    # added in v1.2: payouts only go up during an event (released money is not taken
     # back): the highest tier reached at any timestep up to this one, and its payout.
     released_tier: int = Field(default=0, ge=0)
     released_payout_inr: float = Field(default=0.0, ge=0)
+    # v1.3 change, pending Dev A: the tier the expected hazard (next 24 h) would reach. For
+    # information only: payouts follow the observed hazard.
+    expected_tier_24h: int = Field(default=0, ge=0)
 
     @model_validator(mode="after")
     def _consistent(self) -> Self:
@@ -381,7 +390,7 @@ class TriggerEventCollection(FeatureCollection[TriggerEvent]):
 
 
 class InsuranceDistrictTotal(ContractModel):
-    """One timestep of GET /api/insurance/summary (v1.2 change, pending Dev A)."""
+    """One timestep of GET /api/insurance/summary (added in v1.2)."""
 
     timestep: Timestep
     released_payout_inr: float = Field(ge=0)  # sum of released_payout_inr over the zones
@@ -390,7 +399,7 @@ class InsuranceDistrictTotal(ContractModel):
 
 
 class InsuranceZoneSummary(ContractModel):
-    """A zone's first trigger and final release (v1.2 change, pending Dev A)."""
+    """A zone's first trigger and final release (added in v1.2)."""
 
     zone_id: str
     zone_name: str
@@ -415,7 +424,7 @@ class InsuranceZoneSummary(ContractModel):
 
 class InsuranceSummary(ContractModel):
     """GET /api/insurance/summary: released totals per timestep (never decreasing) and each
-    zone's first trigger (v1.2 change, pending Dev A)."""
+    zone's first trigger (added in v1.2)."""
 
     district: list[InsuranceDistrictTotal]
     zones: list[InsuranceZoneSummary]
@@ -431,7 +440,7 @@ class InsuranceSummary(ContractModel):
 # --- 4.7 DispatchReceipt (Dev B, not GeoJSON) ---
 
 
-# v1.2 change, pending Dev A: status / provider_message_id / at replace ok; the receipt gains
+# added in v1.2: status / provider_message_id / at replace ok; the receipt gains
 # dispatched_at (was sent_at), dry_run and resend.
 class ChannelResult(ContractModel):
     channel: Channel
@@ -450,7 +459,7 @@ class DispatchReceipt(ContractModel):
 
 
 class DispatchReceipts(ContractModel):
-    """GET /api/dispatch/{advisory_id}/receipts, oldest first (v1.2 change, pending Dev A)."""
+    """GET /api/dispatch/{advisory_id}/receipts, oldest first (added in v1.2)."""
 
     receipts: list[DispatchReceipt]
 
@@ -466,8 +475,8 @@ class EmailRecipients(ContractModel):
 
 
 class DispatchRecipients(ContractModel):
-    """GET /api/dispatch/recipients: who a dispatch would reach, masked (v1.2 change, pending
-    Dev A). Recipients come only from api/.env, never from a request."""
+    """GET /api/dispatch/recipients: who a dispatch would reach, masked (added in v1.2).
+    Recipients come only from api/.env, never from a request."""
 
     telegram: TelegramRecipient
     email: EmailRecipients
@@ -489,7 +498,7 @@ class AdvisoryCreate(ContractModel):
 
 
 class AdvisoryUpdate(ContractModel):
-    templates: AdvisoryTexts  # v1.2 change, pending Dev A (was { body })
+    templates: AdvisoryTexts  # added in v1.2 (was { body })
     edited_by: str | None = None
 
 
@@ -497,7 +506,7 @@ class AdvisoryApprove(ContractModel):
     approved_by: str = Field(min_length=1)  # "Name (Designation)", §5
 
 
-# v1.2 change, pending Dev A.
+# added in v1.2.
 class AdvisoryReject(ContractModel):
     reason: str = Field(min_length=1)
     rejected_by: str | None = None
@@ -533,7 +542,7 @@ class AdvisorySuggestions(ContractModel):
 
 
 class DispatchRequest(ContractModel):
-    """v1.2 change, pending Dev A: resend, dry_run and pin. No recipient fields: extra keys are
+    """added in v1.2: resend, dry_run and pin. No recipient fields: extra keys are
     rejected (422)."""
 
     channels: list[Channel] = Field(min_length=1)

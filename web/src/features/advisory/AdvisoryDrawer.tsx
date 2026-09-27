@@ -33,7 +33,7 @@ export default function AdvisoryDrawer(props: AdvisoryDrawerProps) {
 
   return (
     <aside
-      className="absolute overflow-y-auto rounded-lg bg-white p-4 text-sm text-slate-800 shadow-lg"
+      className="absolute z-20 overflow-y-auto rounded-lg bg-white p-4 text-sm text-slate-800 shadow-lg"
       style={{
         top: UI_GAP,
         right: 2 * UI_GAP + PANEL_WIDTH,

@@ -1,4 +1,4 @@
-import type { CycloneTrackPoint, HazardLayer } from '../../types/contracts'
+import type { CycloneTrackPoint, HazardLayer, Horizon } from '../../types/contracts'
 import { ISOTACH_LEVELS } from './contours'
 import {
   FLOOD_RAMP_CSS,
@@ -14,6 +14,8 @@ import type { HazardState, MapViewMode } from './useHazard'
 export interface HazardPanelProps {
   view: MapViewMode
   onView: (view: MapViewMode) => void
+  horizon: Horizon
+  onHorizon: (horizon: Horizon) => void
   surge: HazardState<HazardLayer[]>
   wind: { on: boolean; onToggle: () => void; state: HazardState<HazardLayer[]> }
   flood: { on: boolean; onToggle: () => void; state: HazardState<HazardLayer[]> }
@@ -46,23 +48,29 @@ function Toggle(props: { label: string; on: boolean; onToggle: () => void }) {
   )
 }
 
-function ViewSwitch({ view, onView }: { view: MapViewMode; onView: (v: MapViewMode) => void }) {
-  const option = (v: MapViewMode, label: string) => (
-    <button
-      type="button"
-      aria-pressed={view === v}
-      onClick={() => onView(v)}
-      className={`flex-1 rounded px-2 py-1 text-xs font-medium ${
-        view === v ? 'bg-white text-violet-800 shadow-sm' : 'text-slate-600 hover:text-slate-800'
-      }`}
-    >
-      {label}
-    </button>
-  )
+function Segmented<T extends string | number>(props: {
+  label: string
+  value: T
+  options: [T, string][]
+  onChange: (value: T) => void
+}) {
   return (
-    <div className="flex gap-1 rounded-md bg-slate-100 p-0.5" role="group" aria-label="Map view">
-      {option('hazard', 'Hazard')}
-      {option('risk', 'Risk')}
+    <div className="flex flex-1 gap-1 rounded-md bg-slate-100 p-0.5" role="group" aria-label={props.label}>
+      {props.options.map(([v, text]) => (
+        <button
+          key={String(v)}
+          type="button"
+          aria-pressed={props.value === v}
+          onClick={() => props.onChange(v)}
+          className={`flex-1 rounded px-2 py-1 text-xs font-medium ${
+            props.value === v
+              ? 'bg-white text-violet-800 shadow-sm'
+              : 'text-slate-600 hover:text-slate-800'
+          }`}
+        >
+          {text}
+        </button>
+      ))}
     </div>
   )
 }
@@ -111,7 +119,32 @@ export default function HazardPanel(props: HazardPanelProps) {
     <>
       <section className="mt-5">
         <h3 className={`${HEADING} mb-2`}>Map view</h3>
-        <ViewSwitch view={props.view} onView={props.onView} />
+        <div className="flex gap-2">
+          <Segmented
+            label="Map view"
+            value={props.view}
+            options={[
+              ['hazard', 'Hazard'],
+              ['risk', 'Risk'],
+            ]}
+            onChange={props.onView}
+          />
+          <Segmented<Horizon>
+            label="Time"
+            value={props.horizon}
+            options={[
+              [0, 'Now'],
+              [24, 'Next 24 h'],
+            ]}
+            onChange={props.onHorizon}
+          />
+        </div>
+        {props.horizon === 24 && (
+          <p className="mt-1 rounded bg-sky-50 px-2 py-1 text-[11px] text-sky-900">
+            Forecast: perfect-forecast replay. The worst over the next 24 h (the replay&apos;s own
+            future; operationally, IMD&apos;s forecast track through the same model).
+          </p>
+        )}
         <p className="mt-1 text-[11px] text-slate-500">
           {hazard
             ? 'Hazard: storm surge (and wind, flood if on). Impact and the track show in both.'
@@ -121,7 +154,9 @@ export default function HazardPanel(props: HazardPanelProps) {
 
       {hazard && (
         <section className="mt-4">
-          <h3 className={HEADING}>Storm surge</h3>
+          <h3 className={HEADING}>
+            Storm surge{props.horizon === 24 && ': max expected in the next 24 h'}
+          </h3>
           <div className="mt-2 h-2.5 w-full rounded" style={{ background: SURGE_RAMP_CSS }} aria-hidden />
           <div className="mt-0.5 flex justify-between text-[11px] text-slate-500 tabular-nums">
             {SURGE_TICKS_M.map((m) => (
@@ -131,7 +166,13 @@ export default function HazardPanel(props: HazardPanelProps) {
           <p className="text-[11px] text-slate-500">Depth above ground; fixed scale, cells over 0.05 m.</p>
           <Status state={props.surge} />
 
-          <Toggle label="Wind isotachs (IMD categories)" on={props.wind.on} onToggle={props.wind.onToggle} />
+          <Toggle
+            label={
+              props.horizon === 24
+                ? 'Wind isotachs: max expected in the next 24 h'
+                : 'Wind isotachs (IMD categories)'
+            }
+            on={props.wind.on} onToggle={props.wind.onToggle} />
           {props.wind.on && (
             <>
               <ul className="mt-1 space-y-1 text-[11px] text-slate-600">

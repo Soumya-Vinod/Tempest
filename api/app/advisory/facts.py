@@ -20,6 +20,7 @@ from app.exposure import service as exposure
 from app.exposure.ingest import METRIC_CRS
 from app.impact import service as impact
 from app.impact.engine import FIRST_CUT_LABEL
+from app.impact.horizon import FORECAST_HORIZON_H, window
 from app.risk import blocks as block_data
 from app.risk import service as risk
 from app.schemas import (
@@ -69,7 +70,9 @@ def count_citations(citations: list[Citation]) -> list[Citation]:
 
 # Model scores: cited (the citations table, CAP severity) but never offered to the model as
 # placeholders; the advisory text states physical facts only.
-MODEL_SCORE_KEYS = frozenset({"risk_score", "risk_hazard", "risk_exposure", "risk_vulnerability"})
+MODEL_SCORE_KEYS = frozenset(
+    {"risk_score", "risk_score_24h", "risk_hazard", "risk_exposure", "risk_vulnerability"}
+)
 
 
 def offered_citations(citations: list[Citation]) -> list[Citation]:
@@ -151,6 +154,11 @@ def build_facts(block_id: str, timestep: str) -> Facts:
         if f.properties.block_id == block_id
     )
     breakdown = next(x for x in risk.get_breakdown(timestep).blocks if x.block_id == block_id)
+    score_24h = next(
+        f.properties
+        for f in risk.get_scores(timestep, FORECAST_HORIZON_H).features
+        if f.properties.block_id == block_id
+    )
     impacts: ImpactResultCollection = impact.get_results(timestep)
     hazards = impact.hazard_layers(timestep)
     infra = exposure.get_infra()
@@ -174,7 +182,14 @@ def build_facts(block_id: str, timestep: str) -> Facts:
 
     comp = score.components
     c += [
-        _cite("risk_score", "Block risk score (0-1)", score.score, None, "risk"),
+        _cite("risk_score", "Block risk score now (0-1)", score.score, None, "risk"),
+        _cite(
+            "risk_score_24h",
+            "Block risk score, expected within 24 h (0-1)",
+            score_24h.score,
+            None,
+            "risk",
+        ),
         _cite("risk_hazard", "Hazard component (0-1)", comp.hazard, None, "risk"),
         _cite("risk_exposure", "Exposure component (0-1)", comp.exposure, None, "risk"),
         _cite(
@@ -274,6 +289,51 @@ def build_facts(block_id: str, timestep: str) -> Facts:
                 _cite(f"isolated_{i}_next_hospital_min", label, round(t / 60), "min", "exposure")
             )
 
+    # Expected within the forecast horizon (v1.3 change, pending Dev A): isolated on the expected
+    # hazard (the next 24 h, a perfect-forecast replay) but not now. The hours are the time until
+    # it is first isolated on the observed hazard at a later step (the horizon when the expected
+    # isolation only comes from combining peaks that never coincide).
+    expected: dict[str, object] = {}
+    for r in impact.get_results(timestep, horizon_h=FORECAST_HORIZON_H).features:
+        p = r.properties
+        if (
+            p.status == "isolated"
+            and p.infra_id in in_block
+            and p.infra_id not in isolated
+            and p.infra_id not in expected
+        ):
+            expected[p.infra_id] = p
+    hours = hours_until_isolated(set(expected), timestep)
+    c.append(
+        _cite(
+            "expected_isolated_count",
+            "Facilities expected to be cut off within 24 h (not yet)",
+            len(expected),
+            None,
+            "impact",
+        )
+    )
+    ordered = sorted(expected.items(), key=lambda kv: _name(by_id[kv[0]]))
+    for j, (fid, p) in enumerate(ordered, 1):
+        cause, route = cause_of(p.pathway, roads, p.hazard_type)
+        c.append(
+            _cite(
+                f"expected_{j}_name",
+                "Expected to be cut off (not yet)",
+                _name(by_id[fid]),
+                None,
+                "impact",
+            )
+        )
+        c.append(_cite(f"expected_{j}_cause", "Expected cause", cause, None, "impact"))
+        if route:
+            c.append(
+                _cite(f"expected_{j}_route", "First cut on its usual route", route, None, "impact")
+            )
+        c.append(
+            _cite(f"expected_{j}_hours", "Expected to be cut off within", hours[fid], "h", "impact")
+        )
+
     # Cut road length inside the block.
     cut_m = 0.0
     if cut_roads:
@@ -311,6 +371,21 @@ def build_facts(block_id: str, timestep: str) -> Facts:
         c.append(_cite(f"standin_{i}_name", "Stand-in shelter", n, None, "exposure"))
 
     return Facts(block_id, name, timestep, c)
+
+
+def hours_until_isolated(infra_ids: set[str], timestep: str) -> dict[str, int]:
+    """Per facility: hours from `timestep` to the first later step (within the horizon) where it
+    is isolated on the observed hazard; the horizon itself if that never happens."""
+    out = {fid: FORECAST_HORIZON_H for fid in infra_ids}
+    pending = set(infra_ids)
+    for ts in window(timestep, FORECAST_HORIZON_H)[1:]:
+        if not pending:
+            break
+        hit = pending & impact.isolated_ids(ts)
+        for fid in hit:
+            out[fid] = hours_to_landfall(timestep) - hours_to_landfall(ts)
+        pending -= hit
+    return out
 
 
 def _name(f: InfraFeature) -> str:

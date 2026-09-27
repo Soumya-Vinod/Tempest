@@ -1,5 +1,5 @@
 """Parametric triggers per CD block (contracts.md §4.6; tiers, released amounts and the summary:
-v1.2 change, pending Dev A). The terms are in constants.py (illustrative).
+added in v1.2). The terms are in constants.py (illustrative).
 
 Per timestep and block: each hazard's reading is the nearest-rank 90th percentile of the cells
 overlapping the block's inhabited land by >= MIN_OVERLAP_KM2; each reading maps to a tier; the
@@ -159,11 +159,17 @@ def released(series: list[list[ZoneReading]]) -> list[list[Released]]:
     return out
 
 
-def features(step: list[ZoneReading], released_step: list[Released], timestep: str) -> list[dict]:
+def features(
+    step: list[ZoneReading],
+    released_step: list[Released],
+    timestep: str,
+    expected_step: list[ZoneReading] | None = None,
+) -> list[dict]:
     """The TriggerEvent features without geometry: the compact fixture form (contracts.md §7);
     collection_from() adds each block's polygon."""
     out = []
-    for r, rel in zip(step, released_step, strict=True):
+    expected = expected_step or [None] * len(step)
+    for r, rel, exp in zip(step, released_step, expected, strict=True):
         _, unit, _ = METRICS[r.metric]
         props = TriggerEventProperties(
             id=f"{r.block_id}__{timestep}",
@@ -181,6 +187,7 @@ def features(step: list[ZoneReading], released_step: list[Released], timestep: s
             sum_insured_inr=r.sum_insured_inr,
             released_tier=rel.tier,
             released_payout_inr=rel.payout_inr,
+            expected_tier_24h=exp.tier.index if exp is not None else 0,
         )
         out.append({"type": "Feature", "id": props.id, "properties": props.model_dump(mode="json")})
     return out

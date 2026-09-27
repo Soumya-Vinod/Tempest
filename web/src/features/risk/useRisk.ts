@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 
 import { ApiError, getRiskBreakdown, getRiskScores, getUnscoredAreas } from '../../lib/api'
 import type {
+  Horizon,
   RiskBreakdown,
   RiskScoreCollection,
   Timestep,
@@ -23,8 +24,8 @@ export type RiskState =
 const CACHE_SIZE = 8
 const cache = new Map<string, Promise<RiskData>>()
 
-function load(timestep: Timestep): Promise<RiskData> {
-  const key = timestep
+function load(timestep: Timestep, horizon: Horizon): Promise<RiskData> {
+  const key = `${horizon}|${timestep}`
   const hit = cache.get(key)
   if (hit) {
     cache.delete(key)
@@ -32,8 +33,8 @@ function load(timestep: Timestep): Promise<RiskData> {
     return hit
   }
   const promise = Promise.all([
-    getRiskScores(timestep),
-    getRiskBreakdown(timestep).catch(() => null),
+    getRiskScores(timestep, horizon),
+    getRiskBreakdown(timestep, horizon).catch(() => null),
   ]).then(([scores, breakdown]) => ({ scores, breakdown }))
   promise.catch(() => cache.delete(key))
   cache.set(key, promise)
@@ -52,14 +53,17 @@ function failure(err: unknown): RiskState {
  * Risk scores (and breakdown) for the selected timestep. `shown` keeps the last successful data
  * on the map while the next timestep loads, as impact does.
  */
-export function useRisk(timestep: Timestep): { state: RiskState; shown: RiskData | null } {
-  const key = timestep
+export function useRisk(
+  timestep: Timestep,
+  horizon: Horizon = 0,
+): { state: RiskState; shown: RiskData | null } {
+  const key = `${horizon}|${timestep}`
   const [settled, setSettled] = useState<{ key: string; state: RiskState } | null>(null)
   const [lastOk, setLastOk] = useState<RiskData | null>(null)
 
   useEffect(() => {
     let cancelled = false
-    load(timestep).then(
+    load(timestep, horizon).then(
       (data) => {
         if (cancelled) return
         setSettled({ key, state: { status: 'ok', data } })
@@ -74,7 +78,7 @@ export function useRisk(timestep: Timestep): { state: RiskState; shown: RiskData
     return () => {
       cancelled = true
     }
-  }, [key, timestep])
+  }, [key, timestep, horizon])
 
   const state: RiskState = settled?.key === key ? settled.state : { status: 'loading' }
   return { state, shown: state.status === 'ok' ? state.data : lastOk }

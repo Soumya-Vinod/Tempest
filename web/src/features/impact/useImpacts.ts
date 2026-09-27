@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 
 import { ApiError, getImpactResults } from '../../lib/api'
-import type { ImpactResult, Timestep } from '../../types/contracts'
+import type { Horizon, ImpactResult, Timestep } from '../../types/contracts'
 import { NON_OK } from './style'
 
 export type ImpactState =
@@ -18,8 +18,8 @@ const cache = new Map<string, Promise<ImpactResult[]>>()
  * Non-ok rows for one timestep. The contract's `status` filter takes one value, so this makes
  * one request per non-ok status and merges them; ok rows are never downloaded.
  */
-function load(timestep: Timestep): Promise<ImpactResult[]> {
-  const key = timestep
+function load(timestep: Timestep, horizon: Horizon): Promise<ImpactResult[]> {
+  const key = `${horizon}|${timestep}`
   const hit = cache.get(key)
   if (hit) {
     cache.delete(key)
@@ -27,7 +27,7 @@ function load(timestep: Timestep): Promise<ImpactResult[]> {
     return hit
   }
   const promise = Promise.all(
-    NON_OK.map((status) => getImpactResults(timestep, { status })),
+    NON_OK.map((status) => getImpactResults(timestep, { status }, horizon)),
   ).then((parts) => parts.flatMap((fc) => fc.features))
   promise.catch(() => cache.delete(key))
   cache.set(key, promise)
@@ -51,14 +51,17 @@ interface Settled {
  * Impact results for the selected timestep. `state` is for the current key; `shown` keeps the
  * last successful data on the map while the next timestep loads, so scrubbing doesn't flicker.
  */
-export function useImpacts(timestep: Timestep): { state: ImpactState; shown: ImpactResult[] } {
-  const key = timestep
+export function useImpacts(
+  timestep: Timestep,
+  horizon: Horizon = 0,
+): { state: ImpactState; shown: ImpactResult[] } {
+  const key = `${horizon}|${timestep}`
   const [settled, setSettled] = useState<Settled | null>(null)
   const [lastOk, setLastOk] = useState<ImpactResult[]>([])
 
   useEffect(() => {
     let cancelled = false
-    load(timestep).then(
+    load(timestep, horizon).then(
       (data) => {
         if (cancelled) return
         setSettled({ key, state: { status: 'ok', data } })
@@ -73,7 +76,7 @@ export function useImpacts(timestep: Timestep): { state: ImpactState; shown: Imp
     return () => {
       cancelled = true
     }
-  }, [key, timestep])
+  }, [key, timestep, horizon])
 
   const state: ImpactState = settled?.key === key ? settled.state : { status: 'loading' }
   return { state, shown: state.status === 'ok' ? state.data : lastOk }

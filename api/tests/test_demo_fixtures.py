@@ -52,19 +52,26 @@ ROUTE_SCHEMAS = {
     ],
     # Per type only: the unfiltered route is composed from these (contracts.md §7).
     "exposure": [(rf"infra-({_alternatives(InfraType)})", InfraFeatureCollection, False, None)],
-    "impact": [(r"results(-[a-z0-9-]+)?", ImpactResultCollection, True, None)],
+    # v1.3 change, pending Dev A: deduplicated horizon-24 results (a content hash per distinct
+    # result) and their timestep indexes. schema None: validated through the index, per timestep,
+    # in test_horizon.py.
+    "impact": [
+        (r"results-h24-(index|[0-9a-f]{12})", None, False, None),
+        (r"results(-[a-z0-9-]+)?", ImpactResultCollection, True, None),
+    ],
     "risk": [
+        (r"(scores|breakdown)-h24-(index|[0-9a-f]{12})", None, False, None),
         (r"scores", RiskScoreCollection, True, None),
         (r"breakdown", RiskBreakdown, True, None),
         (r"unscored-areas", UnscoredAreaCollection, False, None),
     ],
     # Advisory state lives in SQLite; its only fixtures are raw gemini-* responses.
     "advisory": [],
-    # Dispatch receipts live in SQLite (v1.2 change, pending Dev A: receipt fixture dropped).
+    # Dispatch receipts live in SQLite (added in v1.2: receipt fixture dropped).
     "dispatch": [],
     "insurance": [
         (r"triggers", TriggerEventCollection, True, None),
-        (r"summary", InsuranceSummary, False, None),  # v1.2 change, pending Dev A
+        (r"summary", InsuranceSummary, False, None),  # added in v1.2
     ],
 }
 FIXTURES = sorted(DEMO_DIR.glob("*.json"))
@@ -100,6 +107,9 @@ def test_fixture_matches_contract(path):
         pytest.fail(f"no contract schema mapped for {module}__{resource}")
     match, schema, timed, body_id = entry
     assert bool(ts) == timed, "timestep suffix required iff the resource is time-dependent"
+    if schema is None:  # a horizon-24 dedup file or index (test_horizon.py resolves them)
+        json.loads(raw)
+        return
     if (module, resource) == ("risk", "scores"):  # compact: polygons added on load (§7)
         data = json.loads(raw)
         assert all("geometry" not in f for f in data["features"]), "scores store no geometry"

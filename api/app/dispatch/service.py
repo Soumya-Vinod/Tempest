@@ -1,5 +1,5 @@
 """Dispatch an approved advisory by Telegram and e-mail, with a CAP 1.2 attachment
-(contracts.md §4.7, §5; v1.2 change, pending Dev A).
+(contracts.md §4.7, §5; added in v1.2).
 
 Rules:
 - Only approved advisories (409). A sent one needs resend=true (409 otherwise); resends are

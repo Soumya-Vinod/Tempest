@@ -326,7 +326,9 @@ def evaluate(
     return out
 
 
-def to_collection(risks: list[BlockRisk], ctx: RiskContext, timestep: str) -> RiskScoreCollection:
+def to_collection(
+    risks: list[BlockRisk], ctx: RiskContext, timestep: str, horizon_h: int = 0
+) -> RiskScoreCollection:
     """Contract RiskScores from evaluated blocks, in block order."""
     features = []
     for b, r in enumerate(risks):
@@ -350,6 +352,7 @@ def to_collection(risks: list[BlockRisk], ctx: RiskContext, timestep: str) -> Ri
                             "vulnerability": round(r.vulnerability, DECIMALS),
                         },
                         "top_driver": r.top_driver,
+                        "horizon_h": horizon_h,
                     },
                 }
             )
@@ -357,7 +360,9 @@ def to_collection(risks: list[BlockRisk], ctx: RiskContext, timestep: str) -> Ri
     return RiskScoreCollection(features=features)
 
 
-def to_breakdown(risks: list[BlockRisk], ctx: RiskContext, timestep: str) -> RiskBreakdown:
+def to_breakdown(
+    risks: list[BlockRisk], ctx: RiskContext, timestep: str, horizon_h: int = 0
+) -> RiskBreakdown:
     """Every part per block, plus population and hospital travel time (added in v1.1)."""
 
     def rounded(parts: dict[str, float]) -> dict[str, float]:
@@ -380,7 +385,9 @@ def to_breakdown(risks: list[BlockRisk], ctx: RiskContext, timestep: str) -> Ris
                 "vulnerability": rounded(r.vulnerability_parts),
             }
         )
-    return RiskBreakdown.model_validate({"timestep": timestep, "blocks": blocks})
+    return RiskBreakdown.model_validate(
+        {"timestep": timestep, "blocks": blocks, "horizon_h": horizon_h}
+    )
 
 
 def compute_scores(

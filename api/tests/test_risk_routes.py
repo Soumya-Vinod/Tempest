@@ -111,9 +111,9 @@ def test_risk_reuses_the_impact_cache(synth, monkeypatch):
     calls = []
     compute = impact._compute
 
-    def counting(timestep):
+    def counting(timestep, horizon_h=0):
         calls.append(timestep)
-        return compute(timestep)
+        return compute(timestep, horizon_h)
 
     monkeypatch.setattr(impact, "_compute", counting)
     assert client.get(f"/api/impact/results?timestep={TS}").status_code == 200
@@ -200,7 +200,7 @@ def test_breakdown_matches_scores(synth):
 def test_breakdown_shares_the_risk_cache(synth, monkeypatch):
     calls = []
     compute = service._compute
-    monkeypatch.setattr(service, "_compute", lambda ts: calls.append(ts) or compute(ts))
+    monkeypatch.setattr(service, "_compute", lambda ts, h=0: calls.append(ts) or compute(ts, h))
     client.get(f"{URL}?timestep={TS}")
     client.get(f"/api/risk/breakdown?timestep={TS}")
     assert calls == [TS]

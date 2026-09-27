@@ -1,10 +1,12 @@
 import { relativeLabel } from '../../lib/constants'
-import type { ImpactStatus } from '../../types/contracts'
+import type { Horizon, ImpactStatus } from '../../types/contracts'
 import { cssColor, NON_OK, STATUS_COLOR, STATUS_LABEL } from './style'
 import type { ImpactState } from './useImpacts'
 
 interface Props {
   timestepIndex: number
+  horizon: Horizon
+  expectedCount: number // isolated only on the expected hazard (horizon 24), not now
   state: ImpactState
   counts: Record<ImpactStatus, number> | null
   affectedCount: number
@@ -19,8 +21,15 @@ export default function ImpactPanel(props: Props) {
         <span className="uppercase">Impact</span>
         <span className="ml-auto font-normal tracking-normal">
           {relativeLabel(props.timestepIndex)}
+          {props.horizon === 24 && ', next 24 h'}
         </span>
       </h2>
+      {props.horizon === 24 && (
+        <p className="mb-1 text-[11px] text-slate-500">
+          Expected within the next 24 h (worst case). Dashed rings: expected to be cut off, not
+          yet ({props.expectedCount}).
+        </p>
+      )}
 
       {state.status === 'loading' && <p className="text-xs text-slate-500">Loading…</p>}
       {state.status === 'unavailable' && (

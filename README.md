@@ -32,7 +32,7 @@ cd Tempest
 ```powershell
 py -3.12 -m venv api\.venv
 api\.venv\Scripts\python -m pip install --upgrade pip
-api\.venv\Scripts\python -m pip install -r api\requirements.txt
+api\.venv\Scripts\python -m pip install -r api\requirements-dev.txt   # runtime + pytest, ruff
 Copy-Item api\.env.example api\.env   # then fill in your keys
 ```
 

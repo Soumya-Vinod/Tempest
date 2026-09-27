@@ -1,4 +1,4 @@
-"""Insurance routes (contracts.md §5; /summary: v1.2 change, pending Dev A). ILLUSTRATIVE terms."""
+"""Insurance routes (contracts.md §5; /summary: added in v1.2). ILLUSTRATIVE terms."""
 
 from fastapi import APIRouter, HTTPException
 

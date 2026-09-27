@@ -47,6 +47,11 @@ WHAT TO SAY:
   and write actions for the situation as it stands (e.g. "support the cut-off health centre by
   boat"), never "before it is disrupted" or "while routes are open". Only things at risk may be
   described as threatened.
+- Expected: a facility listed as expected_<n> is NOT cut off yet; it is expected to be cut off
+  within the next 24 h (a forecast). Describe it as expected to be cut off within
+  {{expected_<n>_hours}}, with its cause ({{expected_<n>_cause}}), and write preparatory actions
+  for it (e.g. "move patients from {{expected_1_name}} before the ferry stops"). Keep it
+  separate from the facilities already cut off.
 - Shelters: if the message says the block has no mapped stand-in shelters, do not tell people
   to go to shelters or "safe centres"; include an action, citing {{standin_count}}, saying there
   are no mapped shelters and safe buildings must be identified locally.

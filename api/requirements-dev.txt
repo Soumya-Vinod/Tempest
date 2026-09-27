@@ -1,0 +1,5 @@
+# Development: the runtime dependencies plus tests and lint. Install from the repo root:
+# api\.venv\Scripts\python -m pip install -r api\requirements-dev.txt
+-r requirements.txt
+pytest==9.1.1
+ruff==0.16.9

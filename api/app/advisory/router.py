@@ -1,5 +1,5 @@
-"""Advisory routes (contracts.md §5; reject, new-draft, suggestions and audit: v1.2 change,
-pending Dev A). Sync handlers: Gemini and SQLite calls block."""
+"""Advisory routes (contracts.md §5; reject, new-draft, suggestions and audit: added in v1.2).
+Sync handlers: Gemini and SQLite calls block."""
 
 from collections.abc import Callable
 from typing import Any
@@ -67,7 +67,7 @@ def create_advisory(payload: AdvisoryCreate) -> Advisory:
 
 @router.get("/suggestions")
 def get_suggestions(timestep: TimestepParam) -> AdvisorySuggestions:
-    """Blocks at or above the suggestion threshold (v1.2 change, pending Dev A)."""
+    """Blocks at or above the suggestion threshold (added in v1.2)."""
     return _call(service.suggestions, timestep)
 
 
@@ -94,18 +94,18 @@ def approve_advisory(advisory_id: str, payload: AdvisoryApprove) -> Advisory:
 
 @router.post("/{advisory_id}/reject")
 def reject_advisory(advisory_id: str, payload: AdvisoryReject) -> Advisory:
-    """draft -> rejected; a reason is required (v1.2 change, pending Dev A)."""
+    """draft -> rejected; a reason is required (added in v1.2)."""
     return _call(service.reject, advisory_id, payload.reason, payload.rejected_by)
 
 
 @router.post("/{advisory_id}/new-draft")
 def new_draft(advisory_id: str, payload: AdvisoryNewDraft | None = None) -> Advisory:
-    """Copy a finished advisory into a new draft (v1.2 change, pending Dev A)."""
+    """Copy a finished advisory into a new draft (added in v1.2)."""
     return _call(service.new_draft, advisory_id, payload.created_by if payload else None)
 
 
 @router.get("/{advisory_id}/audit")
 def get_advisory_audit(advisory_id: str) -> AuditLog:
-    """The advisory's audit events, oldest first (v1.2 change, pending Dev A)."""
+    """The advisory's audit events, oldest first (added in v1.2)."""
     _call(service.get, advisory_id)
     return AuditLog(events=store.events(advisory_id))

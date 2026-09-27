@@ -1,5 +1,5 @@
-"""Dispatch routes (contracts.md §5; receipts, cap.xml and recipients: v1.2 change, pending
-Dev A). Sync handlers: SMTP, Telegram and SQLite calls block."""
+"""Dispatch routes (contracts.md §5; receipts, cap.xml and recipients: added in v1.2). Sync
+handlers: SMTP, Telegram and SQLite calls block."""
 
 from collections.abc import Callable
 from typing import Any

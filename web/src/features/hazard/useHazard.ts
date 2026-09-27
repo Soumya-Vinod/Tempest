@@ -110,3 +110,71 @@ export function useTrack(): HazardState<CycloneTrack> {
   }, [])
   return state
 }
+
+// --- Expected hazard, next 24 h (v1.3): composited here from the per-timestep layers ------------
+
+const FORECAST_STEPS = 24 / 3
+const expectedCache = new Map<string, Promise<HazardLayer[]>>()
+
+const cellKey = (f: HazardLayer) => f.properties.id.split('__')[1] ?? f.properties.id
+
+/**
+ * The cell-wise max of a hazard over the timestep and the next 24 h (capped at landfall), as the
+ * API's horizon 24 does for impact and risk: a perfect-forecast replay. Labelled with the
+ * timestep's own cells. Cached per (type, timestep), so images and contours built from it are
+ * reused while scrubbing.
+ */
+function loadExpected(type: HazardType, timestepIndex: number): Promise<HazardLayer[]> {
+  const key = `${type}|${REPLAY_TIMESTEPS[timestepIndex]}`
+  const hit = expectedCache.get(key)
+  if (hit) return hit
+  const window = REPLAY_TIMESTEPS.slice(timestepIndex, timestepIndex + FORECAST_STEPS + 1)
+  const promise = Promise.all(window.map((ts) => load(type, ts))).then((layers) => {
+    const best = new Map<string, number>()
+    for (const layer of layers)
+      for (const f of layer)
+        best.set(cellKey(f), Math.max(best.get(cellKey(f)) ?? -Infinity, f.properties.value))
+    return layers[0].map((f) => ({
+      ...f,
+      properties: { ...f.properties, value: best.get(cellKey(f)) ?? f.properties.value },
+    }))
+  })
+  promise.catch(() => expectedCache.delete(key))
+  expectedCache.set(key, promise)
+  while (expectedCache.size > CACHE_SIZE) expectedCache.delete(expectedCache.keys().next().value!)
+  return promise
+}
+
+/** useHazardLayer for the expected hazard over the next 24 h. */
+export function useExpectedLayer(
+  type: HazardType,
+  timestepIndex: number,
+  enabled: boolean,
+): { state: HazardState<HazardLayer[]>; shown: HazardLayer[] } {
+  const key = `${type}|expected|${REPLAY_TIMESTEPS[timestepIndex]}`
+  const [settled, setSettled] = useState<Settled | null>(null)
+  const [lastOk, setLastOk] = useState<HazardLayer[]>([])
+  useEffect(() => {
+    if (!enabled) return
+    let cancelled = false
+    loadExpected(type, timestepIndex).then(
+      (data) => {
+        if (cancelled) return
+        setSettled({ key, state: { status: 'ok', data } })
+        setLastOk(data)
+      },
+      (err: unknown) => {
+        if (cancelled) return
+        setSettled({ key, state: failure(err) })
+        setLastOk([])
+      },
+    )
+    return () => {
+      cancelled = true
+    }
+  }, [enabled, key, type, timestepIndex])
+  if (!enabled) return { state: { status: 'off' }, shown: [] }
+  const state: HazardState<HazardLayer[]> =
+    settled?.key === key ? settled.state : { status: 'loading' }
+  return { state, shown: state.status === 'ok' ? state.data : lastOk }
+}
