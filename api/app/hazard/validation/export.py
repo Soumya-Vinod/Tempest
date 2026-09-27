@@ -48,17 +48,17 @@ class ExportedArtifacts:
     acquisition_metadata_json: Path
 
     def to_dict(self) -> dict[str, str]:
-        """Map artifact keys to filesystem paths."""
+        """Map artifact keys to portable filenames (not absolute paths)."""
         return {
-            "observed_flood_tif": str(self.observed_flood_tif),
-            "predicted_flood_tif": str(self.predicted_flood_tif),
-            "agreement_tif": str(self.agreement_tif),
-            "disagreement_tif": str(self.disagreement_tif),
-            "observed_flood_geojson": str(self.observed_flood_geojson),
-            "predicted_flood_geojson": str(self.predicted_flood_geojson),
-            "validation_overlap_geojson": str(self.validation_overlap_geojson),
-            "metrics_json": str(self.metrics_json),
-            "acquisition_metadata_json": str(self.acquisition_metadata_json),
+            "observed_flood_tif": self.observed_flood_tif.name,
+            "predicted_flood_tif": self.predicted_flood_tif.name,
+            "agreement_tif": self.agreement_tif.name,
+            "disagreement_tif": self.disagreement_tif.name,
+            "observed_flood_geojson": self.observed_flood_geojson.name,
+            "predicted_flood_geojson": self.predicted_flood_geojson.name,
+            "validation_overlap_geojson": self.validation_overlap_geojson.name,
+            "metrics_json": self.metrics_json.name,
+            "acquisition_metadata_json": self.acquisition_metadata_json.name,
         }
 
 

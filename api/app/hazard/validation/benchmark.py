@@ -251,7 +251,7 @@ def generate_benchmark_report(
             ),
             f"- **Orbit Geometry Match:** `{orbit_match_str}`",
             "",
-            "#### Quantitative Confusion Matrix",
+            "#### Quantitative Confusion Matrix (cell-level, ~5.5 km resolution)",
             "| Metric | Square Kilometers (km²) | Evaluated Grid Cells |",
             "| :--- | :--- | :--- |",
             (
@@ -282,30 +282,36 @@ def generate_benchmark_report(
         ])
 
         if b.name.lower() == "gosaba":
+            comp = b_res.comparison
+            fp_cells = comp.fp_count
+            fn_cells = comp.fn_count
+            tp_cells = comp.tp_count
+            fp_area = comp.fp_area_km2
             lines.extend([
                 "",
-                "#### Scientific Root Cause Analysis (IoU = 0.000)",
-                "- **Sundarbans Mangrove Canopy Scattering:** Over 70% of Gosaba (1,918.6 km²) "
-                "consists of dense, multi-tiered mangrove forest reserve in the south. C-band "
+                f"#### Scientific Root Cause Analysis (IoU = {m.iou:.3f})",
+                f"- **Sundarbans Mangrove Canopy Scattering:** A large proportion of Gosaba "
+                f"({b.area_km2:.1f} km²) consists of dense mangrove forest reserve. C-band "
                 "microwave pulses (~5.6 cm) scatter within the upper tree canopy and cannot "
                 "penetrate to floodwater beneath, while perennial tidal creeks are excluded "
                 "by the JRC surface water occurrence mask (>=20%).",
                 "- **Hydrodynamic Wave Attenuation Omission:** The Tempest open-water surge "
                 "model does not simulate mangrove root drag / vegetative bottom friction "
-                "(Manning's n), predicting surge ingress up to 2.3m across 46 southern cells.",
-                "- **Spatial Disconnect (North vs South):** Sentinel-1 observed standing water "
-                "exclusively in 2 breached northern agricultural polders (Lat 22.18°N–22.23°N) "
-                "where surge had already dissipated (0.0m). This produced 46 southern False "
-                "Positives and 2 northern False Negatives with 0 True Positives.",
+                f"(Manning's n), predicting surge ingress across {fp_cells} southern cells "
+                f"({fp_area:.1f} km² FP).",
+                f"- **Spatial Disconnect (North vs South):** Sentinel-1 observed standing water "
+                f"in {fn_cells} northern agricultural polder(s) where surge had already "
+                f"dissipated. This produced {fp_cells} False Positives and "
+                f"{fn_cells} False Negatives with {tp_cells} True Positive(s).",
             ])
 
         lines.extend([
             "",
-            "#### Exported Artifacts",
-            f"- Observed Flood GeoTIFF: `{b_res.artifacts.observed_flood_tif.name}`",
-            f"- Predicted Flood GeoTIFF: `{b_res.artifacts.predicted_flood_tif.name}`",
-            f"- Agreement GeoTIFF: `{b_res.artifacts.agreement_tif.name}`",
-            f"- Disagreement GeoTIFF: `{b_res.artifacts.disagreement_tif.name}`",
+            "#### Exported Cell-Label Artifacts",
+            f"- Observed Cell-Label GeoTIFF: `{b_res.artifacts.observed_flood_tif.name}`",
+            f"- Predicted Cell-Label GeoTIFF: `{b_res.artifacts.predicted_flood_tif.name}`",
+            f"- Agreement Cell-Label GeoTIFF: `{b_res.artifacts.agreement_tif.name}`",
+            f"- Disagreement Cell-Label GeoTIFF: `{b_res.artifacts.disagreement_tif.name}`",
             f"- Observed Flood GeoJSON: `{b_res.artifacts.observed_flood_geojson.name}`",
             f"- Overlap Layer GeoJSON: `{b_res.artifacts.validation_overlap_geojson.name}`",
             f"- Metrics JSON: `{b_res.artifacts.metrics_json.name}`",

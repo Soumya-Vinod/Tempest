@@ -175,13 +175,16 @@ The deterministic hazard engine (`generate_surge_layer`, `generate_flood_layer`)
 > The Holland wind field model (`generate_wind_layer`) is **intentionally excluded** from SAR validation because Sentinel-1 Synthetic Aperture Radar observes terrestrial surface water backscatter rather than atmospheric wind velocity fields.
 
 ### Spatial Overlay:
-Simulated storm surge depths ($h_{\text{surge}}$) and flood susceptibility indices ($I_{\text{flood}}$) at landfall timestep (`2020-05-20T12:00:00Z`) are queried for every grid cell intersecting the block:
-$$\text{Predicted Flooded} = (h_{\text{surge}} \ge 0.50\text{ m}) \lor (I_{\text{flood}} \ge 0.65)$$
+Simulated storm surge depths ($h_{\text{surge}}$) at landfall timestep (`2020-05-20T12:00:00Z`) are queried for every grid cell intersecting the block. The main predicted criterion is surge-only; the static flood susceptibility index is reported separately:
+$$\text{Predicted Flooded (surge-only)} = h_{\text{surge}} \ge 0.50\text{ m}$$
+$$\text{Susceptibility Flagged (separate)} = I_{\text{flood}} \ge 0.65$$
 
 The cell-level observed flood state is derived from the spatial reduction of the SAR flood mask:
-$$\text{Observed Flooded} = \text{Flood Fraction}_{\text{SAR}} \ge 0.001$$
+$$\text{Observed Flooded} = \text{Flood Fraction}_{\text{SAR}} \ge 0.10 \quad (\text{i.e. }\ge 10\% \text{ of cell area})$$
 
-### Confusion Matrix Categories:
+> **Note:** This is a cell-level (~5.5 km resolution) comparison. The "observed flood km²" is a cell-count-based area estimate, not a pixel-area measurement.
+
+### Confusion Matrix Categories (cell-level, ~5.5 km resolution):
 - **True Positive (TP):** Predicted Flooded $\land$ Observed Flooded (Model correctly identified inundation).
 - **False Positive (FP):** Predicted Flooded $\land$ Observed Dry (Model predicted flooding not observed by SAR).
 - **False Negative (FN):** Predicted Dry $\land$ Observed Flooded (Model missed flooding detected by SAR).
@@ -213,7 +216,7 @@ All metrics are computed strictly from spatial overlap:
 
 Benchmark executed on live Copernicus Sentinel-1 SAR observations:
 
-| Block Name | Census Code | Total Area | Observed Flood | Predicted Flood | IoU | Precision | Recall | F1 Score | Accuracy |
+| Block Name | Census Code | Total Area | Observed Flood (cell-level) | Predicted Flood (surge-only) | IoU | Precision | Recall | F1 Score | Accuracy |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | **Sagar** | `02438` | 235.5 km² | 134.6 km² | 201.9 km² | **0.579** | 0.611 | 0.917 | **0.733** | 0.619 |
 | **Namkhana** | `02439` | 243.6 km² | 92.8 km² | 220.4 km² | **0.421** | 0.421 | 1.000 | **0.593** | 0.476 |
@@ -245,16 +248,18 @@ For every evaluated block, the pipeline generates artifacts into `api/data/artif
 
 ```
 api/data/artifacts/validation/sagar/
-├── observed_flood.tif            <- 8-bit GeoTIFF (1=flooded, 0=dry) with EPSG:4326 tags
-├── predicted_flood.tif           <- 8-bit GeoTIFF of hazard engine simulation
-├── agreement.tif                 <- 8-bit GeoTIFF of spatial agreement (TP + TN)
-├── disagreement.tif              <- 8-bit GeoTIFF of spatial disagreement (FP + FN)
+├── observed_flood.tif            <- 8-bit cell-label GeoTIFF (1=flooded cell, 0=dry) with EPSG:4326 tags
+├── predicted_flood.tif           <- 8-bit cell-label GeoTIFF of hazard engine surge prediction
+├── agreement.tif                 <- 8-bit cell-label GeoTIFF of spatial agreement (TP + TN)
+├── disagreement.tif              <- 8-bit cell-label GeoTIFF of spatial disagreement (FP + FN)
 ├── observed_flood.geojson        <- GeoJSON polygons of observed inundation
 ├── predicted_flood.geojson       <- GeoJSON polygons of simulated inundation
 ├── validation_overlap.geojson    <- Unified GeoJSON with per-cell audit properties
 ├── metrics.json                  <- Structured benchmark metrics and confusion matrix
 └── acquisition_metadata.json     <- Complete Copernicus Sentinel-1 scene provenance
 ```
+
+> **Terminology:** The GeoTIFFs are "cell labels" (rasterized from ~5.5 km grid cells), not fine-resolution flood masks. They show the validation state of each model grid cell.
 
 ### GeoTIFF Encoding:
 GeoTIFFs are written using a pure-Python georeferencing engine encoding standard TIFF tags plus GeoTIFF geokeys:

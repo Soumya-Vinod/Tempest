@@ -1,7 +1,8 @@
 """Validation service layer bridging benchmark outputs and HTTP API endpoints.
 
-Responses are generated directly from executed benchmark artifacts rather than
-manually authored fixtures, preserving complete scientific provenance.
+Responses are generated directly from pre-computed benchmark artifacts.
+Routes are strictly read-only — the pipeline is never executed inside a
+user request.  If the committed artifacts are missing, routes return 503.
 """
 
 from __future__ import annotations
@@ -11,7 +12,6 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from app.hazard.validation.benchmark import run_validation
 from app.hazard.validation.config import (
     VALIDATION_ARTIFACTS_DIR,
 )
@@ -20,18 +20,23 @@ from app.hazard.validation.datasets import AdminBoundariesDataset
 logger = logging.getLogger(__name__)
 
 
-def _get_benchmark_suite() -> dict[str, Any]:
-    """Retrieve existing benchmark suite from disk or execute pipeline on demand."""
-    suite_path = VALIDATION_ARTIFACTS_DIR / "benchmark_suite.json"
-    if suite_path.is_file():
-        try:
-            return json.loads(suite_path.read_text(encoding="utf-8"))
-        except Exception as e:
-            logger.warning("Error reading benchmark_suite.json: %s; re-running validation", e)
+class ValidationDataUnavailableError(Exception):
+    """Raised when committed validation artifacts are missing."""
 
-    # Execute benchmark runner
-    suite = run_validation()
-    return suite.to_dict()
+
+def _get_benchmark_suite() -> dict[str, Any]:
+    """Load the committed benchmark suite from disk (read-only).
+
+    Raises ``ValidationDataUnavailableError`` if the file is missing so that
+    the calling route can translate it into an HTTP 503.
+    """
+    suite_path = VALIDATION_ARTIFACTS_DIR / "benchmark_suite.json"
+    if not suite_path.is_file():
+        raise ValidationDataUnavailableError(
+            "Validation benchmark data has not been generated. "
+            "Run `python scripts/run_sentinel_validation.py` offline first."
+        )
+    return json.loads(suite_path.read_text(encoding="utf-8"))
 
 
 def _resolve_block_key(block_param: str) -> str:
@@ -122,10 +127,7 @@ def get_block_artifacts(block_param: str) -> dict[str, Any] | None:
     resolved_key = _resolve_block_key(block_param)
     block_dir = VALIDATION_ARTIFACTS_DIR / resolved_key
     if not block_dir.is_dir():
-        # Ensure benchmark has been run
-        _get_benchmark_suite()
-        if not block_dir.is_dir():
-            return None
+        return None
 
     artifact_list = []
     for item in sorted(block_dir.iterdir()):
@@ -141,7 +143,6 @@ def get_block_artifacts(block_param: str) -> dict[str, Any] | None:
 
     return {
         "block": resolved_key,
-        "directory": str(block_dir),
         "artifacts": artifact_list,
     }
 

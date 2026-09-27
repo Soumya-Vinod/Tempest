@@ -336,6 +336,11 @@ stated; `timestep=live` returns `501` in v1.1. FC = FeatureCollection.
 |---|---|---|---|---|
 | A | GET | `/api/hazard/timesteps` | — | `{ event: "amphan", landfall: Timestep, timesteps: Timestep[] }` |
 | A | GET | `/api/hazard/layers` | `hazard_type: HazardType`, `timestep` | FC&lt;HazardLayer&gt; |
+| A | GET | `/api/hazard/validation` | — | Validation overview: `{ execution_timestamp, event_name, aggregate_metrics, blocks[] }`. Read-only; `503` if pipeline not run. *v1.3 change, pending Dev B* |
+| A | GET | `/api/hazard/validation/{block}` | — | Detailed block validation (metrics, acquisition, artifact downloads). `404` unknown block; `503` if not run. *v1.3 change, pending Dev B* |
+| A | GET | `/api/hazard/validation/{block}/metrics` | — | `{ block, metrics }` with IoU, Precision, Recall, F1, confusion matrix. Cell-level (~5.5 km). `503` if not run. *v1.3 change, pending Dev B* |
+| A | GET | `/api/hazard/validation/{block}/artifacts` | — | `{ block, artifacts[] }` with download URLs. `404` if block missing. *v1.3 change, pending Dev B* |
+| A | GET | `/api/hazard/validation/{block}/artifacts/{artifact_name}` | — | File download (cell-label GeoTIFF, GeoJSON, JSON). `404` if missing. *v1.3 change, pending Dev B* |
 | B | GET | `/api/exposure/infra` | `infra_type?: InfraType` | FC&lt;InfraFeature&gt; (not time-dependent) |
 | B | GET | `/api/impact/results` | `timestep`, `hazard_type?`, `status?: ImpactStatus` | FC&lt;ImpactResult&gt; |
 | B | GET | `/api/risk/scores` | `timestep` | FC&lt;RiskScore&gt; |

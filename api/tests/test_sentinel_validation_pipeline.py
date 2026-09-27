@@ -595,3 +595,97 @@ def test_scientific_integrity_no_fabricated_metrics() -> None:
         if (tn + fp) > 0:
             expected_spec = tn / (tn + fp)
             assert abs(metrics.specificity - round(expected_spec, 4)) < 1e-4
+
+
+# ---------------------------------------------------------------------------
+# 12. Committed Artifact Reproducibility (Dev B review item)
+# ---------------------------------------------------------------------------
+def test_committed_metrics_reproducibility() -> None:
+    """Recompute metrics from the committed benchmark_suite.json confusion
+    matrices and verify they match the committed metric values exactly.
+
+    This ensures that no manual editing of the JSON can silently introduce
+    inconsistencies between the confusion matrix and the derived metrics.
+    """
+    from app.hazard.validation.config import VALIDATION_ARTIFACTS_DIR
+
+    suite_path = VALIDATION_ARTIFACTS_DIR / "benchmark_suite.json"
+    if not suite_path.is_file():
+        return  # Skip if pipeline hasn't been run yet
+
+    suite = json.loads(suite_path.read_text(encoding="utf-8"))
+    blocks = suite.get("blocks", {})
+    assert len(blocks) >= 1
+
+    for block_key, block_data in blocks.items():
+        m = block_data["metrics"]
+        cm = m["confusion_matrix"]
+        tp = cm["tp_km2"]
+        fp = cm["fp_km2"]
+        fn = cm["fn_km2"]
+        tn = cm["tn_km2"]
+        total = tp + fp + fn + tn
+        union = tp + fp + fn
+
+        # Verify IoU
+        if union > 0:
+            expected_iou = round(tp / union, 4)
+            assert abs(m["iou"] - expected_iou) < 1e-3, (
+                f"{block_key}: IoU mismatch: {m['iou']} vs {expected_iou}"
+            )
+
+        # Verify Precision
+        if (tp + fp) > 0:
+            expected_prec = round(tp / (tp + fp), 4)
+            assert abs(m["precision"] - expected_prec) < 1e-3, (
+                f"{block_key}: Precision mismatch: {m['precision']} vs {expected_prec}"
+            )
+
+        # Verify Recall
+        if (tp + fn) > 0:
+            expected_rec = round(tp / (tp + fn), 4)
+            assert abs(m["recall"] - expected_rec) < 1e-3, (
+                f"{block_key}: Recall mismatch: {m['recall']} vs {expected_rec}"
+            )
+
+        # Verify F1 Score
+        f1_denom = (2 * tp) + fp + fn
+        if f1_denom > 0:
+            expected_f1 = round((2 * tp) / f1_denom, 4)
+            assert abs(m["f1_score"] - expected_f1) < 1e-3, (
+                f"{block_key}: F1 mismatch: {m['f1_score']} vs {expected_f1}"
+            )
+
+        # Verify Accuracy
+        if total > 0:
+            expected_acc = round((tp + tn) / total, 4)
+            assert abs(m["accuracy"] - expected_acc) < 1e-3, (
+                f"{block_key}: Accuracy mismatch: {m['accuracy']} vs {expected_acc}"
+            )
+
+        # Verify no absolute paths leaked into artifact references
+        for art_key, art_val in block_data.get("artifacts", {}).items():
+            assert ":\\" not in str(art_val), (
+                f"{block_key}: absolute Windows path in artifact {art_key}: {art_val}"
+            )
+            assert "/Users/" not in str(art_val), (
+                f"{block_key}: absolute Unix path in artifact {art_key}: {art_val}"
+            )
+
+
+# ---------------------------------------------------------------------------
+# 13. Offline Fallback Scene Correctness (Dev B review item)
+# ---------------------------------------------------------------------------
+def test_offline_fallback_orbit_matches_gee() -> None:
+    """Verify the offline fallback scene uses relative orbit 48 (matching GEE)."""
+    dataset = AdminBoundariesDataset()
+    sagar = dataset.get_block("sagar")
+    pair = select_sentinel_pair(aoi=sagar)
+
+    # Both scenes must be on relative orbit 48 (the orbit the online GEE pipeline selects)
+    assert pair.before_metadata.relative_orbit == 48, (
+        f"Pre-landfall fallback orbit should be 48, got {pair.before_metadata.relative_orbit}"
+    )
+    assert pair.after_metadata.relative_orbit == 48, (
+        f"Post-landfall fallback orbit should be 48, got {pair.after_metadata.relative_orbit}"
+    )

@@ -36,14 +36,22 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class CellEvaluation:
-    """Detailed spatial comparison evaluation for a single grid cell."""
+    """Detailed spatial comparison evaluation for a single grid cell.
+
+    ``predicted_flooded`` is based on surge depth only (≥ 0.5 m at any
+    timestep during the event).  ``susceptibility_flagged`` records whether
+    the static flood-susceptibility index also exceeds its threshold — it
+    is reported separately so that the main metrics are not inflated by a
+    static index that is ~45 % proxy inputs.
+    """
 
     cell_id: str
     centroid: tuple[float, float]
     polygon: dict[str, Any]
     surge_depth_m: float
     flood_index: float
-    predicted_flooded: bool
+    predicted_flooded: bool  # surge-only criterion
+    susceptibility_flagged: bool  # static index, reported separately
     observed_flooded: bool
     status: str  # 'tp', 'fp', 'fn', 'tn'
     elevation_m: float
@@ -176,10 +184,11 @@ def compare_hazard_with_sar(
         surge_depth = surge_map.get(cell.id, 0.0)
         flood_index = flood_map.get(cell.id, 0.0)
 
-        # Simulation prediction: high surge depth OR high environmental flood susceptibility
-        is_surge_flooded = surge_depth >= cfg.surge_threshold_m
-        is_flood_flooded = flood_index >= cfg.flood_susceptibility_threshold
-        predicted = is_surge_flooded or is_flood_flooded
+        # Prediction: surge depth only (dynamic physics-based output).
+        # The static flood susceptibility index is tracked separately so
+        # it does not inflate the main confusion matrix.
+        predicted = surge_depth >= cfg.surge_threshold_m
+        susceptibility_flagged = flood_index >= cfg.flood_susceptibility_threshold
 
         # Observation determination
         if cell.id in gee_observed_map:
@@ -215,6 +224,7 @@ def compare_hazard_with_sar(
                 surge_depth_m=round(surge_depth, 2),
                 flood_index=round(flood_index, 2),
                 predicted_flooded=predicted,
+                susceptibility_flagged=susceptibility_flagged,
                 observed_flooded=observed,
                 status=status,
                 elevation_m=cell.elevation_m,
@@ -255,6 +265,7 @@ def compare_hazard_with_sar(
                 "surge_depth_m": ev.surge_depth_m,
                 "flood_index": ev.flood_index,
                 "predicted_flooded": ev.predicted_flooded,
+                "susceptibility_flagged": ev.susceptibility_flagged,
                 "observed_flooded": ev.observed_flooded,
                 "status": ev.status,
                 "elevation_m": ev.elevation_m,

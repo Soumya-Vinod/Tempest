@@ -49,17 +49,24 @@ def get_layers(hazard_type: HazardType, timestep: TimestepParam) -> HazardLayerC
 
 # ---------------------------------------------------------------------------
 # Sentinel-1 Observational Validation Endpoints (Phase 10)
+# Read-only: routes serve pre-computed artifacts; never execute the pipeline.
 # ---------------------------------------------------------------------------
 @router.get("/validation")
 def get_validation_overview() -> dict:
     """Overview summary of Sentinel-1 observational validation across all benchmarked blocks."""
-    return val_service.get_validation_overview()
+    try:
+        return val_service.get_validation_overview()
+    except val_service.ValidationDataUnavailableError as e:
+        raise HTTPException(status_code=503, detail=str(e)) from e
 
 
 @router.get("/validation/{block}")
 def get_block_validation(block: str) -> dict:
     """Detailed Sentinel-1 validation report for a specific coastal administrative block."""
-    res = val_service.get_block_validation(block)
+    try:
+        res = val_service.get_block_validation(block)
+    except val_service.ValidationDataUnavailableError as e:
+        raise HTTPException(status_code=503, detail=str(e)) from e
     if res is None:
         raise HTTPException(
             status_code=404,
@@ -70,8 +77,11 @@ def get_block_validation(block: str) -> dict:
 
 @router.get("/validation/{block}/metrics")
 def get_block_metrics(block: str) -> dict:
-    """Quantitative validation metrics and confusion matrix for a specific block."""
-    res = val_service.get_block_metrics(block)
+    """Quantitative cell-level (5.5 km) validation metrics and confusion matrix for a block."""
+    try:
+        res = val_service.get_block_metrics(block)
+    except val_service.ValidationDataUnavailableError as e:
+        raise HTTPException(status_code=503, detail=str(e)) from e
     if res is None:
         raise HTTPException(
             status_code=404,
@@ -82,7 +92,7 @@ def get_block_metrics(block: str) -> dict:
 
 @router.get("/validation/{block}/artifacts")
 def get_block_artifacts(block: str) -> dict:
-    """List available exported artifacts (GeoTIFFs, GeoJSONs, JSON) for a block."""
+    """List available exported artifacts (cell-label GeoTIFFs, GeoJSONs, JSON) for a block."""
     res = val_service.get_block_artifacts(block)
     if res is None:
         raise HTTPException(
@@ -94,7 +104,7 @@ def get_block_artifacts(block: str) -> dict:
 
 @router.get("/validation/{block}/artifacts/{artifact_name}")
 def download_block_artifact(block: str, artifact_name: str) -> FileResponse:
-    """Download an exported validation artifact (GeoTIFF, GeoJSON, or JSON)."""
+    """Download an exported validation artifact (cell-label GeoTIFF, GeoJSON, or JSON)."""
     file_path = val_service.get_artifact_file_path(block, artifact_name)
     if file_path is None or not file_path.is_file():
         raise HTTPException(

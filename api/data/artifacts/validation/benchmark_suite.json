@@ -86,15 +86,15 @@
         }
       },
       "artifacts": {
-        "observed_flood_tif": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\sagar\\observed_flood.tif",
-        "predicted_flood_tif": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\sagar\\predicted_flood.tif",
-        "agreement_tif": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\sagar\\agreement.tif",
-        "disagreement_tif": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\sagar\\disagreement.tif",
-        "observed_flood_geojson": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\sagar\\observed_flood.geojson",
-        "predicted_flood_geojson": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\sagar\\predicted_flood.geojson",
-        "validation_overlap_geojson": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\sagar\\validation_overlap.geojson",
-        "metrics_json": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\sagar\\metrics.json",
-        "acquisition_metadata_json": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\sagar\\acquisition_metadata.json"
+        "observed_flood_tif": "observed_flood.tif",
+        "predicted_flood_tif": "predicted_flood.tif",
+        "agreement_tif": "agreement.tif",
+        "disagreement_tif": "disagreement.tif",
+        "observed_flood_geojson": "observed_flood.geojson",
+        "predicted_flood_geojson": "predicted_flood.geojson",
+        "validation_overlap_geojson": "validation_overlap.geojson",
+        "metrics_json": "metrics.json",
+        "acquisition_metadata_json": "acquisition_metadata.json"
       }
     },
     "namkhana": {
@@ -170,15 +170,15 @@
         }
       },
       "artifacts": {
-        "observed_flood_tif": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\namkhana\\observed_flood.tif",
-        "predicted_flood_tif": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\namkhana\\predicted_flood.tif",
-        "agreement_tif": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\namkhana\\agreement.tif",
-        "disagreement_tif": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\namkhana\\disagreement.tif",
-        "observed_flood_geojson": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\namkhana\\observed_flood.geojson",
-        "predicted_flood_geojson": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\namkhana\\predicted_flood.geojson",
-        "validation_overlap_geojson": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\namkhana\\validation_overlap.geojson",
-        "metrics_json": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\namkhana\\metrics.json",
-        "acquisition_metadata_json": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\namkhana\\acquisition_metadata.json"
+        "observed_flood_tif": "observed_flood.tif",
+        "predicted_flood_tif": "predicted_flood.tif",
+        "agreement_tif": "agreement.tif",
+        "disagreement_tif": "disagreement.tif",
+        "observed_flood_geojson": "observed_flood.geojson",
+        "predicted_flood_geojson": "predicted_flood.geojson",
+        "validation_overlap_geojson": "validation_overlap.geojson",
+        "metrics_json": "metrics.json",
+        "acquisition_metadata_json": "acquisition_metadata.json"
       }
     },
     "gosaba": {
@@ -254,15 +254,15 @@
         }
       },
       "artifacts": {
-        "observed_flood_tif": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\gosaba\\observed_flood.tif",
-        "predicted_flood_tif": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\gosaba\\predicted_flood.tif",
-        "agreement_tif": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\gosaba\\agreement.tif",
-        "disagreement_tif": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\gosaba\\disagreement.tif",
-        "observed_flood_geojson": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\gosaba\\observed_flood.geojson",
-        "predicted_flood_geojson": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\gosaba\\predicted_flood.geojson",
-        "validation_overlap_geojson": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\gosaba\\validation_overlap.geojson",
-        "metrics_json": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\gosaba\\metrics.json",
-        "acquisition_metadata_json": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\gosaba\\acquisition_metadata.json"
+        "observed_flood_tif": "observed_flood.tif",
+        "predicted_flood_tif": "predicted_flood.tif",
+        "agreement_tif": "agreement.tif",
+        "disagreement_tif": "disagreement.tif",
+        "observed_flood_geojson": "observed_flood.geojson",
+        "predicted_flood_geojson": "predicted_flood.geojson",
+        "validation_overlap_geojson": "validation_overlap.geojson",
+        "metrics_json": "metrics.json",
+        "acquisition_metadata_json": "acquisition_metadata.json"
       }
     },
     "patharpratima": {
@@ -338,15 +338,15 @@
         }
       },
       "artifacts": {
-        "observed_flood_tif": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\patharpratima\\observed_flood.tif",
-        "predicted_flood_tif": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\patharpratima\\predicted_flood.tif",
-        "agreement_tif": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\patharpratima\\agreement.tif",
-        "disagreement_tif": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\patharpratima\\disagreement.tif",
-        "observed_flood_geojson": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\patharpratima\\observed_flood.geojson",
-        "predicted_flood_geojson": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\patharpratima\\predicted_flood.geojson",
-        "validation_overlap_geojson": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\patharpratima\\validation_overlap.geojson",
-        "metrics_json": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\patharpratima\\metrics.json",
-        "acquisition_metadata_json": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\patharpratima\\acquisition_metadata.json"
+        "observed_flood_tif": "observed_flood.tif",
+        "predicted_flood_tif": "predicted_flood.tif",
+        "agreement_tif": "agreement.tif",
+        "disagreement_tif": "disagreement.tif",
+        "observed_flood_geojson": "observed_flood.geojson",
+        "predicted_flood_geojson": "predicted_flood.geojson",
+        "validation_overlap_geojson": "validation_overlap.geojson",
+        "metrics_json": "metrics.json",
+        "acquisition_metadata_json": "acquisition_metadata.json"
       }
     }
   }

@@ -228,18 +228,18 @@ def select_sentinel_pair(
                 )
 
     # Deterministic fallback scene metadata for offline validation and tests
-    # Derived from actual Copernicus Sentinel-1A IW GRD acquisitions over Sundarbans for Amphan
-    # Relative orbit 121 (or 48), Descending pass
+    # Derived from actual Copernicus Sentinel-1 IW GRD acquisitions over Sundarbans for Amphan
+    # Relative orbit 48, Descending pass (matches the GEE-selected online pair)
     pre_meta = SentinelSceneMetadata(
-        image_id="COPERNICUS/S1_GRD/S1A_IW_GRDH_1SDV_20200516T235636_20200516T235701_032597_03C685_E3B0",
-        acquisition_time="2020-05-16T23:56:36Z",
-        platform="S1A",
+        image_id="COPERNICUS/S1_GRD/S1B_IW_GRDH_1SDV_20200516T000357_20200516T000422_021599_029010_EE74",
+        acquisition_time="2020-05-16T00:03:57Z",
+        platform="S1B",
         orbit_pass="DESCENDING",
-        relative_orbit=121,
-        absolute_orbit=32597,
+        relative_orbit=48,
+        absolute_orbit=21599,
         polarization=cfg.polarization,
         instrument_mode=cfg.instrument_mode,
-        slice_number=1,
+        slice_number=3,
         footprint_bbox=aoi.bbox,
     )
     post_meta = SentinelSceneMetadata(
@@ -247,11 +247,11 @@ def select_sentinel_pair(
         acquisition_time="2020-05-22T00:04:44Z",
         platform="S1A",
         orbit_pass="DESCENDING",
-        relative_orbit=121,
+        relative_orbit=48,
         absolute_orbit=32670,
         polarization=cfg.polarization,
         instrument_mode=cfg.instrument_mode,
-        slice_number=1,
+        slice_number=16,
         footprint_bbox=aoi.bbox,
     )
 
