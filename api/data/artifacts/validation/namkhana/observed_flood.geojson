@@ -301,49 +301,6 @@
         "elevation_m": 3.96,
         "dist_to_coast_km": 25.02
       }
-    },
-    {
-      "type": "Feature",
-      "id": "val__02439__c0506",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              88.3,
-              21.75
-            ],
-            [
-              88.35,
-              21.75
-            ],
-            [
-              88.35,
-              21.8
-            ],
-            [
-              88.3,
-              21.8
-            ],
-            [
-              88.3,
-              21.75
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "cell_id": "c0506",
-        "block_name": "Namkhana",
-        "block_code": "02439",
-        "surge_depth_m": 0.8,
-        "flood_index": 0.53,
-        "predicted_flooded": true,
-        "observed_flooded": true,
-        "status": "tp",
-        "elevation_m": 3.99,
-        "dist_to_coast_km": 25.02
-      }
     }
   ]
 }

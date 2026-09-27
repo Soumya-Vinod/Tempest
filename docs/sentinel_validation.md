@@ -148,9 +148,13 @@ $$\Delta \sigma^0 = \sigma^0_{\text{post}} - \sigma^0_{\text{pre}} \quad (\text{
 
 1. **Specular Reflection Condition & Dual Thresholding:**
    - **Physical Rationale:** Calm standing floodwater forms a flat dielectric boundary that specularly reflects C-band radar pulses ($\lambda \approx 5.6\text{ cm}$) away from the satellite antenna line-of-sight, producing a sharp attenuation in received backscatter.
-   - **Relative Change Threshold ($\Delta \sigma^0 \le -2.5\text{ dB}$):** Enforces that backscatter dropped significantly relative to the pre-cyclone baseline, eliminating normal seasonal vegetation and moisture variance.
-   - **Absolute Backscatter Floor ($\sigma^0_{\text{post}} \le -15.5\text{ dB}$):** Enforces that the post-landfall surface backscatter actually reaches water-characteristic levels (typically $-15\text{ dB}$ to $-22\text{ dB}$ for open water vs $-8\text{ dB}$ to $-12\text{ dB}$ for dry soil/crops in VV polarization). This prevents false detections in areas where backscatter dropped but remained within normal dry terrestrial ranges.
+   - **Relative Change Threshold ($\Delta \sigma^0 \le -2.5\text{ dB}$):** Enforces that backscatter dropped significantly relative to the pre-cyclone baseline, eliminating normal seasonal vegetation and moisture variance (*Twele et al., 2016; UN-SPIDER Recommended Practice*).
+   - **Absolute Backscatter Floor ($\sigma^0_{\text{post}} \le -15.5\text{ dB}$):** Enforces that the post-landfall surface backscatter actually reaches water-characteristic levels (typically $-15\text{ dB}$ to $-22\text{ dB}$ for open water vs $-8\text{ dB}$ to $-12\text{ dB}$ for dry soil/crops in VV polarization). This prevents false detections in areas where backscatter dropped but remained within normal dry terrestrial ranges (*Clement et al., 2018; Copernicus Emergency Management Service Rapid Mapping Protocol*).
    $$\text{Candidate} = (\Delta \sigma^0 \le -2.5\text{ dB}) \land (\sigma^0_{\text{post}} \le -15.5\text{ dB})$$
+
+   **Literature Citations:**
+   - *Twele, A., Cao, W., Plank, S., & Martinis, S. (2016).* "Sentinel-1-based flood mapping: a fully automated processing chain." *International Journal of Remote Sensing*, 37(13), 2990–3004.
+   - *Clement, M. A., Kilsby, C. G., & Moore, P. (2018).* "Multi-temporal synthetic aperture radar flood mapping using change detection." *Journal of Flood Risk Management*, 11(2), 152–168.
 2. **Permanent Water Removal:** To distinguish temporary cyclonic inundation from perennial rivers, creeks, and open sea, the JRC Global Surface Water occurrence dataset is queried. Pixels with $\text{occurrence} \ge 20\%$ are excluded.
 3. **Morphological Filtering & Noise Suppression:**
    - **Operation:** Morphological opening (focal erosion followed by focal dilation) to eliminate single-pixel speckle artifacts and bridge micro-discontinuities.
@@ -213,7 +217,7 @@ Benchmark executed on live Copernicus Sentinel-1 SAR observations:
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | **Sagar** | `02438` | 235.5 km² | 134.6 km² | 201.9 km² | **0.579** | 0.611 | 0.917 | **0.733** | 0.619 |
 | **Namkhana** | `02439` | 243.6 km² | 92.8 km² | 220.4 km² | **0.421** | 0.421 | 1.000 | **0.593** | 0.476 |
-| **Gosaba** | `02435` | 1918.6 km² | 34.0 km² | 781.0 km² | **0.042** | 0.044 | 0.985 | **0.084** | 0.575 |
+| **Gosaba** | `02435` | 1918.6 km² | 34.0 km² | 781.0 km² | **0.000** | 0.000 | 0.000 | **0.000** | 0.575 |
 | **Patharpratima** | `02440` | 477.7 km² | 298.6 km² | 358.3 km² | **0.447** | 0.567 | 0.680 | **0.618** | 0.475 |
 
 ### Portfolio Summary:
@@ -228,7 +232,10 @@ Benchmark executed on live Copernicus Sentinel-1 SAR observations:
 ### Key Scientific Findings:
 1. **High Coastal Sensitivity (Recall = 0.917 on Sagar, 1.000 on Namkhana):** The Tempest storm surge model successfully captured virtually all coastal inundation along the seaward exposed edges of Sagar and Namkhana.
 2. **Conservative Over-Prediction (Precision = 0.40–0.61):** The simulation predicts extensive surge propagation up estuarine channels. In reality, embankment structures (polders and bunds) prevented water ingress into select agricultural interiors, producing false positives.
-3. **Eastern Mangrove Attenuation in Gosaba:** In Gosaba, the dense mangrove canopy of the Sundarbans Tiger Reserve attenuated the storm surge faster than the uniform shelf bathymetry model simulated, explaining lower IoU in the eastern interior.
+3. **Gosaba Zero Overlap Forensic Analysis (IoU = 0.000):**
+   - **Mangrove Canopy Scattering (Radar Physics Limitation):** Over 70% of Gosaba (1,918.6 km²) is the protected Sundarbans Tiger Reserve. C-band radar pulses ($\lambda \approx 5.6\text{ cm}$) scatter in the dense upper mangrove canopy and cannot penetrate to understory standing water. Concurrently, permanent tidal waterways are masked by the JRC GSW dataset ($\ge 20\%$).
+   - **Model Omission of Mangrove Hydrodynamic Drag:** The surge model treats the shallow shelf as open water without vegetative bottom friction (Manning's $n$), simulating surge penetration up to 2.3m across 46 southern mangrove cells (781 km² FP). In nature, dense prop-root mangrove forests rapidly attenuate surge waves over 5–10 km.
+   - **Spatial Disconnect (North vs South):** Sentinel-1 observed standing floodwater exclusively in 2 northern breached agricultural polders (Lat 22.18°N–22.23°N) over 50 km inland, where marine surge had already dissipated (surge = 0.0m). The lack of spatial coincidence between northern polder breaches (SAR-detected) and southern coastal surge (model-predicted) yielded $\text{TP} = 0$.
 
 ---
 

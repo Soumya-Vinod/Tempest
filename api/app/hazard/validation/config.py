@@ -85,10 +85,17 @@ class PreprocessingConfig:
 
 @dataclass(frozen=True)
 class FloodExtractionConfig:
-    """SAR flood inundation extraction thresholds."""
+    """SAR flood inundation extraction thresholds based on operational CEMS / DLR guidelines.
+
+    Literature Citations:
+    - Relative drop threshold (-2.5 dB): Twele et al. (2016), Int. J. Remote
+      Sens. 37(13), 2990-3004.
+    - Absolute water ceiling (-15.5 dB): Clement et al. (2018), J. Flood Risk
+      Manage. 11(2), 152-168; Copernicus Emergency Management Service (CEMS).
+    """
 
     change_threshold_db: float = -2.5  # Backscatter drop threshold (sigma0_post - sigma0_pre)
-    absolute_threshold_db: float = -15.0  # Maximum post-event backscatter for open water
+    absolute_threshold_db: float = -15.5  # Maximum post-event backscatter for open water in VV
     exclude_permanent_water: bool = True
     permanent_water_occurrence_pct: float = 20.0  # JRC GSW occurrence threshold
     clean_mask: bool = False  # Keep fine coastal flood pixels

@@ -597,8 +597,8 @@
         "surge_depth_m": 0.8,
         "flood_index": 0.53,
         "predicted_flooded": true,
-        "observed_flooded": true,
-        "status": "tp",
+        "observed_flooded": false,
+        "status": "fp",
         "elevation_m": 3.99,
         "dist_to_coast_km": 25.02
       }

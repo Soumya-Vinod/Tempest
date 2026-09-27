@@ -1,6 +1,6 @@
 # Sentinel-1 Validation Benchmark Report: Cyclone Amphan
 
-- **Execution Timestamp:** `2026-09-27T06:44:56Z`
+- **Execution Timestamp:** `2026-09-27T07:15:39Z`
 - **Landfall Timestamp:** `2020-05-20T12:00:00Z`
 - **Earth Engine Status:** `Authenticated`
 - **Target CRS:** `EPSG:4326`
@@ -10,17 +10,17 @@
 | Administrative Block | Census Code | Area (km²) | Observed Flood (km²) | Predicted Flood (km²) | IoU | Precision | Recall | F1 Score | Accuracy |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | **Sagar** | `02438` | 235.5 | 134.6 | 201.9 | **0.579** | 0.611 | 0.917 | **0.733** | 0.619 |
-| **Namkhana** | `02439` | 243.6 | 92.8 | 220.4 | **0.421** | 0.421 | 1.000 | **0.593** | 0.476 |
+| **Namkhana** | `02439` | 243.6 | 81.2 | 220.4 | **0.368** | 0.368 | 1.000 | **0.538** | 0.429 |
 | **Gosaba** | `02435` | 1918.6 | 34.0 | 781.0 | **0.000** | 0.000 | 0.000 | **0.000** | 0.575 |
-| **Patharpratima** | `02440` | 477.7 | 298.6 | 358.3 | **0.447** | 0.567 | 0.680 | **0.618** | 0.475 |
+| **Patharpratima** | `02440` | 477.7 | 286.6 | 358.3 | **0.421** | 0.533 | 0.667 | **0.593** | 0.450 |
 
 ### Aggregate Portfolio Metrics across Coastal Blocks
-- **Mean Intersection over Union (IoU):** `0.362`
-- **Mean F1 Score (Dice):** `0.486`
-- **Mean Precision:** `0.400`
-- **Mean Recall:** `0.649`
-- **Mean Overall Accuracy:** `0.536`
-- **Total Observed Flood Extent:** `559.9 km²`
+- **Mean Intersection over Union (IoU):** `0.342`
+- **Mean F1 Score (Dice):** `0.466`
+- **Mean Precision:** `0.378`
+- **Mean Recall:** `0.646`
+- **Mean Overall Accuracy:** `0.518`
+- **Total Observed Flood Extent:** `536.4 km²`
 - **Total Predicted Flood Extent:** `1561.5 km²`
 
 ---
@@ -94,19 +94,19 @@
 #### Quantitative Confusion Matrix
 | Metric | Square Kilometers (km²) | Evaluated Grid Cells |
 | :--- | :--- | :--- |
-| **True Positives (TP)** | `92.80` | `8` |
-| **False Positives (FP)** | `127.60` | `11` |
+| **True Positives (TP)** | `81.20` | `7` |
+| **False Positives (FP)** | `139.20` | `12` |
 | **False Negatives (FN)** | `0.00` | `0` |
 | **True Negatives (TN)** | `23.20` | `2` |
 
 #### Performance Metrics
-- **IoU (Jaccard Index):** `0.4211`
-- **F1 Score (Dice):** `0.5926`
-- **Precision (Positive Predictive Value):** `0.4211`
+- **IoU (Jaccard Index):** `0.3684`
+- **F1 Score (Dice):** `0.5385`
+- **Precision (Positive Predictive Value):** `0.3684`
 - **Recall (Sensitivity / True Positive Rate):** `1.0000`
-- **Specificity (True Negative Rate):** `0.1538`
-- **Cohen's Kappa:** `0.1217`
-- **Flooded Area Agreement:** `0.4211`
+- **Specificity (True Negative Rate):** `0.1429`
+- **Cohen's Kappa:** `0.1000`
+- **Flooded Area Agreement:** `0.3684`
 
 #### Exported Artifacts
 - Observed Flood GeoTIFF: `observed_flood.tif`
@@ -155,6 +155,11 @@
 - **Cohen's Kappa:** `-0.0351`
 - **Flooded Area Agreement:** `0.0435`
 
+#### Scientific Root Cause Analysis (IoU = 0.000)
+- **Sundarbans Mangrove Canopy Scattering:** Over 70% of Gosaba (1,918.6 km²) consists of dense, multi-tiered mangrove forest reserve in the south. C-band microwave pulses (~5.6 cm) scatter within the upper tree canopy and cannot penetrate to floodwater beneath, while perennial tidal creeks are excluded by the JRC surface water occurrence mask (>=20%).
+- **Hydrodynamic Wave Attenuation Omission:** The Tempest open-water surge model does not simulate mangrove root drag / vegetative bottom friction (Manning's n), predicting surge ingress up to 2.3m across 46 southern cells.
+- **Spatial Disconnect (North vs South):** Sentinel-1 observed standing water exclusively in 2 breached northern agricultural polders (Lat 22.18°N–22.23°N) where surge had already dissipated (0.0m). This produced 46 southern False Positives and 2 northern False Negatives with 0 True Positives.
+
 #### Exported Artifacts
 - Observed Flood GeoTIFF: `observed_flood.tif`
 - Predicted Flood GeoTIFF: `predicted_flood.tif`
@@ -188,19 +193,19 @@
 #### Quantitative Confusion Matrix
 | Metric | Square Kilometers (km²) | Evaluated Grid Cells |
 | :--- | :--- | :--- |
-| **True Positives (TP)** | `203.02` | `17` |
-| **False Positives (FP)** | `155.25` | `13` |
+| **True Positives (TP)** | `191.08` | `16` |
+| **False Positives (FP)** | `167.19` | `14` |
 | **False Negatives (FN)** | `95.54` | `8` |
 | **True Negatives (TN)** | `23.88` | `2` |
 
 #### Performance Metrics
-- **IoU (Jaccard Index):** `0.4474`
-- **F1 Score (Dice):** `0.6182`
-- **Precision (Positive Predictive Value):** `0.5667`
-- **Recall (Sensitivity / True Positive Rate):** `0.6800`
-- **Specificity (True Negative Rate):** `0.1333`
-- **Cohen's Kappa:** `-0.2000`
-- **Flooded Area Agreement:** `0.8333`
+- **IoU (Jaccard Index):** `0.4211`
+- **F1 Score (Dice):** `0.5926`
+- **Precision (Positive Predictive Value):** `0.5333`
+- **Recall (Sensitivity / True Positive Rate):** `0.6667`
+- **Specificity (True Negative Rate):** `0.1250`
+- **Cohen's Kappa:** `-0.2222`
+- **Flooded Area Agreement:** `0.8000`
 
 #### Exported Artifacts
 - Observed Flood GeoTIFF: `observed_flood.tif`
