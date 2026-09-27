@@ -1,109 +1,116 @@
 # Tempest
 
-AI-powered predictive risk and vulnerability modeling platform utilizing Google Earth Engine (GEE)
-satellite feeds, real-time meteorological data, and Gemini 3.7 Flash's multimodal reasoning.
+Anticipatory action for cyclones in South 24 Parganas, West Bengal: a replay of Cyclone Amphan
+(May 2020) that shows, block by block and ahead of landfall, which roads and facilities the storm
+will cut off, where risk concentrates, and drafts trilingual advisories that an official approves
+before they are sent.
 
-## Repository layout
+## The problem
 
-| Path      | Purpose                                            |
-|-----------|----------------------------------------------------|
-| `api/`    | FastAPI backend (Python 3.12)                      |
-| `web/`    | React + Vite + TypeScript frontend                 |
-| `shared/` | `contracts.md`, the API contract for both devs     |
-| `docs/`   | Architecture and demo notes                        |
+South 24 Parganas lies on the Sundarbans delta, where Cyclone Amphan crossed the coast on
+20 May 2020. Many of its villages, health centres and schools are reached by one road or a ferry,
+so a storm cuts them off before it does anything else. District and block officials have to
+decide in the day or two before landfall where to send boats, which patients to move and which
+buildings to open as shelters, and they have to warn people in Bengali, English and Hindi. The
+forecasts give wind and surge; what officials need is what those mean for their block's roads,
+facilities and people, early enough to act.
 
-## Setup (Windows PowerShell)
+## What Tempest does
 
-### Prerequisites
+Tempest replays Amphan over 25 timesteps, from 72 hours before landfall to landfall, in 3-hour
+steps. At each step:
 
-- Python 3.12 (`py -3.12 --version`)
-- Node.js 20.19+ or 22.13+ (`node --version`; matches `engines` in `web/package.json`)
-- Git
+1. **Hazard:** wind, storm surge and flood susceptibility for each 5.5 km grid cell, from the
+   IBTrACS track and SRTM elevation (Dev A's engine).
+2. **Impact:** which roads, ferry routes and substations the hazard cuts, and which hospitals,
+   health centres and shelters are isolated from the mainland road network.
+3. **Risk:** a 0–1 score for each of the 29 CD blocks, from hazard, exposure (isolated
+   facilities, cut roads and substations, population density) and vulnerability (hospital
+   access), with the main driver for each block.
+4. **Advisory:** for blocks at or above 0.25, a draft in English, Bengali and Hindi. The model
+   writes the text with `{{placeholders}}`; the server fills every figure from the engine and
+   rejects drafts that contain numbers of their own. A named official edits and approves it.
+5. **Dispatch:** the approved advisory goes out by Telegram and Gmail, with a CAP 1.2 alert
+   (status Exercise) validated against the OASIS schema.
 
-### 1. Clone
+A **Now / Next 24 h** switch runs impact and risk on the worst hazard of the next 24 hours, so
+facilities show as expected to be cut off before the observed hazard cuts them off. Gosaba Rural
+Hospital is first isolated at T-3 on the observed hazard and first expected-isolated at T-27,
+24 h earlier; the first advisory suggestion comes at T-33 (Namkhana) instead of T-9. An illustrative **parametric insurance** panel shows the payouts
+the hazard readings would release per block.
 
-```powershell
-git clone <repo-url> Tempest
-cd Tempest
+## Architecture
+
+```mermaid
+flowchart LR
+  subgraph Sources["Data sources"]
+    IBT["IBTrACS track"]
+    SRTM["SRTM elevation"]
+    OSM["OpenStreetMap roads, facilities, protected areas"]
+    CEN["Census 2011 population"]
+    GB["geoBoundaries CD blocks"]
+  end
+
+  subgraph DevA["Hazard engine (Dev A)"]
+    HZ["Wind, surge, flood per 5.5 km cell"]
+  end
+
+  subgraph DevB["Exposure, impact, risk (Dev B)"]
+    EXP["Exposure: infrastructure and road graph"]
+    IMP["Impact: cut and isolated features"]
+    RISK["Risk: 0–1 per CD block"]
+    INS["Insurance (illustrative)"]
+  end
+
+  subgraph Adv["Advisory"]
+    FACTS["Facts from the engine"]
+    LLM["Gemini 3.7 Flash drafts en / bn / hi (Groq fallback)"]
+    CHK["Number check, placeholders filled by the server"]
+    HUM["Human approval"]
+  end
+
+  subgraph Out["Dispatch"]
+    TG["Telegram"]
+    GM["Gmail"]
+    CAP["CAP 1.2 XML"]
+  end
+
+  IBT --> HZ
+  SRTM --> HZ
+  OSM --> EXP
+  HZ --> IMP
+  EXP --> IMP
+  IMP --> RISK
+  HZ --> RISK
+  CEN --> RISK
+  GB --> RISK
+  HZ --> INS
+  RISK --> FACTS
+  IMP --> FACTS
+  HZ --> FACTS
+  FACTS --> LLM --> CHK --> HUM
+  HUM --> TG
+  HUM --> GM
+  HUM --> CAP
 ```
 
-### 2. Backend (`api/`)
+The backend is a FastAPI service; the web app is a React map (MapLibre + deck.gl) with a side
+panel. The contract between the hazard engine and the rest is
+[shared/contracts.md](shared/contracts.md).
+
+## Run it locally (DEMO_MODE)
+
+DEMO_MODE is the default: every route is served from committed fixtures, with no API keys and no
+external calls. You need Python 3.12 and Node.js 20.19+ or 22.13+ (Windows PowerShell shown).
 
 ```powershell
 py -3.12 -m venv api\.venv
-api\.venv\Scripts\python -m pip install --upgrade pip
-api\.venv\Scripts\python -m pip install -r api\requirements-dev.txt   # runtime + pytest, ruff
-Copy-Item api\.env.example api\.env   # then fill in your keys
+api\.venv\Scripts\python -m pip install -r api\requirements.txt
+Copy-Item api\.env.example api\.env
+api\.venv\Scripts\python -m uvicorn app.main:app --app-dir api
 ```
 
-Put the GEE service-account key at `api\secrets\gee-key.json` (the default `GEE_KEY_PATH`;
-relative paths resolve against `api\`). That folder is git-ignored.
-
-Run the API (no venv activation needed):
-
-```powershell
-api\.venv\Scripts\python -m uvicorn app.main:app --reload --reload-dir api/app --app-dir api
-```
-
-`--reload-dir api/app` limits the file watcher to backend code, so it doesn't also watch
-`web/node_modules` and the rest of the repo.
-
-Check it at <http://localhost:8000/health>. It reports `demo_mode` and a true/false flag for each
-configured key, never the values. Interactive docs are at <http://localhost:8000/docs>.
-
-Tests and lint:
-
-```powershell
-cd api
-.venv\Scripts\python -m pytest
-.venv\Scripts\python -m ruff check .
-cd ..
-```
-
-OSM infrastructure and road graph (exposure module). Outputs in `api\data\processed\` are
-git-ignored; regenerate them with:
-
-```powershell
-api\.venv\Scripts\python api\scripts\ingest_osm.py            # reuses cached downloads
-api\.venv\Scripts\python api\scripts\ingest_osm.py --refresh  # re-downloads from Overpass
-```
-
-This writes `infra.parquet` (InfraFeatures, clipped to South 24 Parganas + Kolkata, with river
-channels up to 4 km wide filled in) and `roads.graphml` (road graph with ferries and travel
-times). Raw Overpass responses are cached in `api\data\raw\` (git-ignored). The road graph is
-built from the cached road response with osmnx, so it needs no download of its own. After
-changing a query in `api\app\exposure\ingest.py`, delete its `overpass-*.json` file or pass
-`--refresh`, since the cache is keyed by file name only.
-
-Impact results (`GET /api/impact/results`) and risk (`GET /api/risk/scores`, `/breakdown`) run on
-Dev A's hazard layers. With `DEMO_MODE=false` they are computed live; with `DEMO_MODE=true` they are
-served from the committed fixtures in `api\data\demo\`, generated from the same real hazards:
-
-```powershell
-curl "http://localhost:8000/api/impact/results?timestep=2020-05-20T12:00:00Z&status=isolated"
-api\.venv\Scripts\python api\scripts\build_impact_risk_fixtures.py  # regenerate the demo fixtures
-```
-
-Risk uses committed block reference data in `api\data\reference\` (sources and verification
-status are in each file's header or build script):
-
-```powershell
-api\.venv\Scripts\python api\scripts\build_s24p_blocks.py      # block polygons and areas
-api\.venv\Scripts\python api\scripts\build_s24p_population.py  # population_2011 column
-api\.venv\Scripts\python api\scripts\build_s24p_land.py        # land polygon (run ingest_osm.py first)
-```
-
-After an ingest, rebuild the committed exposure demo fixtures (`api\data\demo\exposure__infra*.json`)
-from `infra.parquet`:
-
-```powershell
-api\.venv\Scripts\python api\scripts\build_exposure_fixtures.py
-```
-
-### 3. Frontend (`web/`)
-
-React + Vite + TypeScript, Tailwind v4, MapLibre with the keyless OpenFreeMap Positron basemap, and
-deck.gl overlays.
+In a second terminal:
 
 ```powershell
 cd web
@@ -111,42 +118,51 @@ npm install
 npm run dev
 ```
 
-Open <http://localhost:5173>. Start the API first (step 2). In dev, Vite proxies `/api` and
-`/health` to `http://127.0.0.1:8000`, so no `.env` is needed. The side panel shows backend health
-and demo mode.
+Open <http://localhost:5173> and move the timeline. Advisories that have a cached draft open
+without keys; generating a new one needs `GEMINI_API_KEY` in `api\.env`. Sending one needs the
+dispatch settings described in `api\.env.example`.
 
-Type-check, lint and build:
+Developer setup, tests and the data scripts: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
+Deployment: [deploy.md](deploy.md).
 
-```powershell
-npx tsc --noEmit -p tsconfig.app.json
-npm run lint
-npm run build
-cd ..
-```
+## Tech stack
 
-For a production build against a deployed API, copy `.env.example` to `.env` and set
-`VITE_API_BASE_URL` before `npm run build`.
-
-### Demo mode
-
-`DEMO_MODE` defaults to `true`, which serves the curated fixtures in `api\data\demo\` instead of
-calling external services. Set `DEMO_MODE=false` in `api\.env` for live calls.
+- **Backend:** Python 3.12, FastAPI, Pydantic, GeoPandas, Shapely, OSMnx, NetworkX, SQLite.
+- **Models:** Gemini 3.7 Flash (google-genai), Groq `openai/gpt-oss-120b` as fallback;
+  Google Earth Engine for the elevation sampling.
+- **Frontend:** React 19, TypeScript, Vite, Tailwind CSS v4, MapLibre GL, deck.gl, d3-contour.
+- **Dispatch:** Telegram Bot API, Gmail SMTP, CAP 1.2 (validated with xmlschema).
+- **Deployment:** Docker on Cloud Run, Firebase Hosting, Secret Manager.
 
 ## About the data
 
-The full list is in the app (side panel → About the data), from
-`web/src/features/about/sources.ts`.
+The full list of sources, models and limits is in the app (side panel → About the data) and in
+[web/src/features/about/sources.ts](web/src/features/about/sources.ts).
 
 - **Real:** OpenStreetMap infrastructure and protected areas (downloaded 25 Sep 2026); the
   IBTrACS track for Cyclone Amphan; SRTM elevation (sampled at 90 m, averaged per 5.5 km cell);
   Census 2011 block population (via Wikidata, citing the Census PCA); geoBoundaries block
   boundaries.
 - **Modelled:** wind (Holland profile with an outer envelope), storm surge (parametric), flood
-  susceptibility (3 of its 6 inputs are simplified proxies, not the JRC, IMERG or WorldCover
-  datasets), and impact and risk (Tempest's own engine).
-- **Limits:** 5.5 km hazard grid; the "Next 24 h" view is a perfect-forecast replay (the worst
-  case over the replay's next 24 h); OpenStreetMap has no designated cyclone shelters here, so
-  schools and public buildings stand in; health facilities include nursing homes; insurance
-  figures are illustrative; literacy isn't used (the Census file was unreachable).
+  susceptibility, and impact and risk (Tempest's own engine).
 - **AI:** advisories are drafted by Gemini 3.7 Flash (Groq as a labelled fallback); every figure
   comes from the engine, not the model; a named official approves every advisory.
+
+## Limitations
+
+- **Replay only.** The system runs on the 2020 Amphan replay; live mode is not implemented.
+- **Coarse hazard grid.** Hazards are computed on 0.05° cells, about 5.5 km across.
+- **Simplified coastline.** Distance to coast is measured to a straight line, not the real
+  Sundarbans shoreline, and surge fades inland based on it.
+- **Parametric surge.** Pressure drop plus wind set-up, decaying inland; not a hydrodynamic model.
+- **Flood proxies.** 3 of the 6 flood susceptibility inputs (surface water, rainfall, land cover)
+  are simplified proxies, not the JRC, IMERG or WorldCover datasets.
+- **Perfect-forecast replay.** The "Next 24 h" view uses the replay's own next 24 hours (the worst
+  case per cell), not a real forecast.
+- **No designated shelters.** OpenStreetMap has none mapped here, so schools, community centres
+  and public buildings are shown as stand-ins.
+- **Health facilities** include nursing homes and small clinics, not only hospitals.
+- **Insurance** figures are illustrative, not an actual policy, and follow the hazard reading,
+  not assessed losses.
+- **Literacy** is not used in the vulnerability score: the Census file with block literacy was
+  unreachable.

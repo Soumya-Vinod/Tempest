@@ -149,6 +149,40 @@ export interface ImpactResultProperties {
 export type ImpactResult = Feature<InfraGeometry, ImpactResultProperties>;
 export type ImpactResultCollection = FeatureCollection<ImpactResult>;
 
+// ---------- Action countdown (v1.3 change pending Dev A) ----------
+
+export type KeyMomentKind =
+  | "first_alert"
+  | "first_expected_isolation"
+  | "first_actual_isolation"
+  | "landfall";
+
+/** expected: cut off within the forecast window but not yet; cut_off: cut off now. */
+export interface CountdownFacility {
+  infra_id: string;
+  name: string;
+  infra_type: InfraType;
+  cause: string; // e.g. "ferry suspended by wind", "road cut by surge"
+  cut_infra_id: string | null; // the first cut link on its usual route
+  cut_name: string | null;
+  hours_remaining?: number | null; // expected: until the observed hazard cuts it off; null: never later
+  since?: Timestep | null; // cut_off: the start of this isolation
+}
+
+export interface KeyMoment {
+  kind: KeyMomentKind;
+  timestep: Timestep | null; // null: it never happens in the replay
+  label: string;
+}
+
+export interface ActionCountdown {
+  timestep: Timestep;
+  horizon_h: Horizon; // the forecast window the expected list uses (24)
+  expected: CountdownFacility[]; // soonest first
+  cut_off: CountdownFacility[]; // longest cut off first
+  key_moments: KeyMoment[]; // the same at every timestep
+}
+
 // ---------- §4.4 RiskScore (Dev B) ----------
 
 export interface RiskComponents {
@@ -200,6 +234,7 @@ export interface RiskBlockBreakdown {
   block_id: BlockId;
   block_name: string;
   population_2011: number;
+  surge_population: number; // v1.3 change pending Dev A: estimate, population x share with surge >= 0.3 m
   hospital_travel_min: number | null; // null: no road node reaches a hospital
   reach: RiskReach; // direct: hazard on its land; cut_off: exposure (the storm cut it off)
   hazard: RiskHazardParts;
@@ -210,6 +245,7 @@ export interface RiskBreakdown {
   timestep: Timestep;
   blocks: RiskBlockBreakdown[];
   horizon_h?: Horizon; // v1.3 change pending Dev A
+  surge_population_total: number; // v1.3 change pending Dev A: sum over the blocks
 }
 
 // ---------- §4.5 Advisory (Dev B) ----------

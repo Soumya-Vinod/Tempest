@@ -1,6 +1,7 @@
 // Typed client for the Tempest API. Route shapes: shared/contracts.md §5.
 // Contract types come from ../types/contracts; do not redefine them here.
 import type {
+  ActionCountdown,
   CycloneTrack,
   InsuranceSummary,
   Advisory,
@@ -112,6 +113,10 @@ export const getImpactResults = (
   request<ImpactResultCollection>('GET', '/api/impact/results', {
     query: { timestep, ...filters, horizon: String(horizon) },
   })
+
+/** v1.3 change, pending Dev A. Precomputed: expected and actual cut-offs, key moments. */
+export const getCountdown = (timestep: TimestepParam) =>
+  request<ActionCountdown>('GET', '/api/impact/countdown', { query: { timestep } })
 
 export const getRiskScores = (timestep: TimestepParam, horizon: Horizon = 0) =>
   request<RiskScoreCollection>('GET', '/api/risk/scores', { query: { timestep, horizon: String(horizon) } })

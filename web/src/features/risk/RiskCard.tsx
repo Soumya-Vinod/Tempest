@@ -1,7 +1,9 @@
 import { relativeLabel } from '../../lib/constants'
 import { CARD_BOTTOM, CARD_TOP_CLEARANCE, PANEL_WIDTH, UI_GAP } from '../../lib/layout'
-import type { RiskBlockBreakdown, RiskReach, RiskScore } from '../../types/contracts'
+import { formatPeople } from '../../lib/format'
+import type { Horizon, RiskBlockBreakdown, RiskReach, RiskScore } from '../../types/contracts'
 import { cssColor, DRIVER_LABEL, PART_LABEL, riskColor } from './style'
+import { SURGE_ESTIMATE_NOTE, surgeWhen } from './surge'
 
 /** Below this score a block's "main driver" is noise: the card says so instead. */
 const SIGNIFICANT_SCORE = 0.05
@@ -10,6 +12,7 @@ export interface RiskCardProps {
   timestepIndex: number
   selected: RiskScore | null
   breakdown: RiskBlockBreakdown | null
+  horizon: Horizon
   onClose: () => void
 }
 
@@ -56,7 +59,13 @@ function travel(minutes: number | null): string {
 }
 
 /** Floating card for the selected block, in the pathway card's slot (bottom-left). */
-export default function RiskCard({ timestepIndex, selected, breakdown, onClose }: RiskCardProps) {
+export default function RiskCard({
+  timestepIndex,
+  selected,
+  breakdown,
+  horizon,
+  onClose,
+}: RiskCardProps) {
   if (!selected) return null
   const p = selected.properties
   const bd = breakdown
@@ -128,6 +137,13 @@ export default function RiskCard({ timestepIndex, selected, breakdown, onClose }
             <dt className="text-slate-500">Population (2011)</dt>
             <dd className="ml-auto tabular-nums">{bd.population_2011.toLocaleString()}</dd>
           </div>
+          <div className="flex">
+            <dt className="text-slate-500">
+              People in areas with ≥ 0.3 m surge ({surgeWhen(horizon)})
+            </dt>
+            <dd className="ml-auto tabular-nums">{formatPeople(bd.surge_population)}</dd>
+          </div>
+          <p className="text-[11px] text-slate-400">{SURGE_ESTIMATE_NOTE}</p>
           <div className="flex">
             <dt className="text-slate-500">Median travel time to a hospital (residents)</dt>
             <dd className="ml-auto">{travel(bd.hospital_travel_min)}</dd>

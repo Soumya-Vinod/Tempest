@@ -20,6 +20,7 @@ from app.core import config
 from app.dispatch import cap
 from app.exposure import ingest
 from app.exposure import service as exposure
+from app.impact import countdown
 from app.impact import service as impact
 from app.insurance import service as insurance
 from app.main import app
@@ -79,7 +80,7 @@ def _watched(reader):
 def _clear_caches() -> None:
     config.get_settings.cache_clear()
     cap._schema.cache_clear()
-    for module in (exposure, impact, risk, insurance):
+    for module in (exposure, impact, risk, insurance, countdown):
         module.clear_cache()
 
 
@@ -165,6 +166,7 @@ def test_every_route_in_demo_mode_without_raw_or_processed_data(container, tmp_p
             get("/api/hazard/layers", hazard_type=hazard_type, timestep=ts)
         for path in (
             "/api/impact/results",
+            "/api/impact/countdown",
             "/api/risk/scores",
             "/api/risk/breakdown",
             "/api/insurance/triggers",

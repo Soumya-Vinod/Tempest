@@ -360,6 +360,12 @@ def to_collection(
     return RiskScoreCollection(features=features)
 
 
+def surge_population(population: float, hazard_parts: dict[str, float]) -> int:
+    """People in the surge zone (estimate): population x the share of inhabited land with surge
+    >= W.SURGE_LAND_THRESHOLD_M, i.e. the population spread evenly over inhabited land."""
+    return round(float(population) * hazard_parts["surge"])
+
+
 def to_breakdown(
     risks: list[BlockRisk], ctx: RiskContext, timestep: str, horizon_h: int = 0
 ) -> RiskBreakdown:
@@ -376,6 +382,9 @@ def to_breakdown(
                 "block_id": r.code,
                 "block_name": r.name,
                 "population_2011": int(ctx.blocks.population[b]),
+                # v1.3 change, pending Dev A: an estimate, population spread evenly over the
+                # block's inhabited land, times the (unrounded) share with surge >= 0.3 m.
+                "surge_population": surge_population(ctx.blocks.population[b], r.hazard_parts),
                 "hospital_travel_min": (
                     round(minutes, 1) if minutes is not None and np.isfinite(minutes) else None
                 ),
@@ -386,7 +395,12 @@ def to_breakdown(
             }
         )
     return RiskBreakdown.model_validate(
-        {"timestep": timestep, "blocks": blocks, "horizon_h": horizon_h}
+        {
+            "timestep": timestep,
+            "blocks": blocks,
+            "horizon_h": horizon_h,
+            "surge_population_total": sum(b["surge_population"] for b in blocks),
+        }
     )
 
 

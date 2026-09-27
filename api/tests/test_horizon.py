@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 
 from app.advisory import facts as facts_module
 from app.advisory import prompt
+from app.advisory import service as advisory
 from app.core import demo as demo_module
 from app.core.config import Settings
 from app.core.demo import DEMO_DIR
@@ -113,6 +114,53 @@ def test_isolation_is_expected_earlier_than_it_happens(demo):
         return None
 
     assert first(0) == T3 and first(24) == T27  # a full day of warning
+
+
+def test_readme_gosaba_timesteps_match_the_committed_fixtures():
+    """README.md quotes these timesteps: Gosaba Rural Hospital isolated at T-3 and expected-isolated
+    at T-27; the first suggestion at T-9 and, on the expected risk, at T-33.
+    Read straight from the committed JSON (no service code), so the README can't drift from it."""
+
+    def read(key: str) -> dict:
+        return json.loads((DEMO_DIR / f"{key}.json").read_text("utf-8"))
+
+    (gosaba,) = [
+        f["id"]
+        for f in read("exposure__infra-hospital")["features"]
+        if f["properties"].get("name") == "Gosaba Rural Hospital"
+    ]
+    h24_files = read(fh.index_key(impact.H24_PREFIX))["files"]
+
+    def isolated(fixture: dict) -> bool:
+        return any(
+            r["properties"]["infra_id"] == gosaba and r["properties"]["status"] == "isolated"
+            for r in fixture["features"]
+        )
+
+    def first(fixture_for) -> str:
+        return next(ts for ts in REPLAY_TIMESTEPS if isolated(fixture_for(ts)))
+
+    assert first(lambda ts: read(impact_fixtures.fixture_key(ts))) == T3
+    assert first(lambda ts: read(h24_files[ts])) == T27
+
+    # "The first advisory suggestion comes at T-33 (Namkhana) instead of T-9": the first timestep
+    # with a block at or above the suggestion threshold, on each horizon's risk scores.
+    scores_h24_files = read(fh.index_key(risk.SCORES_H24_PREFIX))["files"]
+
+    def first_suggested(fixture_for) -> tuple[str, list[str]]:
+        for ts in REPLAY_TIMESTEPS:
+            names = [
+                f["properties"]["block_name"]
+                for f in fixture_for(ts)["features"]
+                if f["properties"]["score"] >= advisory.SUGGEST_MIN_SCORE
+            ]
+            if names:
+                return ts, names
+        raise AssertionError("no block reaches the suggestion threshold")
+
+    t9 = REPLAY_TIMESTEPS[-4]
+    assert first_suggested(lambda ts: read(risk.fixture_key(ts))) == (t9, ["Namkhana"])
+    assert first_suggested(lambda ts: read(scores_h24_files[ts])) == (T33, ["Namkhana"])
 
 
 # --- Deduplicated fixtures ------------------------------------------------------------------------

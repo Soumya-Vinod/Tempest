@@ -1,8 +1,9 @@
 from fastapi import APIRouter, HTTPException
 
 from app.exposure.service import InfraDataMissing
-from app.impact import service
+from app.impact import countdown, service
 from app.schemas import (
+    ActionCountdown,
     HazardType,
     HorizonParam,
     ImpactResultCollection,
@@ -30,6 +31,21 @@ def get_results(
             detail = "hazard layers are not available yet (Dev A's get_hazard_layer)"
         raise HTTPException(status_code=501, detail=detail) from e
     except service.DemoFixtureMissing as e:
+        raise HTTPException(status_code=501, detail=str(e)) from e
+    except (InfraDataMissing, service.GraphMissing) as e:
+        raise HTTPException(status_code=503, detail=str(e)) from e
+
+
+@router.get("/countdown")
+def get_countdown(timestep: TimestepParam) -> ActionCountdown:
+    """Action countdown (v1.3 change, pending Dev A): facilities expected to be cut off within
+    the forecast window but not yet, soonest first; those already cut off; and the replay's key
+    moments. Precomputed (app/impact/countdown.py)."""
+    try:
+        return countdown.get_countdown(timestep)
+    except NotImplementedError as e:
+        raise HTTPException(status_code=501, detail=str(e)) from e
+    except (countdown.CountdownMissing, service.DemoFixtureMissing) as e:
         raise HTTPException(status_code=501, detail=str(e)) from e
     except (InfraDataMissing, service.GraphMissing) as e:
         raise HTTPException(status_code=503, detail=str(e)) from e
