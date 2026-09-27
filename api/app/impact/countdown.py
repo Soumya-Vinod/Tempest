@@ -5,8 +5,8 @@ For each replay timestep:
   but not on the observed one yet, soonest first by the hours until the observed hazard first
   cuts them off;
 - cut_off: facilities isolated now, longest cut off first, `since` the start of that isolation.
-Plus the replay's key moments: the first alert (the first advisory suggestion, on the horizon-24
-risk scores as /api/advisory/suggestions uses them), the first expected and first actual
+Plus the replay's key moments: the first alert (the first advisory suggestion, by the same rule
+as /api/advisory/suggestions: app/advisory/suggest.py), the first expected and first actual
 isolation, and landfall.
 
 Everything derives from the impact results at both horizons and the horizon-24 risk scores, so
@@ -35,6 +35,7 @@ from app.schemas import (
     LIVE,
     REPLAY_TIMESTEPS,
     ActionCountdown,
+    AdvisorySuggestion,
     InfraFeature,
 )
 
@@ -85,16 +86,24 @@ def _names(names: list[str]) -> str:
     return f"{', '.join(names[:MORE_NAMES])} and {len(names) - MORE_NAMES} more"
 
 
+def _alert_label(suggested: list[AdvisorySuggestion]) -> str:
+    """ "First alert: Namkhana (Frasergunj PHC expected to be cut off)": the reason is given when
+    one block is suggested."""
+    names = _names([s.block_name for s in suggested])
+    if len(suggested) != 1:
+        return f"First alert: {names}"
+    return f"First alert: {names} ({'; '.join(r.label for r in suggested[0].reasons)})"
+
+
 def compute(
     h0: dict[str, dict[str, Isolation]],
     h24: dict[str, dict[str, Isolation]],
-    scores_h24: dict[str, list[tuple[str, float]]],
+    suggestions: dict[str, list[AdvisorySuggestion]],
     infra: dict[str, InfraFeature],
-    threshold: float,
     timesteps: tuple[str, ...] = REPLAY_TIMESTEPS,
 ) -> dict:
     """The fixture: {"key_moments": [...], "timesteps": {ts: {"expected", "cut_off"}}}.
-    h0 / h24: isolations per timestep; scores_h24: (block_name, score) per timestep."""
+    h0 / h24: isolations per timestep; suggestions: the advisory suggestions per timestep."""
 
     def name(i: str) -> str:
         f = infra.get(i)
@@ -138,13 +147,11 @@ def compute(
                 return ts, names
         return None, []
 
-    alert_ts, alert = first(
-        lambda ts: [b for b, s in sorted(scores_h24[ts], key=lambda x: -x[1]) if s >= threshold]
-    )
+    alert_ts, alert = first(lambda ts: suggestions[ts])
     exp_ts, exp = first(lambda ts: sorted(name(i) for i in h24[ts]))
     act_ts, act = first(lambda ts: sorted(name(i) for i in h0[ts]))
     moments = [
-        ("first_alert", alert_ts, f"First alert: {_names(alert)}", "No alert in the replay"),
+        ("first_alert", alert_ts, _alert_label(alert), "No alert in the replay"),
         (
             "first_expected_isolation",
             exp_ts,
@@ -186,31 +193,36 @@ def _infra_from_fixtures() -> dict[str, InfraFeature]:
 def from_fixtures() -> dict:
     """The countdown from the committed impact, risk and exposure fixtures (the build script and
     the tests use this; it reads the files directly, whatever DEMO_MODE is)."""
-    from app.advisory.service import SUGGEST_MIN_SCORE
+    from app.advisory.suggest import expected_by_block, facility_blocks, suggest
+    from app.risk.blocks import load_blocks
 
     impact_h24 = _read(fh.index_key(IMPACT_H24_PREFIX))["files"]
     scores_h24 = _read(fh.index_key(SCORES_H24_PREFIX))["files"]
+    infra = _infra_from_fixtures()
+    blocks_of = facility_blocks(infra.values(), load_blocks())
 
     def rows(fixture: dict):
         return (r["properties"] for r in fixture["features"])
 
+    h24 = {ts: isolations(rows(_read(impact_h24[ts]))) for ts in REPLAY_TIMESTEPS}
     return compute(
         h0={ts: isolations(rows(_read(fixture_key(ts)))) for ts in REPLAY_TIMESTEPS},
-        h24={ts: isolations(rows(_read(impact_h24[ts]))) for ts in REPLAY_TIMESTEPS},
-        scores_h24={
-            ts: [(p["block_name"], p["score"]) for p in rows(_read(scores_h24[ts]))]
+        h24=h24,
+        suggestions={
+            ts: suggest(
+                [(p["block_id"], p["block_name"], p["score"]) for p in rows(_read(scores_h24[ts]))],
+                expected_by_block(h24[ts], infra, blocks_of),
+            )
             for ts in REPLAY_TIMESTEPS
         },
-        infra=_infra_from_fixtures(),
-        threshold=SUGGEST_MIN_SCORE,
+        infra=infra,
     )
 
 
 def _from_services() -> dict:
-    from app.advisory.service import SUGGEST_MIN_SCORE
+    from app.advisory import service as advisory
     from app.exposure import service as exposure
     from app.impact import service as impact
-    from app.risk import service as risk
 
     def iso(ts: str, h: int) -> dict[str, Isolation]:
         fc = impact.results(ts, h)
@@ -219,15 +231,8 @@ def _from_services() -> dict:
     return compute(
         h0={ts: iso(ts, 0) for ts in REPLAY_TIMESTEPS},
         h24={ts: iso(ts, FORECAST_HORIZON_H) for ts in REPLAY_TIMESTEPS},
-        scores_h24={
-            ts: [
-                (f.properties.block_name, f.properties.score)
-                for f in risk.get_scores(ts, FORECAST_HORIZON_H).features
-            ]
-            for ts in REPLAY_TIMESTEPS
-        },
+        suggestions={ts: advisory.suggestions(ts).blocks for ts in REPLAY_TIMESTEPS},
         infra={f.id: f for f in exposure.get_infra().features},
-        threshold=SUGGEST_MIN_SCORE,
     )
 
 

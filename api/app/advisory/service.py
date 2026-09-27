@@ -25,6 +25,7 @@ import time
 import uuid
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from functools import lru_cache
 
 from pydantic import ValidationError
 
@@ -38,23 +39,31 @@ from app.advisory.facts import (
     offered_keys,
 )
 from app.advisory.prompt import SYSTEM_PROMPT, user_message
+from app.advisory.suggest import (
+    SUGGEST_MIN_SCORE,
+    expected_by_block,
+    facility_blocks,
+    suggest,
+)
 from app.core.config import get_settings
 from app.core.demo import load_fixture
+from app.exposure import service as exposure
+from app.impact import service as impact
 from app.impact.fixtures import compact_timestep
 from app.impact.horizon import FORECAST_HORIZON_H
 from app.risk import service as risk
+from app.risk.blocks import load_blocks
 from app.schemas import (
     LIVE,
     Advisory,
     AdvisoryProperties,
-    AdvisorySuggestion,
     AdvisorySuggestions,
     AdvisoryTexts,
     Citation,
     GeneratedBy,
+    InfraFeature,
 )
 
-SUGGEST_MIN_SCORE = 0.25  # blocks at or above this risk score are suggested for an advisory
 MAX_ATTEMPTS = 2  # one retry after a failed number check
 DESIGNATIONS = ("BDO", "SDO", "ADM (Disaster Management)", "District Magistrate")
 _APPROVER_RE = re.compile(
@@ -113,17 +122,30 @@ def suggestions(timestep: str) -> AdvisorySuggestions:
     if timestep == LIVE:
         raise NotImplementedError("timestep=live is not implemented yet")
     # On the expected hazard (v1.3 change, pending Dev A): suggest a block while there is still
-    # time to act, not once it is hit.
-    scores = [f.properties for f in risk.get_scores(timestep, FORECAST_HORIZON_H).features]
-    picked = sorted((p for p in scores if p.score >= SUGGEST_MIN_SCORE), key=lambda p: -p.score)
+    # time to act, not once it is hit. The rule is in suggest.py (the countdown's first alert
+    # uses it too).
+    scores = [
+        (p.block_id, p.block_name, p.score)
+        for p in (f.properties for f in risk.get_scores(timestep, FORECAST_HORIZON_H).features)
+    ]
     return AdvisorySuggestions(
         timestep=timestep,
         threshold=SUGGEST_MIN_SCORE,
-        blocks=[
-            AdvisorySuggestion(block_id=p.block_id, block_name=p.block_name, score=p.score)
-            for p in picked
-        ],
+        blocks=suggest(scores, expected_cut_off_by_block(timestep)),
     )
+
+
+def expected_cut_off_by_block(timestep: str) -> dict[str, list[InfraFeature]]:
+    """Block code -> its facilities isolated at horizon 24 that count for advisories."""
+    infra = {f.id: f for f in exposure.get_infra().features}
+    return expected_by_block(
+        impact.isolated_ids(timestep, FORECAST_HORIZON_H), infra, _facility_blocks()
+    )
+
+
+@lru_cache(maxsize=1)
+def _facility_blocks() -> dict[str, str]:
+    return facility_blocks(exposure.get_infra().features, load_blocks())
 
 
 # --- Generation --------------------------------------------------------------------------------

@@ -27,8 +27,10 @@ steps. At each step:
 3. **Risk:** a 0–1 score for each of the 29 CD blocks, from hazard, exposure (isolated
    facilities, cut roads and substations, population density) and vulnerability (hospital
    access), with the main driver for each block.
-4. **Advisory:** for blocks at or above 0.25, a draft in English, Bengali and Hindi. The model
-   writes the text with `{{placeholders}}`; the server fills every figure from the engine and
+4. **Advisory:** blocks are suggested when their risk over the next 24 hours reaches 0.25 or a
+   health facility or shelter in them is expected to be cut off within 24 hours (private and
+   specialist facilities such as nursing homes and diagnostic centres don't count). For a
+   block, a draft in English, Bengali and Hindi. The model writes the text with `{{placeholders}}`; the server fills every figure from the engine and
    rejects drafts that contain numbers of their own. A named official edits and approves it.
 5. **Dispatch:** the approved advisory goes out by Telegram and Gmail, with a CAP 1.2 alert
    (status Exercise) validated against the OASIS schema.
@@ -36,8 +38,9 @@ steps. At each step:
 A **Now / Next 24 h** switch runs impact and risk on the worst hazard of the next 24 hours, so
 facilities show as expected to be cut off before the observed hazard cuts them off. Gosaba Rural
 Hospital is first isolated at T-3 on the observed hazard and first expected-isolated at T-27,
-24 h earlier; the first advisory suggestion comes at T-33 (Namkhana) instead of T-9. An illustrative **parametric insurance** panel shows the payouts
-the hazard readings would release per block.
+24 h earlier; the first suggestion comes at T-42 (Namkhana, Frasergunj PHC expected to be cut off)
+instead of T-18. An illustrative **parametric insurance** panel shows the payouts the hazard
+readings would release per block.
 
 ## Architecture
 

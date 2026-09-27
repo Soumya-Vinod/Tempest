@@ -121,7 +121,7 @@ def test_compute_orders_and_finds_the_start_of_each_isolation():
         ts[3]: {"b": wind},
         ts[4]: none,
     }
-    out = countdown.compute(h0, h24, {t_: [] for t_ in ts}, {}, 0.25, timesteps=ts)
+    out = countdown.compute(h0, h24, {t_: [] for t_ in ts}, {}, timesteps=ts)
     first = out["timesteps"][ts[0]]["expected"]
     assert [(e["infra_id"], e["hours_remaining"]) for e in first] == [("a", 3), ("b", 12)]
     # "a" is cut off at ts[1], reconnected at ts[2], cut off again from ts[3].
@@ -167,8 +167,14 @@ def test_key_moments(fixture):
         "first_actual_isolation",
         "landfall",
     ]
-    assert moments["first_alert"]["timestep"] == t(33)
-    assert moments["first_alert"]["label"] == "First alert: Namkhana"
+    # The suggestion rule (v1.3): Frasergunj PHC is expected to be cut off before any block's
+    # expected risk reaches 0.25 (Namkhana, T-33).
+    assert moments["first_alert"]["timestep"] == t(42)
+    assert (
+        moments["first_alert"]["label"]
+        == "First alert: Namkhana (Frasergunj PHC expected to be cut off)"
+    )
+    assert moments["first_alert"]["timestep"] == moments["first_expected_isolation"]["timestep"]
     assert moments["landfall"]["timestep"] == LANDFALL_TIMESTEP
     first_expected = min(ts for ts in REPLAY_TIMESTEPS if fixture["timesteps"][ts]["expected"])
     assert moments["first_expected_isolation"]["timestep"] == first_expected

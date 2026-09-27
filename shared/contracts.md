@@ -203,8 +203,7 @@ CountdownFacility[], cut_off: CountdownFacility[], key_moments: KeyMoment[] }`.
   `cause` is plain words from the isolating hazard and the first cut link on the usual route:
   `"ferry suspended by wind"` or `"road cut by <hazard_type>"`.
 - `KeyMoment = { kind, timestep: Timestep | null, label: string }`, `kind` one of
-  `first_alert` (first advisory suggestion: a block at or above the suggestion threshold on the
-  horizon-24 scores), `first_expected_isolation`, `first_actual_isolation`, `landfall`, in that
+  `first_alert` (the first advisory suggestion, by the rule in §4.5), `first_expected_isolation`, `first_actual_isolation`, `landfall`, in that
   order; the same at every timestep. `timestep` is null if it never happens.
 
 ### 4.4 RiskScore (Dev B)
@@ -288,8 +287,18 @@ replay]`, `[মহড়া: ঘূর্ণিঝড় আমফান ২০�
 at: ISO datetime, details: string | null }`. `advisory_id` is null for a generation that produced
 no advisory (its draft failed the checks); `details` is JSON text.
 
-`AdvisorySuggestions = { timestep, threshold: float, blocks: { block_id, block_name, score }[] }`
-(*added in v1.2*): the blocks at or above the suggestion threshold (0.25), highest first.
+`AdvisorySuggestions = { timestep, threshold: float, blocks: { block_id, block_name, score,
+reasons: SuggestionReason[] }[] }` (*added in v1.2*): the suggested blocks, highest score first,
+then by name. *v1.3 change, pending Dev A:* a block is suggested when, on the expected hazard
+(horizon 24), its risk score is at or above `threshold` (0.25) **or** a hospital or shelter inside
+it is `isolated` in the horizon-24 impact results (expected to be cut off within 24 h, including
+already cut off). Facilities whose name matches the hospital-access exclusions (nursing homes,
+diagnostic centres, clinics, eye / dental / maternity; government hospitals always count) are no
+reason, and are not listed in the advisory facts; they stay in the impact results.
+`SuggestionReason = { kind: "risk" | "expected_cut_off", label: string, infra_id: string | null }`,
+at least one per block: the risk first (`"risk 0.28"`), then one per facility by name
+(`"Frasergunj PHC expected to be cut off"`, with its `infra_id`). The action countdown's
+`first_alert` key moment (§4.3) uses the same rule.
 
 ### 4.6 TriggerEvent (Dev B)
 One feature per insurance zone per timestep. Geometry: zone `Polygon | MultiPolygon`.

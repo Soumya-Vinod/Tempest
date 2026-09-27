@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-import type { AdvisorySuggestions, BlockId } from '../../types/contracts'
+import type { AdvisorySuggestion, AdvisorySuggestions, BlockId } from '../../types/contracts'
 import type { Loadable } from './useAdvisories'
 
 export interface AdvisoryPanelProps {
@@ -14,6 +14,16 @@ export interface AdvisoryPanelProps {
   approved: number
   onGenerate: (blockId: BlockId) => void
   onOpenQueue: () => void
+}
+
+const NAMED = 2 // facilities named per suggestion, then "and N more"
+
+/** "risk 0.28 · Frasergunj PHC expected to be cut off", at most NAMED facilities by name. */
+function why(s: AdvisorySuggestion): string {
+  const risk = s.reasons.filter((r) => r.kind === 'risk').map((r) => r.label)
+  const cut = s.reasons.filter((r) => r.kind === 'expected_cut_off').map((r) => r.label)
+  const named = cut.length > NAMED ? [...cut.slice(0, NAMED), `and ${cut.length - NAMED} more`] : cut
+  return [...risk, ...named].join(' · ')
 }
 
 function GenerateButton(props: { busy: boolean; disabled: boolean; onClick: () => void }) {
@@ -50,17 +60,19 @@ export default function AdvisoryPanel(props: AdvisoryPanelProps) {
       {suggestions.status === 'ok' && (
         <>
           <p className="text-[11px] text-slate-500">
-            Suggested at {props.timestepLabel}: risk score ≥{' '}
-            {suggestions.data.threshold.toFixed(2)}
+            Suggested at {props.timestepLabel}: risk ≥ {suggestions.data.threshold.toFixed(2)}{' '}
+            within 24 h, or a facility expected to be cut off within 24 h
           </p>
           {suggested.length === 0 && (
-            <p className="mt-1 text-xs text-slate-500">No block at or above the threshold.</p>
+            <p className="mt-1 text-xs text-slate-500">No block suggested.</p>
           )}
           <ul className="mt-1 space-y-1">
             {suggested.map((b) => (
               <li key={b.block_id} className="flex items-center gap-2 text-xs">
-                <span>{b.block_name}</span>
-                <span className="text-slate-500 tabular-nums">{b.score.toFixed(2)}</span>
+                <div className="min-w-0">
+                  <span>{b.block_name}</span>
+                  <p className="text-[11px] text-slate-500">{why(b)}</p>
+                </div>
                 <GenerateButton
                   busy={generating === b.block_id}
                   disabled={generating !== null}

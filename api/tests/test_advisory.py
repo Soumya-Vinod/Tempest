@@ -20,6 +20,7 @@ from app.schemas import (
     AdvisoryTexts,
     Citation,
     GeneratedBy,
+    InfraFeature,
 )
 from tests import impact_scenario as S
 from tests import risk_scenario as R
@@ -641,12 +642,38 @@ def test_suggestions(env, monkeypatch):
     )
     horizons = []
     monkeypatch.setattr(service.risk, "get_scores", lambda ts, h=0: horizons.append(h) or fc)
+    monkeypatch.setattr(service, "expected_cut_off_by_block", lambda ts: {})
     resp = client.get(f"{URL}suggestions", params={"timestep": TS})
     assert resp.status_code == 200
     body = resp.json()
     assert body["threshold"] == service.SUGGEST_MIN_SCORE == 0.25
     assert [b["block_name"] for b in body["blocks"]] == ["C", "B"]
+    assert body["blocks"][0]["reasons"] == [
+        {"kind": "risk", "label": "risk 0.60", "infra_id": None}
+    ]
     assert horizons == [24]  # suggestions use the risk expected within 24 h (v1.3)
+
+    # v1.3: a facility expected to be cut off suggests its block whatever the score.
+    phc = InfraFeature.model_validate(
+        {
+            "type": "Feature",
+            "id": "hospital-node-1",
+            "geometry": {"type": "Point", "coordinates": [88.5, 22.0]},
+            "properties": {
+                "id": "hospital-node-1",
+                "infra_type": "hospital",
+                "name": "A PHC",
+                "osm_id": "node/1",
+                "attributes": {},
+            },
+        }
+    )
+    monkeypatch.setattr(service, "expected_cut_off_by_block", lambda ts: {"1": [phc]})
+    body = client.get(f"{URL}suggestions", params={"timestep": TS}).json()
+    assert [b["block_name"] for b in body["blocks"]] == ["C", "B", "A"]
+    assert body["blocks"][2]["reasons"] == [
+        {"kind": "expected_cut_off", "label": "A PHC expected to be cut off", "infra_id": phc.id}
+    ]
 
 
 # --- Facts --------------------------------------------------------------------------------------

@@ -75,6 +75,7 @@ from app.schemas.contracts import (
     RiskScoreCollection,
     RiskScoreProperties,
     RiskVulnerabilityParts,
+    SuggestionReason,
     TelegramRecipient,
     TriggerEvent,
     TriggerEventCollection,
@@ -92,6 +93,7 @@ from app.schemas.geojson import (
 )
 
 __all__ = [
+    "SuggestionReason",
     "ActionCountdown",
     "CountdownFacility",
     "KeyMoment",

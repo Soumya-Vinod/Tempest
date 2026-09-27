@@ -569,10 +569,19 @@ class AuditLog(ContractModel):
     events: list[AuditEvent]
 
 
+class SuggestionReason(ContractModel):
+    """v1.3 change, pending Dev A: why a block is suggested."""
+
+    kind: Literal["risk", "expected_cut_off"]
+    label: str  # "risk 0.28", "Frasergunj PHC expected to be cut off"
+    infra_id: str | None  # expected_cut_off: the facility
+
+
 class AdvisorySuggestion(ContractModel):
     block_id: BlockId
     block_name: str
     score: UnitFraction
+    reasons: list[SuggestionReason] = Field(min_length=1)  # v1.3 change, pending Dev A
 
 
 class AdvisorySuggestions(ContractModel):

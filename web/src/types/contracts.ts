@@ -294,10 +294,17 @@ export interface AuditLog {
   events: AuditEvent[];
 }
 /** added in v1.2. */
+/** v1.3 change pending Dev A: why a block is suggested. */
+export interface SuggestionReason {
+  kind: "risk" | "expected_cut_off";
+  label: string; // "risk 0.28", "Frasergunj PHC expected to be cut off"
+  infra_id: string | null; // expected_cut_off: the facility
+}
 export interface AdvisorySuggestion {
   block_id: BlockId;
   block_name: string;
   score: number;
+  reasons: SuggestionReason[]; // v1.3 change pending Dev A, at least one
 }
 export interface AdvisorySuggestions {
   timestep: Timestep;

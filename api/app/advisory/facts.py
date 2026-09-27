@@ -23,6 +23,7 @@ from app.impact.engine import FIRST_CUT_LABEL
 from app.impact.horizon import FORECAST_HORIZON_H, window
 from app.risk import blocks as block_data
 from app.risk import service as risk
+from app.risk import weights as W
 from app.schemas import (
     LANDFALL_TIMESTEP,
     Citation,
@@ -243,16 +244,19 @@ def build_facts(block_id: str, timestep: str) -> Facts:
         )
     )
 
-    # Isolated facilities: one entry per facility (first hazard in the engine's order).
+    # Isolated facilities: one entry per facility (first hazard in the engine's order). Only
+    # facilities that count for advisories (v1.3: not nursing homes, diagnostic centres... as
+    # for hospital access, weights.counts_for_advisory); the others stay in the impact results.
     block_geom = blocks.geometry.iloc[b]
     points = [f for f in infra.features if f.geometry.type == "Point"]
     in_block = {f.id for f in _in_block(points, block_geom)}
+    counted = {i for i in in_block if W.counts_for_advisory(by_id[i].properties.name)}
     isolated: dict[str, object] = {}
     cut_subs: set[str] = set()
     cut_roads: set[str] = set()
     for r in impacts.features:
         p = r.properties
-        if p.status == "isolated" and p.infra_id in in_block and p.infra_id not in isolated:
+        if p.status == "isolated" and p.infra_id in counted and p.infra_id not in isolated:
             isolated[p.infra_id] = p
         elif p.status == "cut" and p.infra_id in in_block and p.infra_id.startswith("substation-"):
             cut_subs.add(p.infra_id)
@@ -305,7 +309,7 @@ def build_facts(block_id: str, timestep: str) -> Facts:
         p = r.properties
         if (
             p.status == "isolated"
-            and p.infra_id in in_block
+            and p.infra_id in counted
             and p.infra_id not in isolated
             and p.infra_id not in expected
         ):
