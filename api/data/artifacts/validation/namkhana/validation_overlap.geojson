@@ -1,0 +1,908 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "val__02439__c0103",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.15,
+              21.55
+            ],
+            [
+              88.2,
+              21.55
+            ],
+            [
+              88.2,
+              21.6
+            ],
+            [
+              88.15,
+              21.6
+            ],
+            [
+              88.15,
+              21.55
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0103",
+        "block_name": "Namkhana",
+        "block_code": "02439",
+        "surge_depth_m": 2.28,
+        "flood_index": 0.81,
+        "predicted_flooded": true,
+        "observed_flooded": false,
+        "status": "fp",
+        "elevation_m": 0.81,
+        "dist_to_coast_km": 2.78
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02439__c0104",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.2,
+              21.55
+            ],
+            [
+              88.25,
+              21.55
+            ],
+            [
+              88.25,
+              21.6
+            ],
+            [
+              88.2,
+              21.6
+            ],
+            [
+              88.2,
+              21.55
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0104",
+        "block_name": "Namkhana",
+        "block_code": "02439",
+        "surge_depth_m": 2.53,
+        "flood_index": 0.88,
+        "predicted_flooded": true,
+        "observed_flooded": false,
+        "status": "fp",
+        "elevation_m": 0.31,
+        "dist_to_coast_km": 2.78
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02439__c0105",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.25,
+              21.55
+            ],
+            [
+              88.3,
+              21.55
+            ],
+            [
+              88.3,
+              21.6
+            ],
+            [
+              88.25,
+              21.6
+            ],
+            [
+              88.25,
+              21.55
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0105",
+        "block_name": "Namkhana",
+        "block_code": "02439",
+        "surge_depth_m": 2.12,
+        "flood_index": 0.68,
+        "predicted_flooded": true,
+        "observed_flooded": true,
+        "status": "tp",
+        "elevation_m": 2.44,
+        "dist_to_coast_km": 2.78
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02439__c0106",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.3,
+              21.55
+            ],
+            [
+              88.35,
+              21.55
+            ],
+            [
+              88.35,
+              21.6
+            ],
+            [
+              88.3,
+              21.6
+            ],
+            [
+              88.3,
+              21.55
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0106",
+        "block_name": "Namkhana",
+        "block_code": "02439",
+        "surge_depth_m": 2.82,
+        "flood_index": 0.89,
+        "predicted_flooded": true,
+        "observed_flooded": false,
+        "status": "fp",
+        "elevation_m": 0.07,
+        "dist_to_coast_km": 2.78
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02439__c0203",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.15,
+              21.6
+            ],
+            [
+              88.2,
+              21.6
+            ],
+            [
+              88.2,
+              21.65
+            ],
+            [
+              88.15,
+              21.65
+            ],
+            [
+              88.15,
+              21.6
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0203",
+        "block_name": "Namkhana",
+        "block_code": "02439",
+        "surge_depth_m": 2.21,
+        "flood_index": 0.87,
+        "predicted_flooded": true,
+        "observed_flooded": false,
+        "status": "fp",
+        "elevation_m": 0.2,
+        "dist_to_coast_km": 8.34
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02439__c0204",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.2,
+              21.6
+            ],
+            [
+              88.25,
+              21.6
+            ],
+            [
+              88.25,
+              21.65
+            ],
+            [
+              88.2,
+              21.65
+            ],
+            [
+              88.2,
+              21.6
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0204",
+        "block_name": "Namkhana",
+        "block_code": "02439",
+        "surge_depth_m": 1.85,
+        "flood_index": 0.65,
+        "predicted_flooded": true,
+        "observed_flooded": true,
+        "status": "tp",
+        "elevation_m": 2.19,
+        "dist_to_coast_km": 8.34
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02439__c0205",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.25,
+              21.6
+            ],
+            [
+              88.3,
+              21.6
+            ],
+            [
+              88.3,
+              21.65
+            ],
+            [
+              88.25,
+              21.65
+            ],
+            [
+              88.25,
+              21.6
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0205",
+        "block_name": "Namkhana",
+        "block_code": "02439",
+        "surge_depth_m": 1.85,
+        "flood_index": 0.66,
+        "predicted_flooded": true,
+        "observed_flooded": true,
+        "status": "tp",
+        "elevation_m": 2.69,
+        "dist_to_coast_km": 8.34
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02439__c0206",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.3,
+              21.6
+            ],
+            [
+              88.35,
+              21.6
+            ],
+            [
+              88.35,
+              21.65
+            ],
+            [
+              88.3,
+              21.65
+            ],
+            [
+              88.3,
+              21.6
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0206",
+        "block_name": "Namkhana",
+        "block_code": "02439",
+        "surge_depth_m": 2.06,
+        "flood_index": 0.64,
+        "predicted_flooded": true,
+        "observed_flooded": false,
+        "status": "fp",
+        "elevation_m": 2.29,
+        "dist_to_coast_km": 8.34
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02439__c0303",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.15,
+              21.65
+            ],
+            [
+              88.2,
+              21.65
+            ],
+            [
+              88.2,
+              21.7
+            ],
+            [
+              88.15,
+              21.7
+            ],
+            [
+              88.15,
+              21.65
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0303",
+        "block_name": "Namkhana",
+        "block_code": "02439",
+        "surge_depth_m": 1.72,
+        "flood_index": 0.78,
+        "predicted_flooded": true,
+        "observed_flooded": false,
+        "status": "fp",
+        "elevation_m": 1.35,
+        "dist_to_coast_km": 13.9
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02439__c0304",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.2,
+              21.65
+            ],
+            [
+              88.25,
+              21.65
+            ],
+            [
+              88.25,
+              21.7
+            ],
+            [
+              88.2,
+              21.7
+            ],
+            [
+              88.2,
+              21.65
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0304",
+        "block_name": "Namkhana",
+        "block_code": "02439",
+        "surge_depth_m": 1.37,
+        "flood_index": 0.58,
+        "predicted_flooded": true,
+        "observed_flooded": false,
+        "status": "fp",
+        "elevation_m": 3.3,
+        "dist_to_coast_km": 13.9
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02439__c0305",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.25,
+              21.65
+            ],
+            [
+              88.3,
+              21.65
+            ],
+            [
+              88.3,
+              21.7
+            ],
+            [
+              88.25,
+              21.7
+            ],
+            [
+              88.25,
+              21.65
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0305",
+        "block_name": "Namkhana",
+        "block_code": "02439",
+        "surge_depth_m": 1.58,
+        "flood_index": 0.66,
+        "predicted_flooded": true,
+        "observed_flooded": false,
+        "status": "fp",
+        "elevation_m": 2.99,
+        "dist_to_coast_km": 13.9
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02439__c0306",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.3,
+              21.65
+            ],
+            [
+              88.35,
+              21.65
+            ],
+            [
+              88.35,
+              21.7
+            ],
+            [
+              88.3,
+              21.7
+            ],
+            [
+              88.3,
+              21.65
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0306",
+        "block_name": "Namkhana",
+        "block_code": "02439",
+        "surge_depth_m": 1.68,
+        "flood_index": 0.59,
+        "predicted_flooded": true,
+        "observed_flooded": true,
+        "status": "tp",
+        "elevation_m": 3.11,
+        "dist_to_coast_km": 13.9
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02439__c0403",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.15,
+              21.7
+            ],
+            [
+              88.2,
+              21.7
+            ],
+            [
+              88.2,
+              21.75
+            ],
+            [
+              88.15,
+              21.75
+            ],
+            [
+              88.15,
+              21.7
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0403",
+        "block_name": "Namkhana",
+        "block_code": "02439",
+        "surge_depth_m": 1.46,
+        "flood_index": 0.74,
+        "predicted_flooded": true,
+        "observed_flooded": true,
+        "status": "tp",
+        "elevation_m": 1.64,
+        "dist_to_coast_km": 19.46
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02439__c0404",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.2,
+              21.7
+            ],
+            [
+              88.25,
+              21.7
+            ],
+            [
+              88.25,
+              21.75
+            ],
+            [
+              88.2,
+              21.75
+            ],
+            [
+              88.2,
+              21.7
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0404",
+        "block_name": "Namkhana",
+        "block_code": "02439",
+        "surge_depth_m": 1.14,
+        "flood_index": 0.54,
+        "predicted_flooded": true,
+        "observed_flooded": false,
+        "status": "fp",
+        "elevation_m": 3.48,
+        "dist_to_coast_km": 19.46
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02439__c0405",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.25,
+              21.7
+            ],
+            [
+              88.3,
+              21.7
+            ],
+            [
+              88.3,
+              21.75
+            ],
+            [
+              88.25,
+              21.75
+            ],
+            [
+              88.25,
+              21.7
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0405",
+        "block_name": "Namkhana",
+        "block_code": "02439",
+        "surge_depth_m": 1.22,
+        "flood_index": 0.56,
+        "predicted_flooded": true,
+        "observed_flooded": true,
+        "status": "tp",
+        "elevation_m": 3.78,
+        "dist_to_coast_km": 19.46
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02439__c0406",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.3,
+              21.7
+            ],
+            [
+              88.35,
+              21.7
+            ],
+            [
+              88.35,
+              21.75
+            ],
+            [
+              88.3,
+              21.75
+            ],
+            [
+              88.3,
+              21.7
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0406",
+        "block_name": "Namkhana",
+        "block_code": "02439",
+        "surge_depth_m": 1.37,
+        "flood_index": 0.54,
+        "predicted_flooded": true,
+        "observed_flooded": false,
+        "status": "fp",
+        "elevation_m": 3.69,
+        "dist_to_coast_km": 19.46
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02439__c0504",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.2,
+              21.75
+            ],
+            [
+              88.25,
+              21.75
+            ],
+            [
+              88.25,
+              21.8
+            ],
+            [
+              88.2,
+              21.8
+            ],
+            [
+              88.2,
+              21.75
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0504",
+        "block_name": "Namkhana",
+        "block_code": "02439",
+        "surge_depth_m": 0.71,
+        "flood_index": 0.57,
+        "predicted_flooded": true,
+        "observed_flooded": false,
+        "status": "fp",
+        "elevation_m": 3.34,
+        "dist_to_coast_km": 25.02
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02439__c0505",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.25,
+              21.75
+            ],
+            [
+              88.3,
+              21.75
+            ],
+            [
+              88.3,
+              21.8
+            ],
+            [
+              88.25,
+              21.8
+            ],
+            [
+              88.25,
+              21.75
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0505",
+        "block_name": "Namkhana",
+        "block_code": "02439",
+        "surge_depth_m": 0.68,
+        "flood_index": 0.57,
+        "predicted_flooded": true,
+        "observed_flooded": true,
+        "status": "tp",
+        "elevation_m": 3.96,
+        "dist_to_coast_km": 25.02
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02439__c0506",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.3,
+              21.75
+            ],
+            [
+              88.35,
+              21.75
+            ],
+            [
+              88.35,
+              21.8
+            ],
+            [
+              88.3,
+              21.8
+            ],
+            [
+              88.3,
+              21.75
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0506",
+        "block_name": "Namkhana",
+        "block_code": "02439",
+        "surge_depth_m": 0.8,
+        "flood_index": 0.53,
+        "predicted_flooded": true,
+        "observed_flooded": true,
+        "status": "tp",
+        "elevation_m": 3.99,
+        "dist_to_coast_km": 25.02
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02439__c0604",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.2,
+              21.8
+            ],
+            [
+              88.25,
+              21.8
+            ],
+            [
+              88.25,
+              21.85
+            ],
+            [
+              88.2,
+              21.85
+            ],
+            [
+              88.2,
+              21.8
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0604",
+        "block_name": "Namkhana",
+        "block_code": "02439",
+        "surge_depth_m": 0.12,
+        "flood_index": 0.41,
+        "predicted_flooded": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 5.09,
+        "dist_to_coast_km": 30.58
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02439__c0605",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.25,
+              21.8
+            ],
+            [
+              88.3,
+              21.8
+            ],
+            [
+              88.3,
+              21.85
+            ],
+            [
+              88.25,
+              21.85
+            ],
+            [
+              88.25,
+              21.8
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0605",
+        "block_name": "Namkhana",
+        "block_code": "02439",
+        "surge_depth_m": 0.38,
+        "flood_index": 0.5,
+        "predicted_flooded": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 4.58,
+        "dist_to_coast_km": 30.58
+      }
+    }
+  ]
+}

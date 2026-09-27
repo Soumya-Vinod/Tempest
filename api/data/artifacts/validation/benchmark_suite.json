@@ -1,0 +1,102 @@
+{
+  "execution_timestamp": "2026-09-27T06:09:33Z",
+  "event_name": "Cyclone Amphan",
+  "landfall_timestamp": "2020-05-20T12:00:00Z",
+  "aggregate_metrics": {
+    "mean_iou": 0.579,
+    "mean_precision": 0.6111,
+    "mean_recall": 0.9167,
+    "mean_f1": 0.7333,
+    "mean_accuracy": 0.6191,
+    "total_observed_km2": 134.57,
+    "total_predicted_km2": 201.86,
+    "evaluated_blocks_count": 1
+  },
+  "blocks": {
+    "sagar": {
+      "block": {
+        "identifier": "02438",
+        "name": "Sagar",
+        "census_code": "02438",
+        "area_km2": 235.5,
+        "population": 212037,
+        "bbox": [
+          88.04167,
+          21.62877,
+          88.17217,
+          21.93756
+        ],
+        "centroid": [
+          88.1144,
+          21.73789
+        ]
+      },
+      "acquisition": {
+        "aoi_identifier": "02438",
+        "aoi_name": "Sagar",
+        "matched_orbit": true,
+        "pairing_strategy": "post_first",
+        "before_acquisition": {
+          "image_id": "COPERNICUS/S1_GRD/S1B_IW_GRDH_1SDV_20200516T000357_20200516T000422_021599_029010_EE74",
+          "acquisition_time": "2020-05-16T00:03:57Z",
+          "platform": "S1B",
+          "orbit_pass": "DESCENDING",
+          "relative_orbit": 48,
+          "absolute_orbit": 21599,
+          "polarization": "VV",
+          "instrument_mode": "IW",
+          "slice_number": 3,
+          "footprint_bbox": null
+        },
+        "after_acquisition": {
+          "image_id": "COPERNICUS/S1_GRD/S1A_IW_GRDH_1SDV_20200522T000444_20200522T000509_032670_03C8AC_A6E3",
+          "acquisition_time": "2020-05-22T00:04:44Z",
+          "platform": "S1A",
+          "orbit_pass": "DESCENDING",
+          "relative_orbit": 48,
+          "absolute_orbit": 32670,
+          "polarization": "VV",
+          "instrument_mode": "IW",
+          "slice_number": 16,
+          "footprint_bbox": null
+        }
+      },
+      "metrics": {
+        "iou": 0.579,
+        "precision": 0.6111,
+        "recall": 0.9167,
+        "f1_score": 0.7333,
+        "accuracy": 0.6191,
+        "specificity": 0.2222,
+        "cohens_kappa": 0.1516,
+        "flooded_area_observed_km2": 134.57,
+        "flooded_area_predicted_km2": 201.86,
+        "intersection_area_km2": 123.36,
+        "union_area_km2": 213.07,
+        "flooded_area_agreement": 0.6667,
+        "confusion_matrix": {
+          "tp_km2": 123.36,
+          "fp_km2": 78.5,
+          "fn_km2": 11.21,
+          "tn_km2": 22.43,
+          "tp_cells": 11,
+          "fp_cells": 7,
+          "fn_cells": 1,
+          "tn_cells": 2
+        },
+        "confidence_score": 0.6642
+      },
+      "artifacts": {
+        "observed_flood_tif": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\sagar\\observed_flood.tif",
+        "predicted_flood_tif": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\sagar\\predicted_flood.tif",
+        "agreement_tif": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\sagar\\agreement.tif",
+        "disagreement_tif": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\sagar\\disagreement.tif",
+        "observed_flood_geojson": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\sagar\\observed_flood.geojson",
+        "predicted_flood_geojson": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\sagar\\predicted_flood.geojson",
+        "validation_overlap_geojson": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\sagar\\validation_overlap.geojson",
+        "metrics_json": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\sagar\\metrics.json",
+        "acquisition_metadata_json": "C:\\Users\\Chinmay\\Desktop\\Vs Code\\Tempest\\api\\data\\artifacts\\validation\\sagar\\acquisition_metadata.json"
+      }
+    }
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "block": {
+    "identifier": "02439",
+    "name": "Namkhana",
+    "census_code": "02439",
+    "area_km2": 243.6,
+    "population": 182830,
+    "bbox": [
+      88.17075,
+      21.55897,
+      88.34945,
+      21.82107
+    ],
+    "centroid": [
+      88.25975,
+      21.68491
+    ]
+  },
+  "metrics": {
+    "iou": 0.4211,
+    "precision": 0.4211,
+    "recall": 1.0,
+    "f1_score": 0.5926,
+    "accuracy": 0.4762,
+    "specificity": 0.1538,
+    "cohens_kappa": 0.1217,
+    "flooded_area_observed_km2": 92.8,
+    "flooded_area_predicted_km2": 220.4,
+    "intersection_area_km2": 92.8,
+    "union_area_km2": 220.4,
+    "flooded_area_agreement": 0.4211,
+    "confusion_matrix": {
+      "tp_km2": 92.8,
+      "fp_km2": 127.6,
+      "fn_km2": 0.0,
+      "tn_km2": 23.2,
+      "tp_cells": 8,
+      "fp_cells": 11,
+      "fn_cells": 0,
+      "tn_cells": 2
+    },
+    "confidence_score": 0.5179
+  }
+}
