@@ -52,6 +52,9 @@ class Settings(BaseSettings):
     CAP_XSD_PATH: str | None = None
     # South 24 Parganas / Sundarbans, EPSG:4326: min_lon,min_lat,max_lon,max_lat
     AOI_BBOX: str = "88.0,21.5,89.1,22.7"
+    # Extra browser origins allowed by CORS, comma-separated (the Vercel site when the web app
+    # calls Render directly, e.g. https://tempest-xxxx.vercel.app). localhost:5173 is always in.
+    CORS_ORIGINS: str = ""
 
     def is_configured(self, name: str) -> bool:
         """True if setting `name` is set and not left at its .env.example placeholder."""
@@ -65,6 +68,12 @@ class Settings(BaseSettings):
             return None
         path = Path(self.GEE_KEY_PATH)
         return path if path.is_absolute() else API_DIR / path
+
+    @property
+    def cors_origins(self) -> list[str]:
+        """The Vite dev server plus CORS_ORIGINS (trailing slashes dropped, blanks skipped)."""
+        extra = (o.strip().rstrip("/") for o in self.CORS_ORIGINS.split(","))
+        return ["http://localhost:5173", *(o for o in extra if o)]
 
     @property
     def aoi_bbox_tuple(self) -> tuple[float, float, float, float]:

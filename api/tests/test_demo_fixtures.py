@@ -146,7 +146,25 @@ def test_fixture_matches_contract(path):
 
 def test_demo_dir_contains_only_fixtures():
     extras = {p.name for p in DEMO_DIR.iterdir()} - {p.name for p in FIXTURES}
-    assert extras <= {".gitkeep", "README.md"}, extras
+    # validation/: Dev A's committed Sentinel-1 validation data (app/hazard/validation).
+    assert extras <= {".gitkeep", "README.md", "validation"}, extras
+
+
+VALIDATION_JSON = sorted(
+    p
+    for p in (DEMO_DIR / "validation").rglob("*")
+    if p.suffix in {".json", ".geojson"} and p.is_file()
+)
+
+
+def test_validation_dir_has_json():
+    assert (DEMO_DIR / "validation" / "benchmark_suite.json") in VALIDATION_JSON
+
+
+@pytest.mark.parametrize("path", VALIDATION_JSON, ids=lambda p: p.relative_to(DEMO_DIR).as_posix())
+def test_validation_json_parses(path):
+    with path.open(encoding="utf-8") as f:
+        json.load(f)
 
 
 @pytest.fixture
