@@ -14,6 +14,7 @@ from typing import Any
 
 from app.hazard.validation.config import (
     VALIDATION_ARTIFACTS_DIR,
+    VALIDATION_DEMO_DIR,
 )
 from app.hazard.validation.datasets import AdminBoundariesDataset
 
@@ -24,18 +25,30 @@ class ValidationDataUnavailableError(Exception):
     """Raised when committed validation artifacts are missing."""
 
 
+def _get_validation_dir() -> Path:
+    """Return the active validation artifacts directory.
+
+    Prefers ``data/artifacts/validation`` (pipeline output) and falls back
+    to ``data/demo/validation`` (production / Docker image).
+    """
+    if (VALIDATION_ARTIFACTS_DIR / "benchmark_suite.json").is_file():
+        return VALIDATION_ARTIFACTS_DIR
+    if (VALIDATION_DEMO_DIR / "benchmark_suite.json").is_file():
+        return VALIDATION_DEMO_DIR
+    raise ValidationDataUnavailableError(
+        "Validation benchmark data has not been generated. "
+        "Run `python scripts/run_sentinel_validation.py` offline first."
+    )
+
+
 def _get_benchmark_suite() -> dict[str, Any]:
     """Load the committed benchmark suite from disk (read-only).
 
     Raises ``ValidationDataUnavailableError`` if the file is missing so that
     the calling route can translate it into an HTTP 503.
     """
-    suite_path = VALIDATION_ARTIFACTS_DIR / "benchmark_suite.json"
-    if not suite_path.is_file():
-        raise ValidationDataUnavailableError(
-            "Validation benchmark data has not been generated. "
-            "Run `python scripts/run_sentinel_validation.py` offline first."
-        )
+    val_dir = _get_validation_dir()
+    suite_path = val_dir / "benchmark_suite.json"
     return json.loads(suite_path.read_text(encoding="utf-8"))
 
 
@@ -125,7 +138,11 @@ def get_block_metrics(block_param: str) -> dict[str, Any] | None:
 def get_block_artifacts(block_param: str) -> dict[str, Any] | None:
     """List available exported artifacts for a block with metadata and download URLs."""
     resolved_key = _resolve_block_key(block_param)
-    block_dir = VALIDATION_ARTIFACTS_DIR / resolved_key
+    try:
+        val_dir = _get_validation_dir()
+    except ValidationDataUnavailableError:
+        return None
+    block_dir = val_dir / resolved_key
     if not block_dir.is_dir():
         return None
 
@@ -150,13 +167,17 @@ def get_block_artifacts(block_param: str) -> dict[str, Any] | None:
 def get_artifact_file_path(block_param: str, artifact_name: str) -> Path | None:
     """Resolve physical file path for an exported artifact."""
     resolved_key = _resolve_block_key(block_param)
-    block_dir = VALIDATION_ARTIFACTS_DIR / resolved_key
+    try:
+        val_dir = _get_validation_dir()
+    except ValidationDataUnavailableError:
+        return None
+    block_dir = val_dir / resolved_key
     target_file = block_dir / artifact_name
 
     # Path traversal protection
     try:
         resolved_target = target_file.resolve()
-        resolved_base = VALIDATION_ARTIFACTS_DIR.resolve()
+        resolved_base = val_dir.resolve()
         if not str(resolved_target).startswith(str(resolved_base)):
             return None
     except Exception:

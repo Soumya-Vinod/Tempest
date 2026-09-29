@@ -44,10 +44,11 @@ class BlockBenchmarkResult:
     comparison: HazardComparisonResult
     metrics: BenchmarkMetrics
     artifacts: ExportedArtifacts
+    sar_water_km2: float | None = None  # Pixel-area SAR water extent (no cell threshold)
 
     def to_dict(self) -> dict[str, Any]:
         """Convert block benchmark result to structured dictionary."""
-        return {
+        d = {
             "block": {
                 "identifier": self.block.identifier,
                 "name": self.block.name,
@@ -61,6 +62,9 @@ class BlockBenchmarkResult:
             "metrics": self.metrics.to_dict(),
             "artifacts": self.artifacts.to_dict(),
         }
+        if self.sar_water_km2 is not None:
+            d["sar_water_km2"] = self.sar_water_km2
+        return d
 
 
 @dataclass
@@ -161,6 +165,7 @@ def run_block_validation(
         comparison=comparison,
         metrics=metrics,
         artifacts=artifacts,
+        sar_water_km2=observed_area_km2,
     )
 
 
@@ -170,7 +175,7 @@ def generate_benchmark_report(
     """Generate Markdown benchmark report from validated pipeline outputs."""
     ee_status = "Authenticated" if is_ee_available() else "Offline / Reference"
     table_hdr = (
-        "| Administrative Block | Census Code | Area (km²) | Observed Flood (km²) | "
+        "| Administrative Block | Census Code | Area (km²) | SAR Water (km²) | "
         "Predicted Flood (km²) | IoU | Precision | Recall | F1 Score | Accuracy |"
     )
     table_sep = (
@@ -193,9 +198,10 @@ def generate_benchmark_report(
     for b_res in benchmark_suite.blocks.values():
         m = b_res.metrics
         b = b_res.block
+        sar_col = f"{b_res.sar_water_km2:.1f}" if b_res.sar_water_km2 is not None else "—"
         lines.append(
             f"| **{b.name}** | `{b.census_code}` | {b.area_km2:.1f} | "
-            f"{m.flooded_area_observed_km2:.1f} | {m.flooded_area_predicted_km2:.1f} | "
+            f"{sar_col} | {m.flooded_area_predicted_km2:.1f} | "
             f"**{m.iou:.3f}** | {m.precision:.3f} | {m.recall:.3f} | "
             f"**{m.f1_score:.3f}** | {m.accuracy:.3f} |"
         )
@@ -281,6 +287,17 @@ def generate_benchmark_report(
             f"- **Flooded Area Agreement:** `{m.flooded_area_agreement:.4f}`",
         ])
 
+        # SAR water km² (pixel-area, no cell threshold)
+        if b_res.sar_water_km2 is not None:
+            lines.append(
+                f"- **SAR-Measured Water Extent (pixel-area, no threshold):** "
+                f"`{b_res.sar_water_km2:.2f} km²`"
+            )
+            lines.append(
+                f"- **Model-Predicted Inundation:** "
+                f"`{m.flooded_area_predicted_km2:.2f} km²`"
+            )
+
         if b.name.lower() == "gosaba":
             comp = b_res.comparison
             fp_cells = comp.fp_count
@@ -305,9 +322,9 @@ def generate_benchmark_report(
                 f"{fn_cells} False Negatives with {tp_cells} True Positive(s).",
             ])
 
-        lines.extend([
+        artifact_lines = [
             "",
-            "#### Exported Cell-Label Artifacts",
+            "#### Exported Artifacts",
             f"- Observed Cell-Label GeoTIFF: `{b_res.artifacts.observed_flood_tif.name}`",
             f"- Predicted Cell-Label GeoTIFF: `{b_res.artifacts.predicted_flood_tif.name}`",
             f"- Agreement Cell-Label GeoTIFF: `{b_res.artifacts.agreement_tif.name}`",
@@ -316,10 +333,17 @@ def generate_benchmark_report(
             f"- Overlap Layer GeoJSON: `{b_res.artifacts.validation_overlap_geojson.name}`",
             f"- Metrics JSON: `{b_res.artifacts.metrics_json.name}`",
             f"- Acquisition Metadata JSON: `{b_res.artifacts.acquisition_metadata_json.name}`",
-            "",
-            "---",
-            "",
-        ])
+        ]
+        if b_res.artifacts.sar_water_mask_png is not None:
+            artifact_lines.append(
+                f"- SAR Water Mask PNG (Leaflet overlay): `{b_res.artifacts.sar_water_mask_png.name}`"
+            )
+        if b_res.artifacts.sar_water_mask_bounds is not None:
+            artifact_lines.append(
+                f"- SAR Overlay Bounds JSON: `{b_res.artifacts.sar_water_mask_bounds.name}`"
+            )
+        artifact_lines.extend(["", "---", ""])
+        lines.extend(artifact_lines)
 
     lines.extend([
         "## 3. Scientific Integrity & Verification Methodology",

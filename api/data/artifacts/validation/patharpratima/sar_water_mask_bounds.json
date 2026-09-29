@@ -1,0 +1,15 @@
+{
+  "bounds": [
+    [
+      21.60326,
+      88.26004
+    ],
+    [
+      22.00271,
+      88.5192
+    ]
+  ],
+  "block": "Patharpratima",
+  "crs": "EPSG:4326",
+  "description": "Sentinel-1 SAR observed water extent for Patharpratima (post-landfall 2020-05-22T00:04:44Z). Use with Leaflet L.imageOverlay(url, bounds)."
+}

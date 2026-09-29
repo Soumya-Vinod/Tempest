@@ -214,31 +214,51 @@ All metrics are computed strictly from spatial overlap:
 
 ## 9. Cyclone Amphan Multi-Block Benchmark Results
 
-Benchmark executed on live Copernicus Sentinel-1 SAR observations:
+Benchmark executed on live Copernicus Sentinel-1 SAR observations with the
+corrected parameters: **surge-only prediction** (peak depth ≥ 0.5 m over all 25
+event timesteps), **10% cell-flood fraction threshold**, and **pixel-area SAR
+water measurements** (no cell threshold).
 
-| Block Name | Census Code | Total Area | Observed Flood (cell-level) | Predicted Flood (surge-only) | IoU | Precision | Recall | F1 Score | Accuracy |
+| Block Name | Census Code | Total Area | SAR Water (km²) | Predicted Surge (km²) | IoU | Precision | Recall | F1 Score | Accuracy |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Sagar** | `02438` | 235.5 km² | 134.6 km² | 201.9 km² | **0.579** | 0.611 | 0.917 | **0.733** | 0.619 |
-| **Namkhana** | `02439` | 243.6 km² | 92.8 km² | 220.4 km² | **0.421** | 0.421 | 1.000 | **0.593** | 0.476 |
-| **Gosaba** | `02435` | 1918.6 km² | 34.0 km² | 781.0 km² | **0.000** | 0.000 | 0.000 | **0.000** | 0.575 |
-| **Patharpratima** | `02440` | 477.7 km² | 298.6 km² | 358.3 km² | **0.447** | 0.567 | 0.680 | **0.618** | 0.475 |
+| **Sagar** | `02438` | 235.5 km² | 0.54 | 201.9 km² | **0.000** | 0.000 | 0.000 | **0.000** | 0.143 |
+| **Namkhana** | `02439` | 243.6 km² | 0.54 | 220.4 km² | **0.000** | 0.000 | 0.000 | **0.000** | 0.095 |
+| **Gosaba** | `02435` | 1918.6 km² | 5.11 | 747.1 km² | **0.000** | 0.000 | 0.000 | **0.000** | 0.611 |
+| **Patharpratima** | `02440` | 477.7 km² | 7.49 | 358.3 km² | **0.000** | 0.000 | 0.000 | **0.000** | 0.250 |
 
 ### Portfolio Summary:
-- **Mean IoU:** `0.362`
-- **Mean F1 Score:** `0.486`
-- **Mean Precision:** `0.400`
-- **Mean Recall:** `0.649`
-- **Mean Overall Accuracy:** `0.536`
-- **Total Observed Flood Extent:** `559.9 km²`
-- **Total Simulated Flood Extent:** `1,561.5 km²`
+- **Mean IoU:** `0.000`
+- **Mean F1 Score:** `0.000`
+- **Mean Precision:** `0.000`
+- **Mean Recall:** `0.000`
+- **Mean Overall Accuracy:** `0.275`
+- **Total SAR-Measured Water (pixel-area):** `13.68 km²`
+- **Total Observed Flood Extent (cell-level):** `0.0 km²`
+- **Total Simulated Surge Extent:** `1,527.6 km²`
 
-### Key Scientific Findings:
-1. **High Coastal Sensitivity (Recall = 0.917 on Sagar, 1.000 on Namkhana):** The Tempest storm surge model successfully captured virtually all coastal inundation along the seaward exposed edges of Sagar and Namkhana.
-2. **Conservative Over-Prediction (Precision = 0.40–0.61):** The simulation predicts extensive surge propagation up estuarine channels. In reality, embankment structures (polders and bunds) prevented water ingress into select agricultural interiors, producing false positives.
-3. **Gosaba Zero Overlap Forensic Analysis (IoU = 0.000):**
-   - **Mangrove Canopy Scattering (Radar Physics Limitation):** Over 70% of Gosaba (1,918.6 km²) is the protected Sundarbans Tiger Reserve. C-band radar pulses ($\lambda \approx 5.6\text{ cm}$) scatter in the dense upper mangrove canopy and cannot penetrate to understory standing water. Concurrently, permanent tidal waterways are masked by the JRC GSW dataset ($\ge 20\%$).
-   - **Model Omission of Mangrove Hydrodynamic Drag:** The surge model treats the shallow shelf as open water without vegetative bottom friction (Manning's $n$), simulating surge penetration up to 2.3m across 46 southern mangrove cells (781 km² FP). In nature, dense prop-root mangrove forests rapidly attenuate surge waves over 5–10 km.
-   - **Spatial Disconnect (North vs South):** Sentinel-1 observed standing floodwater exclusively in 2 northern breached agricultural polders (Lat 22.18°N–22.23°N) over 50 km inland, where marine surge had already dissipated (surge = 0.0m). The lack of spatial coincidence between northern polder breaches (SAR-detected) and southern coastal surge (model-predicted) yielded $\text{TP} = 0$.
+### Interpretation
+
+At **5.5 km cell resolution, ~36 hours after landfall**, Sentinel-1 SAR detects
+too little standing water for any cell to exceed the 10% flood-fraction
+threshold. Zero cells are labelled "observed flooded", so the confusion matrix
+contains only FP (surge-predicted) and TN cells.
+
+This is a **legitimate finding**, not a pipeline defect:
+
+1. **Temporal gap:** Cyclone Amphan made landfall on 2020-05-20 12Z; the nearest
+   post-landfall S1 pass was 2020-05-22 00Z (~36 h later). Storm-surge waters
+   drain quickly from low-gradient delta surfaces, especially through tidal
+   channels.
+2. **Coarse cell vs. fine SAR:** A 5.5 km grid cell is ~30 km²; the 10%
+   threshold requires ≥ 3 km² of SAR-detected water. Scattered pockets of
+   standing water visible at 10 m SAR resolution are diluted below this
+   threshold when aggregated to the model grid.
+3. **Mangrove canopy scattering:** In Gosaba, C-band radar cannot penetrate the
+   Sundarbans canopy, so sub-canopy flooding is invisible to S1.
+
+The per-block **SAR-measured water km²** (pixel-area, no threshold) and
+**`sar_water_mask.png`** overlays provide the raw radar observation for the demo
+without imposing a cell-level discretisation.
 
 ---
 
@@ -256,7 +276,9 @@ api/data/artifacts/validation/sagar/
 ├── predicted_flood.geojson       <- GeoJSON polygons of simulated inundation
 ├── validation_overlap.geojson    <- Unified GeoJSON with per-cell audit properties
 ├── metrics.json                  <- Structured benchmark metrics and confusion matrix
-└── acquisition_metadata.json     <- Complete Copernicus Sentinel-1 scene provenance
+├── acquisition_metadata.json     <- Complete Copernicus Sentinel-1 scene provenance
+├── sar_water_mask.png            <- RGBA PNG of SAR water extent (Leaflet overlay)
+└── sar_water_mask_bounds.json    <- Geographic bounds [[S,W],[N,E]] for L.imageOverlay
 ```
 
 > **Terminology:** The GeoTIFFs are "cell labels" (rasterized from ~5.5 km grid cells), not fine-resolution flood masks. They show the validation state of each model grid cell.
@@ -325,4 +347,4 @@ print(benchmark_suite.aggregate_metrics)
 cd api
 pytest tests/test_sentinel_validation_pipeline.py -v
 ```
-All 20 validation tests and 87 hazard regression tests pass deterministically.
+All 25 validation tests pass deterministically.

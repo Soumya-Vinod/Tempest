@@ -1,0 +1,15 @@
+{
+  "bounds": [
+    [
+      21.62877,
+      88.04167
+    ],
+    [
+      21.93756,
+      88.17217
+    ]
+  ],
+  "block": "Sagar",
+  "crs": "EPSG:4326",
+  "description": "Sentinel-1 SAR observed water extent for Sagar (post-landfall 2020-05-22T00:04:44Z). Use with Leaflet L.imageOverlay(url, bounds)."
+}

@@ -1,0 +1,15 @@
+{
+  "bounds": [
+    [
+      21.55897,
+      88.17075
+    ],
+    [
+      21.82107,
+      88.34945
+    ]
+  ],
+  "block": "Namkhana",
+  "crs": "EPSG:4326",
+  "description": "Sentinel-1 SAR observed water extent for Namkhana (post-landfall 2020-05-22T00:04:44Z). Use with Leaflet L.imageOverlay(url, bounds)."
+}

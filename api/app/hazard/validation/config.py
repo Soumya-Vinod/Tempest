@@ -19,6 +19,7 @@ from app.core.config import API_DIR
 
 # Artifact and reference directory locations
 VALIDATION_ARTIFACTS_DIR = API_DIR / "data" / "artifacts" / "validation"
+VALIDATION_DEMO_DIR = API_DIR / "data" / "demo" / "validation"
 REFERENCE_DIR = API_DIR / "data" / "reference"
 BLOCKS_GEOJSON = REFERENCE_DIR / "s24p_blocks.geojson"
 BLOCKS_CSV = REFERENCE_DIR / "s24p_blocks.csv"

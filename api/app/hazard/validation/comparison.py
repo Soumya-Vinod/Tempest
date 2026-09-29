@@ -30,6 +30,7 @@ from app.hazard.replay import (
 )
 from app.hazard.validation.config import HazardComparisonConfig
 from app.hazard.validation.datasets import AdminBlock, HazardOutputDataset
+from app.schemas.common import REPLAY_TIMESTEPS
 
 logger = logging.getLogger(__name__)
 
@@ -38,11 +39,11 @@ logger = logging.getLogger(__name__)
 class CellEvaluation:
     """Detailed spatial comparison evaluation for a single grid cell.
 
-    ``predicted_flooded`` is based on surge depth only (≥ 0.5 m at any
-    timestep during the event).  ``susceptibility_flagged`` records whether
-    the static flood-susceptibility index also exceeds its threshold — it
-    is reported separately so that the main metrics are not inflated by a
-    static index that is ~45 % proxy inputs.
+    ``predicted_flooded`` is based on the **maximum** surge depth across all
+    25 event timesteps (≥ 0.5 m peak).  ``susceptibility_flagged`` records
+    whether the static flood-susceptibility index also exceeds its threshold
+    — it is reported separately so that the main metrics are not inflated by
+    a static index that is ~45 % proxy inputs.
     """
 
     cell_id: str
@@ -138,14 +139,20 @@ def compare_hazard_with_sar(
         HazardComparisonResult containing full confusion matrix, layers, and cell evaluations.
     """
     cfg = config or HazardComparisonConfig()
-    timestep = cfg.landfall_timestep
 
-    # 1. Query unmodified hazard engine layers
-    surge_collection = generate_surge_layer(timestep)
-    flood_collection = generate_flood_layer(timestep)
+    # 1. Query unmodified hazard engine layers.
+    #    Take the **max surge depth** across the entire event so that
+    #    validation reflects peak inundation, not just the single landfall
+    #    snapshot.  Flood susceptibility is time-invariant so we read it at
+    #    landfall only.
+    surge_map: dict[str, float] = {}
+    for ts in REPLAY_TIMESTEPS:
+        surge_collection = generate_surge_layer(ts)
+        for f in surge_collection.features:
+            cell_id = f.id.split("__")[1]
+            surge_map[cell_id] = max(surge_map.get(cell_id, 0.0), f.properties.value)
 
-    # Fast ID lookups
-    surge_map = {f.id.split("__")[1]: f.properties.value for f in surge_collection.features}
+    flood_collection = generate_flood_layer(cfg.landfall_timestep)
     flood_map = {f.id.split("__")[1]: f.properties.value for f in flood_collection.features}
 
     # 2. Extract cells intersecting the block
