@@ -123,6 +123,15 @@ export const ABOUT_THE_DATA: SourceGroup[] = [
           'forecast track.',
       },
       {
+        name: 'Last safe departure',
+        detail:
+          'For each hospital and health centre that is cut off (not the shelter stand-ins), the ' +
+          'last replay step at which a government ' +
+          'hospital that is never cut off can still be reached by road (or ferry), and which one. ' +
+          'Travel times are for normal conditions, and deadlines are at the replay’s 3-hour ' +
+          'resolution, so the real window may be shorter.',
+      },
+      {
         name: 'Warning time',
         detail: FORECAST_FRAMING,
       },

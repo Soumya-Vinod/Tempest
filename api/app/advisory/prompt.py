@@ -59,6 +59,11 @@ WHAT TO SAY:
   {{expected_<n>_hours}}, with its cause ({{expected_<n>_cause}}), and write preparatory actions
   for it (e.g. "move patients from {{expected_1_name}} before the ferry stops"). Keep it
   separate from the facilities already cut off.
+- Evacuation: when an expected facility has {{expected_<n>_destination}} and
+  {{expected_<n>_leave_by_hours}}, write its evacuation action with them (e.g. "move patients
+  from {{expected_1_name}} to {{expected_1_destination}} within {{expected_1_leave_by_hours}} h");
+  mention a ferry only if {{expected_<n>_route_mode}} is ferry. These are normal-condition
+  estimates. Never name a destination hospital that is not one of these facts.
 - Shelters: if the message says the block has no mapped stand-in shelters, do not write any
   shelter action and do not tell people to go to shelters or "safe centres": the server adds a
   fixed action about it. Write at most four actions then.

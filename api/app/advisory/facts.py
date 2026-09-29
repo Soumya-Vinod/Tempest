@@ -18,6 +18,7 @@ from shapely.geometry import shape
 from app.advisory.render import UNNAMED
 from app.exposure import service as exposure
 from app.exposure.ingest import METRIC_CRS
+from app.impact import departures
 from app.impact import service as impact
 from app.impact.engine import FIRST_CUT_LABEL
 from app.impact.horizon import FORECAST_HORIZON_H, window
@@ -110,6 +111,15 @@ class Facts:
 
 def _cite(key: str, label: str, value, unit: str | None, source: str) -> Citation:
     return Citation(key=key, label=label, value=value, unit=unit, source=source)
+
+
+def _hours_between(a: str, b: str) -> int:
+    return round(
+        (
+            datetime.strptime(b, TIMESTEP_FORMAT) - datetime.strptime(a, TIMESTEP_FORMAT)
+        ).total_seconds()
+        / 3600
+    )
 
 
 def hours_to_landfall(timestep: str) -> int:
@@ -315,6 +325,7 @@ def build_facts(block_id: str, timestep: str) -> Facts:
         ):
             expected[p.infra_id] = p
     hours = hours_until_isolated(set(expected), timestep)
+    leaving = departures.by_facility() if expected else {}
     c.append(
         _cite(
             "expected_isolated_count",
@@ -344,6 +355,27 @@ def build_facts(block_id: str, timestep: str) -> Facts:
         c.append(
             _cite(f"expected_{j}_hours", "Expected to be cut off within", hours[fid], "h", "impact")
         )
+        # Last safe departure (v1.3 change, pending Dev A): where to move patients by road, and
+        # by when (normal-condition estimate, 3-hour steps). Only while the deadline is ahead, and
+        # only for hospitals and health centres (not shelter stand-ins).
+        is_facility = by_id[fid].properties.infra_type == departures.DEPARTURE_TYPE
+        dep = leaving.get(fid) if is_facility else None
+        if dep and dep["deadline"] and dep["deadline"] >= timestep and dep["destination_name"]:
+            left = _hours_between(timestep, dep["deadline"])
+            c.append(
+                _cite(f"expected_{j}_leave_by_hours", "Leave by road within", left, "h", "impact")
+            )
+            c.append(
+                _cite(
+                    f"expected_{j}_destination",
+                    "Nearest safe hospital still reachable by road",
+                    dep["destination_name"],
+                    None,
+                    "impact",
+                )
+            )
+            mode = "ferry" if dep["uses_ferry"] else "road"
+            c.append(_cite(f"expected_{j}_route_mode", "Route uses", mode, None, "impact"))
 
     # Cut road length inside the block.
     cut_m = 0.0

@@ -2,6 +2,7 @@ import { useState } from 'react'
 
 import { REPLAY_TIMESTEPS, relativeLabel } from '../../lib/constants'
 import type { CountdownFacility } from '../../types/contracts'
+import { DEPARTURE_NOTE, DepartureLine, type DepartureLookup } from '../departures'
 import { FORECAST_FRAMING } from '../about'
 import type { CountdownState } from './useCountdown'
 
@@ -15,17 +16,24 @@ function when(f: CountdownFacility): string {
 
 function since(f: CountdownFacility): string {
   const i = f.since ? REPLAY_TIMESTEPS.indexOf(f.since) : -1
-  return i >= 0 ? `cut off since ${relativeLabel(i)}` : 'cut off'
+  if (i < 0) return 'cut off'
+  // Shelter stand-ins have no departure (hospitals and health centres only): just when.
+  const at = relativeLabel(i)
+  return f.infra_type === 'shelter' ? `cut off from ${at}` : `cut off since ${at}`
 }
 
 function FacilityList({
   title,
   items,
   detail,
+  departures,
+  timestepIndex,
 }: {
   title: string
   items: CountdownFacility[]
   detail: (f: CountdownFacility) => string
+  departures: DepartureLookup
+  timestepIndex: number
 }) {
   const [all, setAll] = useState(false)
   if (items.length === 0) return null
@@ -41,6 +49,15 @@ function FacilityList({
             <span className="font-medium">{f.name}</span>
             <span className="text-slate-500"> · {f.cause} · </span>
             <span className="tabular-nums">{detail(f)}</span>
+            {departures.has(f.infra_id) && (
+              <div className="ml-2">
+                <DepartureLine
+                  departure={departures.get(f.infra_id)!}
+                  timestepIndex={timestepIndex}
+                  compact
+                />
+              </div>
+            )}
           </li>
         ))}
       </ul>
@@ -61,11 +78,22 @@ function FacilityList({
  * "Action countdown" (v1.3): facilities expected to be cut off within the 24 h forecast window
  * but not yet, soonest first, and those already cut off.
  */
-export default function CountdownPanel({ state }: { state: CountdownState }) {
+export default function CountdownPanel({
+  state,
+  departures,
+  timestepIndex,
+}: {
+  state: CountdownState
+  departures: DepartureLookup
+  timestepIndex: number
+}) {
   return (
     <section className="mt-4">
       <h3 className={HEADING}>Action countdown</h3>
       <p className="mt-1 text-[11px] text-slate-500">{FORECAST_FRAMING}</p>
+      <p className="text-[11px] text-slate-500">
+        Leave-by times: {DEPARTURE_NOTE.charAt(0).toLowerCase() + DEPARTURE_NOTE.slice(1)}
+      </p>
       {state.status === 'loading' && <p className="mt-1 text-xs text-slate-500">Loading…</p>}
       {state.status === 'unavailable' && (
         <p className="mt-1 text-xs text-slate-500">Countdown not available yet</p>
@@ -85,12 +113,16 @@ export default function CountdownPanel({ state }: { state: CountdownState }) {
             title="Expected to be cut off"
             items={state.data.expected}
             detail={when}
+            departures={departures}
+            timestepIndex={timestepIndex}
           />
           <FacilityList
             key={`c|${state.data.timestep}`}
             title="Already cut off"
             items={state.data.cut_off}
             detail={since}
+            departures={departures}
+            timestepIndex={timestepIndex}
           />
         </>
       )}

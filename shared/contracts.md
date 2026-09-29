@@ -206,6 +206,31 @@ CountdownFacility[], cut_off: CountdownFacility[], key_moments: KeyMoment[] }`.
   `first_alert` (the first advisory suggestion, by the rule in §4.5), `first_expected_isolation`, `first_actual_isolation`, `landfall`, in that
   order; the same at every timestep. `timestep` is null if it never happens.
 
+**Last safe departure** (*v1.3 change, pending Dev A*): not time-dependent.
+`Departures = { resolution_h: 3, departures: Departure[] }`, by `deadline` (null last), then name.
+One `Departure` per hospital or health centre (`infra_type` `hospital`; shelter stand-ins have
+none) that is `isolated` at horizon 0 at some step, except
+names matching the hospital-access exclusions (§4.5):
+`{ infra_id, name, infra_type, first_cut_off: Timestep, deadline: Timestep | null,
+route_stays_open: bool, destination_id: string | null, destination_name: string | null,
+travel_time_s: int | null, uses_ferry: bool | null, at_risk: bool | null, legs: DepartureLeg[],
+usual_destination_id: string | null, usual_destination_name: string | null, note: string | null }`,
+`DepartureLeg = { ferry: bool, geometry: LineString }` (simplified, ~50 m), facility first.
+- Safe destinations: hospital-access sources within 2 km of the road graph, in its main
+  component, and never `isolated` at horizon 0 from T-72 to T-0.
+- `deadline`: at each step, the road graph with that step's cut links removed (surge on roads,
+  wind on ferries, as for `isolated`); the last step before the first step at which no safe
+  destination is reachable. Null if none is reachable at T-72; T-0 with `route_stays_open` if
+  one stays reachable.
+- `destination_*`: the nearest safe destination reachable at the deadline step;
+  `travel_time_s` is that route's normal-condition time; `uses_ferry` if any leg is a ferry;
+  `at_risk` if any link on it is at risk at that step. `usual_destination_*`: the nearest on the
+  intact network. `note` says why there is no deadline or destination.
+- Times are normal-condition estimates at the replay's 3-hour resolution.
+- Advisory facts add, per expected hospital or health centre with a deadline not yet passed,
+  `expected_<n>_leave_by_hours` (h), `expected_<n>_destination` and `expected_<n>_route_mode`
+  (`road` | `ferry`).
+
 ### 4.4 RiskScore (Dev B)
 One feature per block per timestep. A block is a Census 2011 CD block or, if block boundaries
 aren't available, an H3 resolution-7 cell. Geometry: block `Polygon | MultiPolygon`.
@@ -385,6 +410,7 @@ stated; `timestep=live` returns `501` in v1.1. FC = FeatureCollection.
 | B | GET | `/api/exposure/infra` | `infra_type?: InfraType` | FC&lt;InfraFeature&gt; (not time-dependent) |
 | B | GET | `/api/impact/results` | `timestep`, `hazard_type?`, `status?: ImpactStatus`, `horizon?: 0 \| 24` (*v1.3 change, pending Dev A*; other values `422`) | FC&lt;ImpactResult&gt; |
 | B | GET | `/api/impact/countdown` | `timestep` | ActionCountdown (§4.3). *v1.3 change, pending Dev A* |
+| B | GET | `/api/impact/departures` | — | Departures (§4.3). *v1.3 change, pending Dev A* |
 | B | GET | `/api/risk/scores` | `timestep`, `horizon?: 0 \| 24` (*v1.3 change, pending Dev A*) | FC&lt;RiskScore&gt; |
 | B | GET | `/api/risk/breakdown` | `timestep`, `horizon?: 0 \| 24` (*v1.3 change, pending Dev A*) | RiskBreakdown. *added in v1.1.* |
 | B | GET | `/api/risk/unscored-areas` | — | FC&lt;UnscoredArea&gt; (static; live from reference data, DEMO_MODE from the `unscored-areas` fixture). *added in v1.1.* |
@@ -454,6 +480,7 @@ the schema listed here, and fails on any route resource not in this table.
 | `GET /api/exposure/infra` | `infra-<infra_type>`, one per type. Unfiltered: no fixture of its own; composed from the per-type files *(added in v0.9)* | no | FC&lt;InfraFeature&gt; |
 | `GET /api/impact/results` | `results`, or `results-<filter>` with `[a-z0-9-]` filter values | yes | FC&lt;ImpactResult&gt; |
 | `GET /api/impact/countdown` | `countdown`, one file for the whole replay (see below) *(v1.3 change, pending Dev A)* | no | ActionCountdown per timestep |
+| `GET /api/impact/departures` | `departures` *(v1.3 change, pending Dev A)* | no | Departures |
 | `GET /api/risk/scores` | `scores` | yes | FC&lt;RiskScore&gt; |
 | `GET /api/risk/breakdown` | `breakdown` *(added in v1.1)* | yes | RiskBreakdown |
 | `GET /api/risk/unscored-areas` | `unscored-areas` *(added in v1.1)* | no | FC&lt;UnscoredArea&gt; |
@@ -473,6 +500,7 @@ exposure__infra-power-line.json
 exposure__overpass-substations.json
 impact__results__20200519T0000Z.json
 impact__countdown.json *(v1.3 change, pending Dev A)*
+impact__departures.json *(v1.3 change, pending Dev A)*
 risk__scores__20200520T1200Z.json
 advisory__gemini-<census_code>__20200520T1200Z.json *(added in v1.2)*
 insurance__triggers__20200520T1200Z.json

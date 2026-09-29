@@ -21,6 +21,7 @@ from app.risk.blocks import load_blocks
 from app.schemas import (
     REPLAY_TIMESTEPS,
     ActionCountdown,
+    Departures,
     HazardLayerCollection,
     HazardType,
     ImpactResultCollection,
@@ -60,6 +61,7 @@ ROUTE_SCHEMAS = {
         (r"results-h24-(index|[0-9a-f]{12})", None, False, None),
         # v1.3 change, pending Dev A: every timestep's ActionCountdown in one file (§7).
         (r"countdown", ActionCountdown, False, None),
+        (r"departures", Departures, False, None),  # v1.3 change, pending Dev A
         (r"results(-[a-z0-9-]+)?", ImpactResultCollection, True, None),
     ],
     "risk": [

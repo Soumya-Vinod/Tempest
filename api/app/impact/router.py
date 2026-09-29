@@ -1,9 +1,10 @@
 from fastapi import APIRouter, HTTPException
 
 from app.exposure.service import InfraDataMissing
-from app.impact import countdown, service
+from app.impact import countdown, departures, service
 from app.schemas import (
     ActionCountdown,
+    Departures,
     HazardType,
     HorizonParam,
     ImpactResultCollection,
@@ -46,6 +47,19 @@ def get_countdown(timestep: TimestepParam) -> ActionCountdown:
     except NotImplementedError as e:
         raise HTTPException(status_code=501, detail=str(e)) from e
     except (countdown.CountdownMissing, service.DemoFixtureMissing) as e:
+        raise HTTPException(status_code=501, detail=str(e)) from e
+    except (InfraDataMissing, service.GraphMissing) as e:
+        raise HTTPException(status_code=503, detail=str(e)) from e
+
+
+@router.get("/departures")
+def get_departures() -> Departures:
+    """Last safe departure (v1.3 change, pending Dev A): for each facility cut off at some step,
+    the last step a safe hospital is still reachable by road, where, and the route.
+    Precomputed (app/impact/departures.py)."""
+    try:
+        return departures.get_departures()
+    except departures.DeparturesMissing as e:
         raise HTTPException(status_code=501, detail=str(e)) from e
     except (InfraDataMissing, service.GraphMissing) as e:
         raise HTTPException(status_code=503, detail=str(e)) from e
