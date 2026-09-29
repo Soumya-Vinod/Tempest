@@ -29,7 +29,13 @@ from app.schemas.common import (
     TriggerMetric,
     UnitFraction,
 )
-from app.schemas.geojson import AreaGeometry, Feature, FeatureCollection, InfraGeometry
+from app.schemas.geojson import (
+    AreaGeometry,
+    Feature,
+    FeatureCollection,
+    InfraGeometry,
+    LineString,
+)
 
 HAZARD_UNITS: dict[str, str] = {"wind": "m/s", "surge": "m", "flood": "index"}
 METRIC_UNITS: dict[str, str] = {"wind_speed": "m/s", "surge_depth": "m"}
@@ -206,6 +212,41 @@ class KeyMoment(ContractModel):
     kind: KeyMomentKind
     timestep: Timestep | None  # null: it never happens in the replay
     label: str
+
+
+class DepartureLeg(ContractModel):
+    """v1.3 change, pending Dev A: one stretch of a departure route, by road or by ferry."""
+
+    ferry: bool
+    geometry: LineString  # simplified (~50 m)
+
+
+class Departure(ContractModel):
+    """v1.3 change, pending Dev A: the last safe departure by road for a facility that is cut off
+    at some step. Times are normal-condition estimates at the replay's 3-hour resolution."""
+
+    infra_id: str
+    name: str
+    infra_type: InfraType
+    first_cut_off: Timestep  # first isolated at horizon 0
+    # The last step before the first step at which no safe destination is reachable; null if
+    # none is ever reachable.
+    deadline: Timestep | None
+    route_stays_open: bool  # a safe destination stays reachable to T-0
+    destination_id: str | None  # the nearest safe destination reachable at the deadline
+    destination_name: str | None
+    travel_time_s: int | None = Field(ge=0)  # that route under normal conditions
+    uses_ferry: bool | None
+    at_risk: bool | None  # a link on the route is at risk at the deadline step
+    legs: list[DepartureLeg]
+    usual_destination_id: str | None  # the nearest safe destination on the intact network
+    usual_destination_name: str | None
+    note: str | None  # why there is no deadline or destination
+
+
+class Departures(ContractModel):
+    resolution_h: int = 3
+    departures: list[Departure]  # by deadline, then name; no deadline last
 
 
 class ActionCountdown(ContractModel):

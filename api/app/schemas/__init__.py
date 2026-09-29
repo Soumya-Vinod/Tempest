@@ -44,6 +44,9 @@ from app.schemas.contracts import (
     ChannelResult,
     Citation,
     CountdownFacility,
+    Departure,
+    DepartureLeg,
+    Departures,
     DispatchReceipt,
     DispatchReceipts,
     DispatchRecipients,
@@ -93,6 +96,9 @@ from app.schemas.geojson import (
 )
 
 __all__ = [
+    "Departure",
+    "DepartureLeg",
+    "Departures",
     "SuggestionReason",
     "ActionCountdown",
     "CountdownFacility",

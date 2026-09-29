@@ -169,6 +169,37 @@ export interface CountdownFacility {
   since?: Timestep | null; // cut_off: the start of this isolation
 }
 
+// ---------- Last safe departure (v1.3 change pending Dev A) ----------
+
+export interface DepartureLeg {
+  ferry: boolean;
+  geometry: LineString; // simplified (~50 m)
+}
+
+/** Normal-condition estimates at the replay's 3-hour resolution. */
+export interface Departure {
+  infra_id: string;
+  name: string;
+  infra_type: InfraType;
+  first_cut_off: Timestep;
+  deadline: Timestep | null; // last step a safe destination is reachable by road; null: never
+  route_stays_open: boolean;
+  destination_id: string | null; // nearest safe destination reachable at the deadline
+  destination_name: string | null;
+  travel_time_s: number | null; // that route, normal conditions
+  uses_ferry: boolean | null;
+  at_risk: boolean | null; // a link on the route is at risk at the deadline step
+  legs: DepartureLeg[];
+  usual_destination_id: string | null; // nearest on the intact network
+  usual_destination_name: string | null;
+  note: string | null;
+}
+
+export interface Departures {
+  resolution_h: number;
+  departures: Departure[];
+}
+
 export interface KeyMoment {
   kind: KeyMomentKind;
   timestep: Timestep | null; // null: it never happens in the replay

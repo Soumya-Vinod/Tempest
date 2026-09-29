@@ -137,6 +137,20 @@ def _link_status(net: ImpactNetwork, hazard_type: str, v: np.ndarray) -> np.ndar
     return status
 
 
+def link_masks(
+    hazards: dict[str, HazardLayerCollection], net: ImpactNetwork
+) -> tuple[np.ndarray, np.ndarray]:
+    """(cut, at_risk) per link under the isolating hazards (surge on roads, wind on ferries), as
+    compute_impacts cuts them; at_risk excludes cut links. Used by the departures (v1.3)."""
+    cut = np.zeros(len(net.link_u), dtype=bool)
+    at_risk = np.zeros(len(net.link_u), dtype=bool)
+    for h in T.isolation_hazards():
+        status = _link_status(net, h, _sample(_index(hazards.get(h), h), net.link_geom))
+        cut |= status == CUT
+        at_risk |= status == AT_RISK
+    return cut, at_risk & ~cut
+
+
 def _road_rule_on_geometry(hazard_type: str, is_ferry: bool, v: float) -> int:
     """Fallback for a road feature with no edge in the graph: its own geometry."""
     rules = FERRY_RULES if is_ferry else road_rules()

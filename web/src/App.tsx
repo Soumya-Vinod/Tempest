@@ -8,12 +8,13 @@ import TimelineScrubber from './components/TimelineScrubber'
 import { AboutPanel } from './features/about'
 import { AdvisoryDrawer, AdvisoryPanel, useAdvisories } from './features/advisory'
 import { CountdownPanel, useCountdown } from './features/countdown'
+import { buildRouteLayers, useDepartures } from './features/departures'
 import { InfraPanel, infraTooltip, useInfraLayers, useInfraMap } from './features/exposure'
 import { HazardPanel, type MapViewMode, StormEdge, useHazardMap } from './features/hazard'
 import { ImpactPanel, PathwayCard, useImpactMap } from './features/impact'
 import { InsurancePanel, useInsuranceMap } from './features/insurance'
 import { RiskCard, RiskPanel, SurgeHeadline, useRiskMap } from './features/risk'
-import { LANDFALL_INDEX, REPLAY_TIMESTEPS } from './lib/constants'
+import { LANDFALL_INDEX, REPLAY_TIMESTEPS, relativeLabel } from './lib/constants'
 import type { Horizon } from './types/contracts'
 
 export default function App() {
@@ -34,12 +35,26 @@ export default function App() {
   const hazard = useHazardMap(timestepIndex, risk.view, setChosenView, map, horizon, setChosenHorizon)
   const insurance = useInsuranceMap(timestepIndex, risk.view === 'risk')
   const countdown = useCountdown(REPLAY_TIMESTEPS[timestepIndex])
+  const departures = useDepartures()
+  const departure = impact.card.selectedId
+    ? (departures.get(impact.card.selectedId) ?? null)
+    : null
+  const routeLayers = useMemo(() => buildRouteLayers(departure), [departure])
+  // Shelter stand-ins have no departure: the card only says since when they are cut off.
+  const shelterCutOff =
+    countdown.state.status === 'ok'
+      ? countdown.state.data.cut_off.find(
+          (f) => f.infra_id === impact.card.selectedId && f.infra_type === 'shelter',
+        )
+      : undefined
+  const shelterSince = shelterCutOff?.since ? REPLAY_TIMESTEPS.indexOf(shelterCutOff.since) : -1
   // Red and orange mean impact only: exposure mutes its colours while impact results show.
   const infraLayers = useInfraLayers(infra, impact.active)
 
   // Bottom to top: hazard fills or the risk choropleth (one view at a time: both are area
   // fills; in Risk view, gold outlines on blocks with an insurance payout released), muted
-  // exposure, impact, the storm track, then the selection highlights.
+  // exposure, impact, the storm track, the selected facility's departure route (v1.3), then the
+  // selection highlights.
   const layers = useMemo(
     () => [
       ...hazard.fillLayers,
@@ -48,6 +63,7 @@ export default function App() {
       ...infraLayers,
       ...impact.layers,
       ...hazard.trackLayers,
+      ...routeLayers,
       ...risk.highlightLayers,
       ...impact.highlightLayers,
     ],
@@ -58,6 +74,7 @@ export default function App() {
       infraLayers,
       impact.layers,
       hazard.trackLayers,
+      routeLayers,
       risk.highlightLayers,
       impact.highlightLayers,
     ],
@@ -105,7 +122,11 @@ export default function App() {
       <HealthPanel>
         <HazardPanel {...hazard.panel} />
         <SurgeHeadline {...risk.surge} />
-        <CountdownPanel state={countdown.state} />
+        <CountdownPanel
+          state={countdown.state}
+          departures={departures}
+          timestepIndex={timestepIndex}
+        />
         <InfraPanel
           state={infra.state}
           visible={infra.visible}
@@ -118,7 +139,12 @@ export default function App() {
         <AdvisoryPanel {...advisory.panel} />
         <AboutPanel />
       </HealthPanel>
-      <PathwayCard {...impact.card} />
+      <PathwayCard
+        {...impact.card}
+        departure={departure}
+        timestepIndex={timestepIndex}
+        shelterCutOffFrom={shelterSince >= 0 ? relativeLabel(shelterSince) : null}
+      />
       <RiskCard {...risk.card} />
       <AdvisoryDrawer {...advisory.drawer} />
       <TimelineScrubber

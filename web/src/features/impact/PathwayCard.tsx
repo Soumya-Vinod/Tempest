@@ -1,5 +1,11 @@
 import { CARD_BOTTOM, CARD_TOP_CLEARANCE, PANEL_WIDTH, UI_GAP } from '../../lib/layout'
-import type { ImpactResultProperties, ImpactStatus, PathwayStep } from '../../types/contracts'
+import type {
+  Departure,
+  ImpactResultProperties,
+  ImpactStatus,
+  PathwayStep,
+} from '../../types/contracts'
+import { DepartureLine } from '../departures'
 import type { Affected } from './layers'
 import { featureName, hospitalAccess, type InfraLookup } from './labels'
 import { cssColor, HAZARD_LABEL, STATUS_COLOR, STATUS_LABEL } from './style'
@@ -11,6 +17,11 @@ export interface PathwayCardProps {
   highlightId: string | null
   onHighlight: (id: string) => void
   onClose: () => void
+  /** v1.3: the selected facility's last safe departure, if it is ever cut off. */
+  departure?: Departure | null
+  timestepIndex?: number
+  /** v1.3: a shelter stand-in that is cut off now: the step it was cut off from (no departure). */
+  shelterCutOffFrom?: string | null
 }
 
 // Bottom-left of the map, above the timeline and the attribution control; below the zoom buttons.
@@ -131,6 +142,16 @@ export default function PathwayCard(props: PathwayCardProps) {
         </button>
       </div>
       {access && <p className="text-xs text-slate-500">{access}</p>}
+      {props.shelterCutOffFrom && (
+        <p className="mt-1 text-xs font-medium text-red-700">
+          Cut off from {props.shelterCutOffFrom}
+        </p>
+      )}
+      {props.departure && props.timestepIndex !== undefined && (
+        <div className="mt-1 rounded bg-slate-50 p-1.5">
+          <DepartureLine departure={props.departure} timestepIndex={props.timestepIndex} />
+        </div>
+      )}
       {selected ? (
         selected.rows.map((row) => (
           <Pathway
