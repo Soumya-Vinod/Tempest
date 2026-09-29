@@ -116,6 +116,14 @@ export const ABOUT_THE_DATA: SourceGroup[] = [
           'Sundarbans shoreline; surge fades inland based on it.',
       },
       {
+        name: 'Validation',
+        detail:
+          'Sentinel-1 radar on 22 May (~36 h after landfall) detected 0.5–7.5 km² of standing ' +
+          'water per coastal block, far less than the modelled surge area. By then much of the ' +
+          "surge had drained, and radar can't see water under mangrove canopy, so at our 5.5 km " +
+          'resolution the surge model could not be validated.',
+      },
+      {
         name: 'Next 24 h view',
         detail:
           "A perfect-forecast replay: the worst hazard in each cell over the next 24 h of " +
