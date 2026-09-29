@@ -29,9 +29,14 @@ services:
         sync: false
       - key: TELEGRAM_CHAT_ID
         sync: false
+      # Render's free tier blocks outbound SMTP, so dispatch e-mail goes over Brevo's HTTPS API.
+      - key: EMAIL_PROVIDER
+        value: brevo
       - key: GMAIL_ADDRESS
         sync: false
       - key: GMAIL_APP_PASSWORD
+        sync: false
+      - key: BREVO_API_KEY
         sync: false
       - key: DISPATCH_EMAIL_TO
         sync: false

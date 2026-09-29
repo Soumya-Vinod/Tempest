@@ -38,13 +38,15 @@ Nothing here has been run for you. Deploys are manual on Render (`autoDeploy: fa
    | `GROQ_API_KEY` | Groq API key (fallback advisory model) |
    | `TELEGRAM_BOT_TOKEN` | Telegram bot token |
    | `TELEGRAM_CHAT_ID` | Telegram chat id (from `api\scripts\telegram_chat_ids.py`) |
-   | `GMAIL_ADDRESS` | Gmail address that sends dispatch e-mails |
-   | `GMAIL_APP_PASSWORD` | Gmail app password (16 characters) |
+   | `GMAIL_ADDRESS` | Address that sends dispatch e-mails (must be a verified sender in Brevo) |
+   | `GMAIL_APP_PASSWORD` | Gmail app password; only used with `EMAIL_PROVIDER=smtp`, so it can stay empty here |
+   | `BREVO_API_KEY` | Brevo API key (**Brevo → SMTP & API → API Keys**) |
    | `DISPATCH_EMAIL_TO` | Dispatch recipients, comma-separated |
    | `DISPATCH_PIN` | PIN required for a live dispatch |
    | `CORS_ORIGINS` | The Vercel site's origin, e.g. `https://tempest-xxxx.vercel.app` (no trailing slash; several: comma-separated). Leave it empty for now and fill it in at step 3. |
 
-   `DEMO_MODE=true` and `STATE_DB_PATH=/tmp/tempest.db` come from `render.yaml`. A key left
+   `DEMO_MODE=true`, `STATE_DB_PATH=/tmp/tempest.db` and `EMAIL_PROVIDER=brevo` come from
+   `render.yaml`. A key left
    empty just turns that feature off (`/health` reports it as `false`).
 4. Click **Apply** to create the service. Open it (**Dashboard → tempest-api**).
 5. Check **Settings → Build & Deploy**: Root Directory `api`, Dockerfile Path `./Dockerfile`
@@ -133,10 +135,16 @@ without much headroom.
   and the queue in `/tmp` is lost. If that happens, move the service to a paid instance type
   with more memory (**Settings → Instance Type**).
 
-**E-mail dispatch:** the API sends mail through Gmail SMTP on port 587. Render may block
-outbound SMTP ports on free instances (check Render's current free-tier limits). Test one live
-e-mail dispatch well before the demo. If it fails, Telegram still works, or move to a paid
-instance type.
+**E-mail dispatch:** Render's free tier blocks outbound SMTP, so `render.yaml` sets
+`EMAIL_PROVIDER=brevo`: the API sends through Brevo's HTTPS API
+(`POST https://api.brevo.com/v3/smtp/email`, authenticated with `BREVO_API_KEY`), with the same subject
+and body as the Gmail path and the CAP XML attached as `cap.xml`. Before the first live dispatch,
+add `GMAIL_ADDRESS` as a sender in Brevo (**Senders, Domains & Dedicated IPs → Senders**) and
+confirm it from the verification e-mail; Brevo rejects mail from an unverified sender. Locally
+the default `EMAIL_PROVIDER=smtp` keeps using Gmail SMTP with `GMAIL_APP_PASSWORD`. `/health`
+shows `email_provider` and `configured.brevo_api_key` (true/false). Test one live e-mail dispatch
+well before the demo; a Brevo error is stored in the receipt with the key scrubbed. If it fails,
+Telegram still works.
 
 ## Roll back
 

@@ -386,8 +386,8 @@ runs only in the audit log. Dispatch sends for real in DEMO_MODE too (a human-ap
 not a data fetch).
 
 **Channels.** Telegram: plain text, one message per language (bn, then en), split at 4096
-characters. E-mail (Gmail SMTP, STARTTLS): subject starts `[EXERCISE]`, body en then bn, the CAP
-attached.
+characters. E-mail (Gmail SMTP with STARTTLS, or Brevo's HTTPS API; set by `EMAIL_PROVIDER`):
+subject starts `[EXERCISE]`, body en then bn, the CAP attached.
 
 **CAP 1.2** (validated against the OASIS XSD): `status` Exercise, `msgType` Alert, `scope` Public,
 `sender` `tempest-s24p-exercise@invalid`; one `<info>` per language (`en-IN`, `bn-IN`, `hi-IN`),

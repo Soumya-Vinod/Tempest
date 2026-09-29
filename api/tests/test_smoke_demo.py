@@ -1,7 +1,7 @@
 """Fresh-clone / container smoke test: DEMO_MODE on, no API keys, no data/processed/ or data/raw/
 (as in the API image, api/Dockerfile). Every route answers for all 25 replay timesteps, and
 nothing opens a file under data/raw or data/processed. No network: with every key blank, no
-Gemini, Groq, Telegram or SMTP call can happen."""
+Gemini, Groq, Telegram, SMTP or Brevo call can happen."""
 
 import os
 import shutil
@@ -40,6 +40,7 @@ KEYS = (
     "TELEGRAM_CHAT_ID",
     "GMAIL_ADDRESS",
     "GMAIL_APP_PASSWORD",
+    "BREVO_API_KEY",
     "DISPATCH_EMAIL_TO",
     "DISPATCH_PIN",
     "GEE_SERVICE_ACCOUNT",

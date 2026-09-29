@@ -62,6 +62,7 @@ def health() -> dict:
         "status": "ok",
         "demo_mode": s.DEMO_MODE,
         "groq_model": s.GROQ_MODEL,  # not a secret: the fallback advisory model's id
+        "email_provider": s.EMAIL_PROVIDER,  # not a secret: "smtp" or "brevo"
         "configured": {
             # Set and not left at the .env.example placeholder.
             "gemini_api_key": s.is_configured("GEMINI_API_KEY"),
@@ -73,6 +74,7 @@ def health() -> dict:
             "telegram_chat_id": s.is_configured("TELEGRAM_CHAT_ID"),
             "gmail_address": s.is_configured("GMAIL_ADDRESS"),
             "gmail_app_password": s.is_configured("GMAIL_APP_PASSWORD"),
+            "brevo_api_key": s.is_configured("BREVO_API_KEY"),
             "dispatch_email_to": s.is_configured("DISPATCH_EMAIL_TO"),
             "dispatch_pin": s.is_configured("DISPATCH_PIN"),
         },
