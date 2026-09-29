@@ -1,0 +1,4977 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "val__02435__c0114",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.7,
+              21.55
+            ],
+            [
+              88.75,
+              21.55
+            ],
+            [
+              88.75,
+              21.6
+            ],
+            [
+              88.7,
+              21.6
+            ],
+            [
+              88.7,
+              21.55
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0114",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 2.27,
+        "flood_index": 0.7,
+        "predicted_flooded": true,
+        "susceptibility_flagged": true,
+        "observed_flooded": false,
+        "status": "fp",
+        "elevation_m": 2.01,
+        "dist_to_coast_km": 2.78
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0115",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.75,
+              21.55
+            ],
+            [
+              88.8,
+              21.55
+            ],
+            [
+              88.8,
+              21.6
+            ],
+            [
+              88.75,
+              21.6
+            ],
+            [
+              88.75,
+              21.55
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0115",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 2.29,
+        "flood_index": 0.77,
+        "predicted_flooded": true,
+        "susceptibility_flagged": true,
+        "observed_flooded": false,
+        "status": "fp",
+        "elevation_m": 1.61,
+        "dist_to_coast_km": 2.78
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0116",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.8,
+              21.55
+            ],
+            [
+              88.85,
+              21.55
+            ],
+            [
+              88.85,
+              21.6
+            ],
+            [
+              88.8,
+              21.6
+            ],
+            [
+              88.8,
+              21.55
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0116",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 2.22,
+        "flood_index": 0.77,
+        "predicted_flooded": true,
+        "susceptibility_flagged": true,
+        "observed_flooded": false,
+        "status": "fp",
+        "elevation_m": 1.49,
+        "dist_to_coast_km": 2.78
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0117",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.85,
+              21.55
+            ],
+            [
+              88.9,
+              21.55
+            ],
+            [
+              88.9,
+              21.6
+            ],
+            [
+              88.85,
+              21.6
+            ],
+            [
+              88.85,
+              21.55
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0117",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 1.61,
+        "flood_index": 0.66,
+        "predicted_flooded": true,
+        "susceptibility_flagged": true,
+        "observed_flooded": false,
+        "status": "fp",
+        "elevation_m": 3.49,
+        "dist_to_coast_km": 2.78
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0214",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.7,
+              21.6
+            ],
+            [
+              88.75,
+              21.6
+            ],
+            [
+              88.75,
+              21.65
+            ],
+            [
+              88.7,
+              21.65
+            ],
+            [
+              88.7,
+              21.6
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0214",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 1.7,
+        "flood_index": 0.6,
+        "predicted_flooded": true,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "fp",
+        "elevation_m": 3.39,
+        "dist_to_coast_km": 8.34
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0215",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.75,
+              21.6
+            ],
+            [
+              88.8,
+              21.6
+            ],
+            [
+              88.8,
+              21.65
+            ],
+            [
+              88.75,
+              21.65
+            ],
+            [
+              88.75,
+              21.6
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0215",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 1.75,
+        "flood_index": 0.67,
+        "predicted_flooded": true,
+        "susceptibility_flagged": true,
+        "observed_flooded": false,
+        "status": "fp",
+        "elevation_m": 2.79,
+        "dist_to_coast_km": 8.34
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0216",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.8,
+              21.6
+            ],
+            [
+              88.85,
+              21.6
+            ],
+            [
+              88.85,
+              21.65
+            ],
+            [
+              88.8,
+              21.65
+            ],
+            [
+              88.8,
+              21.6
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0216",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 1.88,
+        "flood_index": 0.77,
+        "predicted_flooded": true,
+        "susceptibility_flagged": true,
+        "observed_flooded": false,
+        "status": "fp",
+        "elevation_m": 1.84,
+        "dist_to_coast_km": 8.34
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0217",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.85,
+              21.6
+            ],
+            [
+              88.9,
+              21.6
+            ],
+            [
+              88.9,
+              21.65
+            ],
+            [
+              88.85,
+              21.65
+            ],
+            [
+              88.85,
+              21.6
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0217",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 2.16,
+        "flood_index": 0.87,
+        "predicted_flooded": true,
+        "susceptibility_flagged": true,
+        "observed_flooded": false,
+        "status": "fp",
+        "elevation_m": 0.3,
+        "dist_to_coast_km": 8.34
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0218",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.9,
+              21.6
+            ],
+            [
+              88.95,
+              21.6
+            ],
+            [
+              88.95,
+              21.65
+            ],
+            [
+              88.9,
+              21.65
+            ],
+            [
+              88.9,
+              21.6
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0218",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 1.96,
+        "flood_index": 0.82,
+        "predicted_flooded": true,
+        "susceptibility_flagged": true,
+        "observed_flooded": false,
+        "status": "fp",
+        "elevation_m": 0.7,
+        "dist_to_coast_km": 8.34
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0219",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.95,
+              21.6
+            ],
+            [
+              89.0,
+              21.6
+            ],
+            [
+              89.0,
+              21.65
+            ],
+            [
+              88.95,
+              21.65
+            ],
+            [
+              88.95,
+              21.6
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0219",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 1.02,
+        "flood_index": 0.54,
+        "predicted_flooded": true,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "fp",
+        "elevation_m": 4.06,
+        "dist_to_coast_km": 8.34
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0220",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              89.0,
+              21.6
+            ],
+            [
+              89.05,
+              21.6
+            ],
+            [
+              89.05,
+              21.65
+            ],
+            [
+              89.0,
+              21.65
+            ],
+            [
+              89.0,
+              21.6
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0220",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.87,
+        "flood_index": 0.55,
+        "predicted_flooded": true,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "fp",
+        "elevation_m": 4.33,
+        "dist_to_coast_km": 8.34
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0221",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              89.05,
+              21.6
+            ],
+            [
+              89.1,
+              21.6
+            ],
+            [
+              89.1,
+              21.65
+            ],
+            [
+              89.05,
+              21.65
+            ],
+            [
+              89.05,
+              21.6
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0221",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 1.28,
+        "flood_index": 0.73,
+        "predicted_flooded": true,
+        "susceptibility_flagged": true,
+        "observed_flooded": false,
+        "status": "fp",
+        "elevation_m": 2.3,
+        "dist_to_coast_km": 8.34
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0313",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.65,
+              21.65
+            ],
+            [
+              88.7,
+              21.65
+            ],
+            [
+              88.7,
+              21.7
+            ],
+            [
+              88.65,
+              21.7
+            ],
+            [
+              88.65,
+              21.65
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0313",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 2.29,
+        "flood_index": 0.81,
+        "predicted_flooded": true,
+        "susceptibility_flagged": true,
+        "observed_flooded": false,
+        "status": "fp",
+        "elevation_m": 0.55,
+        "dist_to_coast_km": 13.9
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0314",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.7,
+              21.65
+            ],
+            [
+              88.75,
+              21.65
+            ],
+            [
+              88.75,
+              21.7
+            ],
+            [
+              88.7,
+              21.7
+            ],
+            [
+              88.7,
+              21.65
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0314",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 1.41,
+        "flood_index": 0.56,
+        "predicted_flooded": true,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "fp",
+        "elevation_m": 3.66,
+        "dist_to_coast_km": 13.9
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0315",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.75,
+              21.65
+            ],
+            [
+              88.8,
+              21.65
+            ],
+            [
+              88.8,
+              21.7
+            ],
+            [
+              88.75,
+              21.7
+            ],
+            [
+              88.75,
+              21.65
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0315",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 1.41,
+        "flood_index": 0.65,
+        "predicted_flooded": true,
+        "susceptibility_flagged": true,
+        "observed_flooded": false,
+        "status": "fp",
+        "elevation_m": 3.25,
+        "dist_to_coast_km": 13.9
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0316",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.8,
+              21.65
+            ],
+            [
+              88.85,
+              21.65
+            ],
+            [
+              88.85,
+              21.7
+            ],
+            [
+              88.8,
+              21.7
+            ],
+            [
+              88.8,
+              21.65
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0316",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 1.4,
+        "flood_index": 0.61,
+        "predicted_flooded": true,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "fp",
+        "elevation_m": 2.86,
+        "dist_to_coast_km": 13.9
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0317",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.85,
+              21.65
+            ],
+            [
+              88.9,
+              21.65
+            ],
+            [
+              88.9,
+              21.7
+            ],
+            [
+              88.85,
+              21.7
+            ],
+            [
+              88.85,
+              21.65
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0317",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 1.61,
+        "flood_index": 0.78,
+        "predicted_flooded": true,
+        "susceptibility_flagged": true,
+        "observed_flooded": false,
+        "status": "fp",
+        "elevation_m": 1.6,
+        "dist_to_coast_km": 13.9
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0318",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.9,
+              21.65
+            ],
+            [
+              88.95,
+              21.65
+            ],
+            [
+              88.95,
+              21.7
+            ],
+            [
+              88.9,
+              21.7
+            ],
+            [
+              88.9,
+              21.65
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0318",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 1.01,
+        "flood_index": 0.55,
+        "predicted_flooded": true,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "fp",
+        "elevation_m": 3.57,
+        "dist_to_coast_km": 13.9
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0319",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.95,
+              21.65
+            ],
+            [
+              89.0,
+              21.65
+            ],
+            [
+              89.0,
+              21.7
+            ],
+            [
+              88.95,
+              21.7
+            ],
+            [
+              88.95,
+              21.65
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0319",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.32,
+        "flood_index": 0.46,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 5.94,
+        "dist_to_coast_km": 13.9
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0320",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              89.0,
+              21.65
+            ],
+            [
+              89.05,
+              21.65
+            ],
+            [
+              89.05,
+              21.7
+            ],
+            [
+              89.0,
+              21.7
+            ],
+            [
+              89.0,
+              21.65
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0320",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.49,
+        "flood_index": 0.51,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 4.95,
+        "dist_to_coast_km": 13.9
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0321",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              89.05,
+              21.65
+            ],
+            [
+              89.1,
+              21.65
+            ],
+            [
+              89.1,
+              21.7
+            ],
+            [
+              89.05,
+              21.7
+            ],
+            [
+              89.05,
+              21.65
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0321",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.82,
+        "flood_index": 0.68,
+        "predicted_flooded": true,
+        "susceptibility_flagged": true,
+        "observed_flooded": false,
+        "status": "fp",
+        "elevation_m": 3.25,
+        "dist_to_coast_km": 13.9
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0412",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.6,
+              21.7
+            ],
+            [
+              88.65,
+              21.7
+            ],
+            [
+              88.65,
+              21.75
+            ],
+            [
+              88.6,
+              21.75
+            ],
+            [
+              88.6,
+              21.7
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0412",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 2.02,
+        "flood_index": 0.72,
+        "predicted_flooded": true,
+        "susceptibility_flagged": true,
+        "observed_flooded": false,
+        "status": "fp",
+        "elevation_m": 1.26,
+        "dist_to_coast_km": 19.46
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0413",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.65,
+              21.7
+            ],
+            [
+              88.7,
+              21.7
+            ],
+            [
+              88.7,
+              21.75
+            ],
+            [
+              88.65,
+              21.75
+            ],
+            [
+              88.65,
+              21.7
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0413",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 2.19,
+        "flood_index": 0.81,
+        "predicted_flooded": true,
+        "susceptibility_flagged": true,
+        "observed_flooded": false,
+        "status": "fp",
+        "elevation_m": 0.16,
+        "dist_to_coast_km": 19.46
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0414",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.7,
+              21.7
+            ],
+            [
+              88.75,
+              21.7
+            ],
+            [
+              88.75,
+              21.75
+            ],
+            [
+              88.7,
+              21.75
+            ],
+            [
+              88.7,
+              21.7
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0414",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 1.14,
+        "flood_index": 0.52,
+        "predicted_flooded": true,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "fp",
+        "elevation_m": 3.96,
+        "dist_to_coast_km": 19.46
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0415",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.75,
+              21.7
+            ],
+            [
+              88.8,
+              21.7
+            ],
+            [
+              88.8,
+              21.75
+            ],
+            [
+              88.75,
+              21.75
+            ],
+            [
+              88.75,
+              21.7
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0415",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 1.23,
+        "flood_index": 0.67,
+        "predicted_flooded": true,
+        "susceptibility_flagged": true,
+        "observed_flooded": false,
+        "status": "fp",
+        "elevation_m": 3.15,
+        "dist_to_coast_km": 19.46
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0416",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.8,
+              21.7
+            ],
+            [
+              88.85,
+              21.7
+            ],
+            [
+              88.85,
+              21.75
+            ],
+            [
+              88.8,
+              21.75
+            ],
+            [
+              88.8,
+              21.7
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0416",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.98,
+        "flood_index": 0.56,
+        "predicted_flooded": true,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "fp",
+        "elevation_m": 3.69,
+        "dist_to_coast_km": 19.46
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0417",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.85,
+              21.7
+            ],
+            [
+              88.9,
+              21.7
+            ],
+            [
+              88.9,
+              21.75
+            ],
+            [
+              88.85,
+              21.75
+            ],
+            [
+              88.85,
+              21.7
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0417",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 1.22,
+        "flood_index": 0.73,
+        "predicted_flooded": true,
+        "susceptibility_flagged": true,
+        "observed_flooded": false,
+        "status": "fp",
+        "elevation_m": 2.28,
+        "dist_to_coast_km": 19.46
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0418",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.9,
+              21.7
+            ],
+            [
+              88.95,
+              21.7
+            ],
+            [
+              88.95,
+              21.75
+            ],
+            [
+              88.9,
+              21.75
+            ],
+            [
+              88.9,
+              21.7
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0418",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.73,
+        "flood_index": 0.58,
+        "predicted_flooded": true,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "fp",
+        "elevation_m": 3.84,
+        "dist_to_coast_km": 19.46
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0419",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.95,
+              21.7
+            ],
+            [
+              89.0,
+              21.7
+            ],
+            [
+              89.0,
+              21.75
+            ],
+            [
+              88.95,
+              21.75
+            ],
+            [
+              88.95,
+              21.7
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0419",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.13,
+        "flood_index": 0.45,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 5.93,
+        "dist_to_coast_km": 19.46
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0420",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              89.0,
+              21.7
+            ],
+            [
+              89.05,
+              21.7
+            ],
+            [
+              89.05,
+              21.75
+            ],
+            [
+              89.0,
+              21.75
+            ],
+            [
+              89.0,
+              21.7
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0420",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.28,
+        "flood_index": 0.46,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 4.93,
+        "dist_to_coast_km": 19.46
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0421",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              89.05,
+              21.7
+            ],
+            [
+              89.1,
+              21.7
+            ],
+            [
+              89.1,
+              21.75
+            ],
+            [
+              89.05,
+              21.75
+            ],
+            [
+              89.05,
+              21.7
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0421",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 1.17,
+        "flood_index": 0.77,
+        "predicted_flooded": true,
+        "susceptibility_flagged": true,
+        "observed_flooded": false,
+        "status": "fp",
+        "elevation_m": 1.08,
+        "dist_to_coast_km": 19.46
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0512",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.6,
+              21.75
+            ],
+            [
+              88.65,
+              21.75
+            ],
+            [
+              88.65,
+              21.8
+            ],
+            [
+              88.6,
+              21.8
+            ],
+            [
+              88.6,
+              21.75
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0512",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 1.4,
+        "flood_index": 0.64,
+        "predicted_flooded": true,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "fp",
+        "elevation_m": 1.66,
+        "dist_to_coast_km": 25.02
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0513",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.65,
+              21.75
+            ],
+            [
+              88.7,
+              21.75
+            ],
+            [
+              88.7,
+              21.8
+            ],
+            [
+              88.65,
+              21.8
+            ],
+            [
+              88.65,
+              21.75
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0513",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 1.72,
+        "flood_index": 0.81,
+        "predicted_flooded": true,
+        "susceptibility_flagged": true,
+        "observed_flooded": false,
+        "status": "fp",
+        "elevation_m": 0.04,
+        "dist_to_coast_km": 25.02
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0514",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.7,
+              21.75
+            ],
+            [
+              88.75,
+              21.75
+            ],
+            [
+              88.75,
+              21.8
+            ],
+            [
+              88.7,
+              21.8
+            ],
+            [
+              88.7,
+              21.75
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0514",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.84,
+        "flood_index": 0.54,
+        "predicted_flooded": true,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "fp",
+        "elevation_m": 3.15,
+        "dist_to_coast_km": 25.02
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0515",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.75,
+              21.75
+            ],
+            [
+              88.8,
+              21.75
+            ],
+            [
+              88.8,
+              21.8
+            ],
+            [
+              88.75,
+              21.8
+            ],
+            [
+              88.75,
+              21.75
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0515",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.71,
+        "flood_index": 0.61,
+        "predicted_flooded": true,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "fp",
+        "elevation_m": 3.32,
+        "dist_to_coast_km": 25.02
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0516",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.8,
+              21.75
+            ],
+            [
+              88.85,
+              21.75
+            ],
+            [
+              88.85,
+              21.8
+            ],
+            [
+              88.8,
+              21.8
+            ],
+            [
+              88.8,
+              21.75
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0516",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.72,
+        "flood_index": 0.65,
+        "predicted_flooded": true,
+        "susceptibility_flagged": true,
+        "observed_flooded": false,
+        "status": "fp",
+        "elevation_m": 2.91,
+        "dist_to_coast_km": 25.02
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0517",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.85,
+              21.75
+            ],
+            [
+              88.9,
+              21.75
+            ],
+            [
+              88.9,
+              21.8
+            ],
+            [
+              88.85,
+              21.8
+            ],
+            [
+              88.85,
+              21.75
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0517",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.61,
+        "flood_index": 0.65,
+        "predicted_flooded": true,
+        "susceptibility_flagged": true,
+        "observed_flooded": false,
+        "status": "fp",
+        "elevation_m": 3.02,
+        "dist_to_coast_km": 25.02
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0518",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.9,
+              21.75
+            ],
+            [
+              88.95,
+              21.75
+            ],
+            [
+              88.95,
+              21.8
+            ],
+            [
+              88.9,
+              21.8
+            ],
+            [
+              88.9,
+              21.75
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0518",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.35,
+        "flood_index": 0.6,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 3.75,
+        "dist_to_coast_km": 25.02
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0519",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.95,
+              21.75
+            ],
+            [
+              89.0,
+              21.75
+            ],
+            [
+              89.0,
+              21.8
+            ],
+            [
+              88.95,
+              21.8
+            ],
+            [
+              88.95,
+              21.75
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0519",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.0,
+        "flood_index": 0.47,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 4.93,
+        "dist_to_coast_km": 25.02
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0520",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              89.0,
+              21.75
+            ],
+            [
+              89.05,
+              21.75
+            ],
+            [
+              89.05,
+              21.8
+            ],
+            [
+              89.0,
+              21.8
+            ],
+            [
+              89.0,
+              21.75
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0520",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.54,
+        "flood_index": 0.69,
+        "predicted_flooded": true,
+        "susceptibility_flagged": true,
+        "observed_flooded": false,
+        "status": "fp",
+        "elevation_m": 2.44,
+        "dist_to_coast_km": 25.02
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0612",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.6,
+              21.8
+            ],
+            [
+              88.65,
+              21.8
+            ],
+            [
+              88.65,
+              21.85
+            ],
+            [
+              88.6,
+              21.85
+            ],
+            [
+              88.6,
+              21.8
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0612",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 1.04,
+        "flood_index": 0.57,
+        "predicted_flooded": true,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "fp",
+        "elevation_m": 2.55,
+        "dist_to_coast_km": 30.58
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0613",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.65,
+              21.8
+            ],
+            [
+              88.7,
+              21.8
+            ],
+            [
+              88.7,
+              21.85
+            ],
+            [
+              88.65,
+              21.85
+            ],
+            [
+              88.65,
+              21.8
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0613",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 1.56,
+        "flood_index": 0.81,
+        "predicted_flooded": true,
+        "susceptibility_flagged": true,
+        "observed_flooded": false,
+        "status": "fp",
+        "elevation_m": 0.04,
+        "dist_to_coast_km": 30.58
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0614",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.7,
+              21.8
+            ],
+            [
+              88.75,
+              21.8
+            ],
+            [
+              88.75,
+              21.85
+            ],
+            [
+              88.7,
+              21.85
+            ],
+            [
+              88.7,
+              21.8
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0614",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.67,
+        "flood_index": 0.52,
+        "predicted_flooded": true,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "fp",
+        "elevation_m": 3.23,
+        "dist_to_coast_km": 30.58
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0615",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.75,
+              21.8
+            ],
+            [
+              88.8,
+              21.8
+            ],
+            [
+              88.8,
+              21.85
+            ],
+            [
+              88.75,
+              21.85
+            ],
+            [
+              88.75,
+              21.8
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0615",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.62,
+        "flood_index": 0.61,
+        "predicted_flooded": true,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "fp",
+        "elevation_m": 3.03,
+        "dist_to_coast_km": 30.58
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0616",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.8,
+              21.8
+            ],
+            [
+              88.85,
+              21.8
+            ],
+            [
+              88.85,
+              21.85
+            ],
+            [
+              88.8,
+              21.85
+            ],
+            [
+              88.8,
+              21.8
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0616",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.67,
+        "flood_index": 0.68,
+        "predicted_flooded": true,
+        "susceptibility_flagged": true,
+        "observed_flooded": false,
+        "status": "fp",
+        "elevation_m": 2.5,
+        "dist_to_coast_km": 30.58
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0617",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.85,
+              21.8
+            ],
+            [
+              88.9,
+              21.8
+            ],
+            [
+              88.9,
+              21.85
+            ],
+            [
+              88.85,
+              21.85
+            ],
+            [
+              88.85,
+              21.8
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0617",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.2,
+        "flood_index": 0.5,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 4.0,
+        "dist_to_coast_km": 30.58
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0618",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.9,
+              21.8
+            ],
+            [
+              88.95,
+              21.8
+            ],
+            [
+              88.95,
+              21.85
+            ],
+            [
+              88.9,
+              21.85
+            ],
+            [
+              88.9,
+              21.8
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0618",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.17,
+        "flood_index": 0.59,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 3.82,
+        "dist_to_coast_km": 30.58
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0619",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.95,
+              21.8
+            ],
+            [
+              89.0,
+              21.8
+            ],
+            [
+              89.0,
+              21.85
+            ],
+            [
+              88.95,
+              21.85
+            ],
+            [
+              88.95,
+              21.8
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0619",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.04,
+        "flood_index": 0.5,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 4.09,
+        "dist_to_coast_km": 30.58
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0620",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              89.0,
+              21.8
+            ],
+            [
+              89.05,
+              21.8
+            ],
+            [
+              89.05,
+              21.85
+            ],
+            [
+              89.0,
+              21.85
+            ],
+            [
+              89.0,
+              21.8
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0620",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.42,
+        "flood_index": 0.69,
+        "predicted_flooded": false,
+        "susceptibility_flagged": true,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 2.34,
+        "dist_to_coast_km": 30.58
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0713",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.65,
+              21.85
+            ],
+            [
+              88.7,
+              21.85
+            ],
+            [
+              88.7,
+              21.9
+            ],
+            [
+              88.65,
+              21.9
+            ],
+            [
+              88.65,
+              21.85
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0713",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 1.38,
+        "flood_index": 0.76,
+        "predicted_flooded": true,
+        "susceptibility_flagged": true,
+        "observed_flooded": false,
+        "status": "fp",
+        "elevation_m": 0.16,
+        "dist_to_coast_km": 36.14
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0714",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.7,
+              21.85
+            ],
+            [
+              88.75,
+              21.85
+            ],
+            [
+              88.75,
+              21.9
+            ],
+            [
+              88.7,
+              21.9
+            ],
+            [
+              88.7,
+              21.85
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0714",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.46,
+        "flood_index": 0.47,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 3.43,
+        "dist_to_coast_km": 36.14
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0715",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.75,
+              21.85
+            ],
+            [
+              88.8,
+              21.85
+            ],
+            [
+              88.8,
+              21.9
+            ],
+            [
+              88.75,
+              21.9
+            ],
+            [
+              88.75,
+              21.85
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0715",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.29,
+        "flood_index": 0.49,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 3.75,
+        "dist_to_coast_km": 36.14
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0716",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.8,
+              21.85
+            ],
+            [
+              88.85,
+              21.85
+            ],
+            [
+              88.85,
+              21.9
+            ],
+            [
+              88.8,
+              21.9
+            ],
+            [
+              88.8,
+              21.85
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0716",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.52,
+        "flood_index": 0.66,
+        "predicted_flooded": true,
+        "susceptibility_flagged": true,
+        "observed_flooded": false,
+        "status": "fp",
+        "elevation_m": 2.46,
+        "dist_to_coast_km": 36.14
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0717",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.85,
+              21.85
+            ],
+            [
+              88.9,
+              21.85
+            ],
+            [
+              88.9,
+              21.9
+            ],
+            [
+              88.85,
+              21.9
+            ],
+            [
+              88.85,
+              21.85
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0717",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.14,
+        "flood_index": 0.51,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 3.68,
+        "dist_to_coast_km": 36.14
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0718",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.9,
+              21.85
+            ],
+            [
+              88.95,
+              21.85
+            ],
+            [
+              88.95,
+              21.9
+            ],
+            [
+              88.9,
+              21.9
+            ],
+            [
+              88.9,
+              21.85
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0718",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.0,
+        "flood_index": 0.48,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 4.22,
+        "dist_to_coast_km": 36.14
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0719",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.95,
+              21.85
+            ],
+            [
+              89.0,
+              21.85
+            ],
+            [
+              89.0,
+              21.9
+            ],
+            [
+              88.95,
+              21.9
+            ],
+            [
+              88.95,
+              21.85
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0719",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.04,
+        "flood_index": 0.51,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 3.53,
+        "dist_to_coast_km": 36.14
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0720",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              89.0,
+              21.85
+            ],
+            [
+              89.05,
+              21.85
+            ],
+            [
+              89.05,
+              21.9
+            ],
+            [
+              89.0,
+              21.9
+            ],
+            [
+              89.0,
+              21.85
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0720",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.38,
+        "flood_index": 0.68,
+        "predicted_flooded": false,
+        "susceptibility_flagged": true,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 1.95,
+        "dist_to_coast_km": 36.14
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0813",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.65,
+              21.9
+            ],
+            [
+              88.7,
+              21.9
+            ],
+            [
+              88.7,
+              21.95
+            ],
+            [
+              88.65,
+              21.95
+            ],
+            [
+              88.65,
+              21.9
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0813",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 1.19,
+        "flood_index": 0.7,
+        "predicted_flooded": true,
+        "susceptibility_flagged": true,
+        "observed_flooded": false,
+        "status": "fp",
+        "elevation_m": 0.32,
+        "dist_to_coast_km": 41.7
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0814",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.7,
+              21.9
+            ],
+            [
+              88.75,
+              21.9
+            ],
+            [
+              88.75,
+              21.95
+            ],
+            [
+              88.7,
+              21.95
+            ],
+            [
+              88.7,
+              21.9
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0814",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.75,
+        "flood_index": 0.65,
+        "predicted_flooded": true,
+        "susceptibility_flagged": true,
+        "observed_flooded": false,
+        "status": "fp",
+        "elevation_m": 1.68,
+        "dist_to_coast_km": 41.7
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0815",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.75,
+              21.9
+            ],
+            [
+              88.8,
+              21.9
+            ],
+            [
+              88.8,
+              21.95
+            ],
+            [
+              88.75,
+              21.95
+            ],
+            [
+              88.75,
+              21.9
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0815",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.36,
+        "flood_index": 0.53,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 2.87,
+        "dist_to_coast_km": 41.7
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0816",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.8,
+              21.9
+            ],
+            [
+              88.85,
+              21.9
+            ],
+            [
+              88.85,
+              21.95
+            ],
+            [
+              88.8,
+              21.95
+            ],
+            [
+              88.8,
+              21.9
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0816",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.3,
+        "flood_index": 0.6,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 2.79,
+        "dist_to_coast_km": 41.7
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0817",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.85,
+              21.9
+            ],
+            [
+              88.9,
+              21.9
+            ],
+            [
+              88.9,
+              21.95
+            ],
+            [
+              88.85,
+              21.95
+            ],
+            [
+              88.85,
+              21.9
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0817",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.0,
+        "flood_index": 0.37,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 5.77,
+        "dist_to_coast_km": 41.7
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0818",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.9,
+              21.9
+            ],
+            [
+              88.95,
+              21.9
+            ],
+            [
+              88.95,
+              21.95
+            ],
+            [
+              88.9,
+              21.95
+            ],
+            [
+              88.9,
+              21.9
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0818",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.17,
+        "flood_index": 0.6,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 2.75,
+        "dist_to_coast_km": 41.7
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0819",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.95,
+              21.9
+            ],
+            [
+              89.0,
+              21.9
+            ],
+            [
+              89.0,
+              21.95
+            ],
+            [
+              88.95,
+              21.95
+            ],
+            [
+              88.95,
+              21.9
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0819",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.0,
+        "flood_index": 0.57,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 3.26,
+        "dist_to_coast_km": 41.7
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0820",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              89.0,
+              21.9
+            ],
+            [
+              89.05,
+              21.9
+            ],
+            [
+              89.05,
+              21.95
+            ],
+            [
+              89.0,
+              21.95
+            ],
+            [
+              89.0,
+              21.9
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0820",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.0,
+        "flood_index": 0.52,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 3.4,
+        "dist_to_coast_km": 41.7
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0821",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              89.05,
+              21.9
+            ],
+            [
+              89.1,
+              21.9
+            ],
+            [
+              89.1,
+              21.95
+            ],
+            [
+              89.05,
+              21.95
+            ],
+            [
+              89.05,
+              21.9
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0821",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.0,
+        "flood_index": 0.58,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 3.01,
+        "dist_to_coast_km": 41.7
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0913",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.65,
+              21.95
+            ],
+            [
+              88.7,
+              21.95
+            ],
+            [
+              88.7,
+              22.0
+            ],
+            [
+              88.65,
+              22.0
+            ],
+            [
+              88.65,
+              21.95
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0913",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.0,
+        "flood_index": 0.38,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 4.7,
+        "dist_to_coast_km": 47.26
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0914",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.7,
+              21.95
+            ],
+            [
+              88.75,
+              21.95
+            ],
+            [
+              88.75,
+              22.0
+            ],
+            [
+              88.7,
+              22.0
+            ],
+            [
+              88.7,
+              21.95
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0914",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.64,
+        "flood_index": 0.65,
+        "predicted_flooded": true,
+        "susceptibility_flagged": true,
+        "observed_flooded": false,
+        "status": "fp",
+        "elevation_m": 1.52,
+        "dist_to_coast_km": 47.26
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0915",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.75,
+              21.95
+            ],
+            [
+              88.8,
+              21.95
+            ],
+            [
+              88.8,
+              22.0
+            ],
+            [
+              88.75,
+              22.0
+            ],
+            [
+              88.75,
+              21.95
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0915",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.4,
+        "flood_index": 0.61,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 2.18,
+        "dist_to_coast_km": 47.26
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0916",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.8,
+              21.95
+            ],
+            [
+              88.85,
+              21.95
+            ],
+            [
+              88.85,
+              22.0
+            ],
+            [
+              88.8,
+              22.0
+            ],
+            [
+              88.8,
+              21.95
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0916",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.08,
+        "flood_index": 0.56,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 3.12,
+        "dist_to_coast_km": 47.26
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0917",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.85,
+              21.95
+            ],
+            [
+              88.9,
+              21.95
+            ],
+            [
+              88.9,
+              22.0
+            ],
+            [
+              88.85,
+              22.0
+            ],
+            [
+              88.85,
+              21.95
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0917",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.0,
+        "flood_index": 0.38,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 5.12,
+        "dist_to_coast_km": 47.26
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0918",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.9,
+              21.95
+            ],
+            [
+              88.95,
+              21.95
+            ],
+            [
+              88.95,
+              22.0
+            ],
+            [
+              88.9,
+              22.0
+            ],
+            [
+              88.9,
+              21.95
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0918",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.11,
+        "flood_index": 0.63,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 2.52,
+        "dist_to_coast_km": 47.26
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0919",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.95,
+              21.95
+            ],
+            [
+              89.0,
+              21.95
+            ],
+            [
+              89.0,
+              22.0
+            ],
+            [
+              88.95,
+              22.0
+            ],
+            [
+              88.95,
+              21.95
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0919",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.0,
+        "flood_index": 0.41,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 4.4,
+        "dist_to_coast_km": 47.26
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0920",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              89.0,
+              21.95
+            ],
+            [
+              89.05,
+              21.95
+            ],
+            [
+              89.05,
+              22.0
+            ],
+            [
+              89.0,
+              22.0
+            ],
+            [
+              89.0,
+              21.95
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0920",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.0,
+        "flood_index": 0.39,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 4.96,
+        "dist_to_coast_km": 47.26
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c0921",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              89.05,
+              21.95
+            ],
+            [
+              89.1,
+              21.95
+            ],
+            [
+              89.1,
+              22.0
+            ],
+            [
+              89.05,
+              22.0
+            ],
+            [
+              89.05,
+              21.95
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c0921",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.0,
+        "flood_index": 0.53,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 3.64,
+        "dist_to_coast_km": 47.26
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c1014",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.7,
+              22.0
+            ],
+            [
+              88.75,
+              22.0
+            ],
+            [
+              88.75,
+              22.05
+            ],
+            [
+              88.7,
+              22.05
+            ],
+            [
+              88.7,
+              22.0
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c1014",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.34,
+        "flood_index": 0.63,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 2.16,
+        "dist_to_coast_km": 52.82
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c1015",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.75,
+              22.0
+            ],
+            [
+              88.8,
+              22.0
+            ],
+            [
+              88.8,
+              22.05
+            ],
+            [
+              88.75,
+              22.05
+            ],
+            [
+              88.75,
+              22.0
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c1015",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.09,
+        "flood_index": 0.54,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 2.84,
+        "dist_to_coast_km": 52.82
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c1016",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.8,
+              22.0
+            ],
+            [
+              88.85,
+              22.0
+            ],
+            [
+              88.85,
+              22.05
+            ],
+            [
+              88.8,
+              22.05
+            ],
+            [
+              88.8,
+              22.0
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c1016",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.01,
+        "flood_index": 0.57,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 2.91,
+        "dist_to_coast_km": 52.82
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c1017",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.85,
+              22.0
+            ],
+            [
+              88.9,
+              22.0
+            ],
+            [
+              88.9,
+              22.05
+            ],
+            [
+              88.85,
+              22.05
+            ],
+            [
+              88.85,
+              22.0
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c1017",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.0,
+        "flood_index": 0.51,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 3.71,
+        "dist_to_coast_km": 52.82
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c1018",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.9,
+              22.0
+            ],
+            [
+              88.95,
+              22.0
+            ],
+            [
+              88.95,
+              22.05
+            ],
+            [
+              88.9,
+              22.05
+            ],
+            [
+              88.9,
+              22.0
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c1018",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.0,
+        "flood_index": 0.59,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 2.85,
+        "dist_to_coast_km": 52.82
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c1019",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.95,
+              22.0
+            ],
+            [
+              89.0,
+              22.0
+            ],
+            [
+              89.0,
+              22.05
+            ],
+            [
+              88.95,
+              22.05
+            ],
+            [
+              88.95,
+              22.0
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c1019",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.0,
+        "flood_index": 0.37,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 5.11,
+        "dist_to_coast_km": 52.82
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c1020",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              89.0,
+              22.0
+            ],
+            [
+              89.05,
+              22.0
+            ],
+            [
+              89.05,
+              22.05
+            ],
+            [
+              89.0,
+              22.05
+            ],
+            [
+              89.0,
+              22.0
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c1020",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.0,
+        "flood_index": 0.36,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 5.11,
+        "dist_to_coast_km": 52.82
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c1021",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              89.05,
+              22.0
+            ],
+            [
+              89.1,
+              22.0
+            ],
+            [
+              89.1,
+              22.05
+            ],
+            [
+              89.05,
+              22.05
+            ],
+            [
+              89.05,
+              22.0
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c1021",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.0,
+        "flood_index": 0.61,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 2.26,
+        "dist_to_coast_km": 52.82
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c1114",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.7,
+              22.05
+            ],
+            [
+              88.75,
+              22.05
+            ],
+            [
+              88.75,
+              22.1
+            ],
+            [
+              88.7,
+              22.1
+            ],
+            [
+              88.7,
+              22.05
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c1114",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.19,
+        "flood_index": 0.6,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 2.18,
+        "dist_to_coast_km": 58.38
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c1115",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.75,
+              22.05
+            ],
+            [
+              88.8,
+              22.05
+            ],
+            [
+              88.8,
+              22.1
+            ],
+            [
+              88.75,
+              22.1
+            ],
+            [
+              88.75,
+              22.05
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c1115",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.0,
+        "flood_index": 0.36,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 4.66,
+        "dist_to_coast_km": 58.38
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c1116",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.8,
+              22.05
+            ],
+            [
+              88.85,
+              22.05
+            ],
+            [
+              88.85,
+              22.1
+            ],
+            [
+              88.8,
+              22.1
+            ],
+            [
+              88.8,
+              22.05
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c1116",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.0,
+        "flood_index": 0.36,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 5.3,
+        "dist_to_coast_km": 58.38
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c1117",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.85,
+              22.05
+            ],
+            [
+              88.9,
+              22.05
+            ],
+            [
+              88.9,
+              22.1
+            ],
+            [
+              88.85,
+              22.1
+            ],
+            [
+              88.85,
+              22.05
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c1117",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.0,
+        "flood_index": 0.37,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 4.74,
+        "dist_to_coast_km": 58.38
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c1118",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.9,
+              22.05
+            ],
+            [
+              88.95,
+              22.05
+            ],
+            [
+              88.95,
+              22.1
+            ],
+            [
+              88.9,
+              22.1
+            ],
+            [
+              88.9,
+              22.05
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c1118",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.0,
+        "flood_index": 0.56,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 3.3,
+        "dist_to_coast_km": 58.38
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c1119",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.95,
+              22.05
+            ],
+            [
+              89.0,
+              22.05
+            ],
+            [
+              89.0,
+              22.1
+            ],
+            [
+              88.95,
+              22.1
+            ],
+            [
+              88.95,
+              22.05
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c1119",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.0,
+        "flood_index": 0.48,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 4.08,
+        "dist_to_coast_km": 58.38
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c1120",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              89.0,
+              22.05
+            ],
+            [
+              89.05,
+              22.05
+            ],
+            [
+              89.05,
+              22.1
+            ],
+            [
+              89.0,
+              22.1
+            ],
+            [
+              89.0,
+              22.05
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c1120",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.0,
+        "flood_index": 0.51,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 3.75,
+        "dist_to_coast_km": 58.38
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c1214",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.7,
+              22.1
+            ],
+            [
+              88.75,
+              22.1
+            ],
+            [
+              88.75,
+              22.15
+            ],
+            [
+              88.7,
+              22.15
+            ],
+            [
+              88.7,
+              22.1
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c1214",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.0,
+        "flood_index": 0.56,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 2.69,
+        "dist_to_coast_km": 63.94
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c1215",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.75,
+              22.1
+            ],
+            [
+              88.8,
+              22.1
+            ],
+            [
+              88.8,
+              22.15
+            ],
+            [
+              88.75,
+              22.15
+            ],
+            [
+              88.75,
+              22.1
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c1215",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.0,
+        "flood_index": 0.48,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 3.71,
+        "dist_to_coast_km": 63.94
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c1216",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.8,
+              22.1
+            ],
+            [
+              88.85,
+              22.1
+            ],
+            [
+              88.85,
+              22.15
+            ],
+            [
+              88.8,
+              22.15
+            ],
+            [
+              88.8,
+              22.1
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c1216",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.0,
+        "flood_index": 0.42,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 4.21,
+        "dist_to_coast_km": 63.94
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c1217",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.85,
+              22.1
+            ],
+            [
+              88.9,
+              22.1
+            ],
+            [
+              88.9,
+              22.15
+            ],
+            [
+              88.85,
+              22.15
+            ],
+            [
+              88.85,
+              22.1
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c1217",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.0,
+        "flood_index": 0.54,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 3.34,
+        "dist_to_coast_km": 63.94
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c1218",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.9,
+              22.1
+            ],
+            [
+              88.95,
+              22.1
+            ],
+            [
+              88.95,
+              22.15
+            ],
+            [
+              88.9,
+              22.15
+            ],
+            [
+              88.9,
+              22.1
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c1218",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.0,
+        "flood_index": 0.43,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 4.1,
+        "dist_to_coast_km": 63.94
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c1219",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.95,
+              22.1
+            ],
+            [
+              89.0,
+              22.1
+            ],
+            [
+              89.0,
+              22.15
+            ],
+            [
+              88.95,
+              22.15
+            ],
+            [
+              88.95,
+              22.1
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c1219",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.0,
+        "flood_index": 0.4,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 4.56,
+        "dist_to_coast_km": 63.94
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c1220",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              89.0,
+              22.1
+            ],
+            [
+              89.05,
+              22.1
+            ],
+            [
+              89.05,
+              22.15
+            ],
+            [
+              89.0,
+              22.15
+            ],
+            [
+              89.0,
+              22.1
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c1220",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.0,
+        "flood_index": 0.39,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 4.38,
+        "dist_to_coast_km": 63.94
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c1221",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              89.05,
+              22.1
+            ],
+            [
+              89.1,
+              22.1
+            ],
+            [
+              89.1,
+              22.15
+            ],
+            [
+              89.05,
+              22.15
+            ],
+            [
+              89.05,
+              22.1
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c1221",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.0,
+        "flood_index": 0.58,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 2.62,
+        "dist_to_coast_km": 63.94
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c1315",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.75,
+              22.15
+            ],
+            [
+              88.8,
+              22.15
+            ],
+            [
+              88.8,
+              22.2
+            ],
+            [
+              88.75,
+              22.2
+            ],
+            [
+              88.75,
+              22.15
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c1315",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.0,
+        "flood_index": 0.53,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 3.25,
+        "dist_to_coast_km": 69.5
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c1316",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.8,
+              22.15
+            ],
+            [
+              88.85,
+              22.15
+            ],
+            [
+              88.85,
+              22.2
+            ],
+            [
+              88.8,
+              22.2
+            ],
+            [
+              88.8,
+              22.15
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c1316",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.0,
+        "flood_index": 0.46,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 3.78,
+        "dist_to_coast_km": 69.5
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c1317",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.85,
+              22.15
+            ],
+            [
+              88.9,
+              22.15
+            ],
+            [
+              88.9,
+              22.2
+            ],
+            [
+              88.85,
+              22.2
+            ],
+            [
+              88.85,
+              22.15
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c1317",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.0,
+        "flood_index": 0.56,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 3.03,
+        "dist_to_coast_km": 69.5
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c1318",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.9,
+              22.15
+            ],
+            [
+              88.95,
+              22.15
+            ],
+            [
+              88.95,
+              22.2
+            ],
+            [
+              88.9,
+              22.2
+            ],
+            [
+              88.9,
+              22.15
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c1318",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.0,
+        "flood_index": 0.43,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 3.67,
+        "dist_to_coast_km": 69.5
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c1319",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.95,
+              22.15
+            ],
+            [
+              89.0,
+              22.15
+            ],
+            [
+              89.0,
+              22.2
+            ],
+            [
+              88.95,
+              22.2
+            ],
+            [
+              88.95,
+              22.15
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c1319",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.0,
+        "flood_index": 0.38,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 4.19,
+        "dist_to_coast_km": 69.5
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c1320",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              89.0,
+              22.15
+            ],
+            [
+              89.05,
+              22.15
+            ],
+            [
+              89.05,
+              22.2
+            ],
+            [
+              89.0,
+              22.2
+            ],
+            [
+              89.0,
+              22.15
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c1320",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.0,
+        "flood_index": 0.4,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 3.87,
+        "dist_to_coast_km": 69.5
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c1415",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.75,
+              22.2
+            ],
+            [
+              88.8,
+              22.2
+            ],
+            [
+              88.8,
+              22.25
+            ],
+            [
+              88.75,
+              22.25
+            ],
+            [
+              88.75,
+              22.2
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c1415",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.0,
+        "flood_index": 0.36,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 4.58,
+        "dist_to_coast_km": 75.06
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c1416",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.8,
+              22.2
+            ],
+            [
+              88.85,
+              22.2
+            ],
+            [
+              88.85,
+              22.25
+            ],
+            [
+              88.8,
+              22.25
+            ],
+            [
+              88.8,
+              22.2
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c1416",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.0,
+        "flood_index": 0.4,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 4.05,
+        "dist_to_coast_km": 75.06
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c1417",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.85,
+              22.2
+            ],
+            [
+              88.9,
+              22.2
+            ],
+            [
+              88.9,
+              22.25
+            ],
+            [
+              88.85,
+              22.25
+            ],
+            [
+              88.85,
+              22.2
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c1417",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.0,
+        "flood_index": 0.48,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 3.29,
+        "dist_to_coast_km": 75.06
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c1418",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.9,
+              22.2
+            ],
+            [
+              88.95,
+              22.2
+            ],
+            [
+              88.95,
+              22.25
+            ],
+            [
+              88.9,
+              22.25
+            ],
+            [
+              88.9,
+              22.2
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c1418",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.0,
+        "flood_index": 0.51,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 2.85,
+        "dist_to_coast_km": 75.06
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c1419",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.95,
+              22.2
+            ],
+            [
+              89.0,
+              22.2
+            ],
+            [
+              89.0,
+              22.25
+            ],
+            [
+              88.95,
+              22.25
+            ],
+            [
+              88.95,
+              22.2
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c1419",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.0,
+        "flood_index": 0.61,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 1.7,
+        "dist_to_coast_km": 75.06
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c1515",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.75,
+              22.25
+            ],
+            [
+              88.8,
+              22.25
+            ],
+            [
+              88.8,
+              22.3
+            ],
+            [
+              88.75,
+              22.3
+            ],
+            [
+              88.75,
+              22.25
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c1515",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.0,
+        "flood_index": 0.36,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 4.31,
+        "dist_to_coast_km": 80.62
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c1516",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.8,
+              22.25
+            ],
+            [
+              88.85,
+              22.25
+            ],
+            [
+              88.85,
+              22.3
+            ],
+            [
+              88.8,
+              22.3
+            ],
+            [
+              88.8,
+              22.25
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c1516",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.0,
+        "flood_index": 0.45,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 3.65,
+        "dist_to_coast_km": 80.62
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c1517",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.85,
+              22.25
+            ],
+            [
+              88.9,
+              22.25
+            ],
+            [
+              88.9,
+              22.3
+            ],
+            [
+              88.85,
+              22.3
+            ],
+            [
+              88.85,
+              22.25
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c1517",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.0,
+        "flood_index": 0.41,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 3.55,
+        "dist_to_coast_km": 80.62
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "val__02435__c1518",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              88.9,
+              22.25
+            ],
+            [
+              88.95,
+              22.25
+            ],
+            [
+              88.95,
+              22.3
+            ],
+            [
+              88.9,
+              22.3
+            ],
+            [
+              88.9,
+              22.25
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "c1518",
+        "block_name": "Gosaba",
+        "block_code": "02435",
+        "surge_depth_m": 0.0,
+        "flood_index": 0.53,
+        "predicted_flooded": false,
+        "susceptibility_flagged": false,
+        "observed_flooded": false,
+        "status": "tn",
+        "elevation_m": 2.47,
+        "dist_to_coast_km": 80.62
+      }
+    }
+  ]
+}
