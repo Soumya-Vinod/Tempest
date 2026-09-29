@@ -9,11 +9,13 @@ import type { MapViewMode } from '../hazard'
 import { syncUnscored } from './hatch'
 import { buildRiskLayers, pickedBlock, pickedUnscored } from './layers'
 import type { RiskCardProps } from './RiskCard'
+import type { SurgeHeadlineProps } from './SurgeHeadline'
 import { DRIVER_LABEL } from './style'
 import { type RiskState, useRisk, useUnscoredAreas } from './useRisk'
 
 export { default as RiskCard } from './RiskCard'
 export { default as RiskPanel } from './RiskPanel'
+export { default as SurgeHeadline, type SurgeHeadlineProps } from './SurgeHeadline'
 
 type TooltipContent = ReturnType<NonNullable<DeckProps['getTooltip']>>
 
@@ -46,6 +48,8 @@ export interface RiskMap {
   onMapLoad: (map: MapLibreMap) => void
   panel: { visible: boolean; state: RiskState }
   card: RiskCardProps
+  /** District people-in-surge headline (v1.3), for the current horizon. */
+  surge: SurgeHeadlineProps
 }
 
 /**
@@ -132,6 +136,7 @@ export function useRiskMap(
     blocks,
     onMapLoad: setMap,
     panel: { visible, state },
-    card: { timestepIndex, selected, breakdown, onClose: clear },
+    card: { timestepIndex, selected, breakdown, horizon, onClose: clear },
+    surge: { total: shown?.breakdown?.surge_population_total ?? null, horizon },
   }
 }

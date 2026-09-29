@@ -190,6 +190,22 @@ fragments join the network only through minor roads outside the ingest's road cl
 - A feature not reachable from the main component at baseline is **never** marked `isolated`; the
   impact engine leaves it to the baseline flag instead, so hazard isolation is not overstated.
 
+**Action countdown** (*v1.3 change, pending Dev A*): per replay timestep, derived from the
+ImpactResults at both horizons. `ActionCountdown = { timestep, horizon_h: Horizon (24), expected:
+CountdownFacility[], cut_off: CountdownFacility[], key_moments: KeyMoment[] }`.
+- `expected`: facilities `isolated` at horizon 24 but not at horizon 0, soonest first by
+  `hours_remaining` (hours until they are first `isolated` at horizon 0; null if never later in
+  the replay, listed last), then by name.
+- `cut_off`: facilities `isolated` at horizon 0, by `since` (the first timestep of the current
+  unbroken isolation), then by name.
+- `CountdownFacility = { infra_id, name, infra_type: InfraType, cause: string, cut_infra_id:
+  string | null, cut_name: string | null, hours_remaining?: int | null, since?: Timestep | null }`.
+  `cause` is plain words from the isolating hazard and the first cut link on the usual route:
+  `"ferry suspended by wind"` or `"road cut by <hazard_type>"`.
+- `KeyMoment = { kind, timestep: Timestep | null, label: string }`, `kind` one of
+  `first_alert` (the first advisory suggestion, by the rule in §4.5), `first_expected_isolation`, `first_actual_isolation`, `landfall`, in that
+  order; the same at every timestep. `timestep` is null if it never happens.
+
 ### 4.4 RiskScore (Dev B)
 One feature per block per timestep. A block is a Census 2011 CD block or, if block boundaries
 aren't available, an H3 resolution-7 cell. Geometry: block `Polygon | MultiPolygon`.
@@ -214,10 +230,15 @@ label: string, area_km2: number }`, with `label` "Municipal area, not scored".
 **Risk breakdown** *(added in v1.1)*: the parts behind each block's score, for
 explaining it. `RiskBreakdown = { timestep, blocks: RiskBlockBreakdown[], horizon_h }` (`horizon_h`:
 *v1.3 change, pending Dev A*) with
-`RiskBlockBreakdown = { block_id, block_name, population_2011: int, hospital_travel_min:
+`RiskBlockBreakdown = { block_id, block_name, population_2011: int, surge_population: int (*v1.3
+change, pending Dev A*), hospital_travel_min:
 number | null, reach: RiskReach, hazard: { surge, wind, flood }, exposure: { isolated_facilities, cut_roads,
 cut_substations }, vulnerability: { population_density, hospital_access, low_literacy,
-mapped_shelters } }`; every part is a float in [0, 1]. `hospital_travel_min` is null when no
+mapped_shelters } }`; every part is a float in [0, 1]. *v1.3 change, pending Dev A:*
+`surge_population` is an estimate of the people in areas with surge ≥ 0.3 m:
+`round(population_2011 × hazard.surge)`, i.e. the 2011 population spread evenly over the block's
+inhabited land (at horizon 24, the worst case over the next 24 h); `RiskBreakdown` adds
+`surge_population_total: int`, the sum over the blocks. `hospital_travel_min` is null when no
 road node in the block reaches a hospital. `RiskReach` is `direct` (the cyclone reaches the block
 through hazard on its land) or `cut_off` (it reaches it by cutting it off, i.e. through exposure):
 which of the two scaled the score.
@@ -266,8 +287,18 @@ replay]`, `[মহড়া: ঘূর্ণিঝড় আমফান ২০�
 at: ISO datetime, details: string | null }`. `advisory_id` is null for a generation that produced
 no advisory (its draft failed the checks); `details` is JSON text.
 
-`AdvisorySuggestions = { timestep, threshold: float, blocks: { block_id, block_name, score }[] }`
-(*added in v1.2*): the blocks at or above the suggestion threshold (0.25), highest first.
+`AdvisorySuggestions = { timestep, threshold: float, blocks: { block_id, block_name, score,
+reasons: SuggestionReason[] }[] }` (*added in v1.2*): the suggested blocks, highest score first,
+then by name. *v1.3 change, pending Dev A:* a block is suggested when, on the expected hazard
+(horizon 24), its risk score is at or above `threshold` (0.25) **or** a hospital or shelter inside
+it is `isolated` in the horizon-24 impact results (expected to be cut off within 24 h, including
+already cut off). Facilities whose name matches the hospital-access exclusions (nursing homes,
+diagnostic centres, clinics, eye / dental / maternity; government hospitals always count) are no
+reason, and are not listed in the advisory facts; they stay in the impact results.
+`SuggestionReason = { kind: "risk" | "expected_cut_off", label: string, infra_id: string | null }`,
+at least one per block: the risk first (`"risk 0.28"`), then one per facility by name
+(`"Frasergunj PHC expected to be cut off"`, with its `infra_id`). The action countdown's
+`first_alert` key moment (§4.3) uses the same rule.
 
 ### 4.6 TriggerEvent (Dev B)
 One feature per insurance zone per timestep. Geometry: zone `Polygon | MultiPolygon`.
@@ -353,6 +384,7 @@ stated; `timestep=live` returns `501` in v1.1. FC = FeatureCollection.
 | A | GET | `/api/hazard/layers` | `hazard_type: HazardType`, `timestep` | FC&lt;HazardLayer&gt; |
 | B | GET | `/api/exposure/infra` | `infra_type?: InfraType` | FC&lt;InfraFeature&gt; (not time-dependent) |
 | B | GET | `/api/impact/results` | `timestep`, `hazard_type?`, `status?: ImpactStatus`, `horizon?: 0 \| 24` (*v1.3 change, pending Dev A*; other values `422`) | FC&lt;ImpactResult&gt; |
+| B | GET | `/api/impact/countdown` | `timestep` | ActionCountdown (§4.3). *v1.3 change, pending Dev A* |
 | B | GET | `/api/risk/scores` | `timestep`, `horizon?: 0 \| 24` (*v1.3 change, pending Dev A*) | FC&lt;RiskScore&gt; |
 | B | GET | `/api/risk/breakdown` | `timestep`, `horizon?: 0 \| 24` (*v1.3 change, pending Dev A*) | RiskBreakdown. *added in v1.1.* |
 | B | GET | `/api/risk/unscored-areas` | — | FC&lt;UnscoredArea&gt; (static; live from reference data, DEMO_MODE from the `unscored-areas` fixture). *added in v1.1.* |
@@ -421,6 +453,7 @@ the schema listed here, and fails on any route resource not in this table.
 | `GET /api/hazard/layers` | `layers-<hazard_type>` | yes | FC&lt;HazardLayer&gt; |
 | `GET /api/exposure/infra` | `infra-<infra_type>`, one per type. Unfiltered: no fixture of its own; composed from the per-type files *(added in v0.9)* | no | FC&lt;InfraFeature&gt; |
 | `GET /api/impact/results` | `results`, or `results-<filter>` with `[a-z0-9-]` filter values | yes | FC&lt;ImpactResult&gt; |
+| `GET /api/impact/countdown` | `countdown`, one file for the whole replay (see below) *(v1.3 change, pending Dev A)* | no | ActionCountdown per timestep |
 | `GET /api/risk/scores` | `scores` | yes | FC&lt;RiskScore&gt; |
 | `GET /api/risk/breakdown` | `breakdown` *(added in v1.1)* | yes | RiskBreakdown |
 | `GET /api/risk/unscored-areas` | `unscored-areas` *(added in v1.1)* | no | FC&lt;UnscoredArea&gt; |
@@ -439,6 +472,7 @@ hazard__gee-flood-susceptibility.json
 exposure__infra-power-line.json
 exposure__overpass-substations.json
 impact__results__20200519T0000Z.json
+impact__countdown.json *(v1.3 change, pending Dev A)*
 risk__scores__20200520T1200Z.json
 advisory__gemini-<census_code>__20200520T1200Z.json *(added in v1.2)*
 insurance__triggers__20200520T1200Z.json
@@ -458,6 +492,10 @@ type not present, so the response is exactly the full contract collection.
 geometry back from the block reference file (`api/data/reference/s24p_blocks.geojson`), so the
 response is exactly the full contract collection. `risk__breakdown__<ts>` has no geometry and is
 stored as is.
+*Exception (v1.3 change, pending Dev A):* `impact__countdown` holds the whole replay:
+`{ key_moments: KeyMoment[], timesteps: { <Timestep>: { expected, cut_off } } }`. The route
+returns one timestep's entry with `timestep`, `horizon_h` and the shared `key_moments`. It is
+built from the committed impact and risk fixtures by `api/scripts/build_countdown_fixture.py`.
 *Exception (added in v1.2):* `insurance__triggers__<ts>` stores each TriggerEvent
 without its `geometry`, which the route adds back from the same block reference file, as for
 `risk__scores__<ts>`.

@@ -45,16 +45,23 @@ WHAT TO SAY:
   landfall. There are no model scores in the list; do not describe a risk score or index.
 - Tense: an isolated facility is already cut off now. Describe it in the present or past tense
   and write actions for the situation as it stands (e.g. "support the cut-off health centre by
-  boat"), never "before it is disrupted" or "while routes are open". Only things at risk may be
-  described as threatened.
+  boat"), never "before it is disrupted", "while routes are open" or "before road routes become
+  impassable": for a facility that is already cut off, its roads are already impassable. Only
+  things at risk may be described as threatened.
+- Time to landfall: {{hours_to_landfall}} is only the time until the cyclone makes landfall.
+  Never use it as the time until something is cut off; for that, use the facility's own
+  {{expected_<n>_hours}}.
+- Road times: the "Normal road time to next hospital" figures are road travel times in normal
+  conditions, before the storm. Never describe them as current travel times, and never as boat
+  times.
 - Expected: a facility listed as expected_<n> is NOT cut off yet; it is expected to be cut off
   within the next 24 h (a forecast). Describe it as expected to be cut off within
   {{expected_<n>_hours}}, with its cause ({{expected_<n>_cause}}), and write preparatory actions
   for it (e.g. "move patients from {{expected_1_name}} before the ferry stops"). Keep it
   separate from the facilities already cut off.
-- Shelters: if the message says the block has no mapped stand-in shelters, do not tell people
-  to go to shelters or "safe centres"; include an action, citing {{standin_count}}, saying there
-  are no mapped shelters and safe buildings must be identified locally.
+- Shelters: if the message says the block has no mapped stand-in shelters, do not write any
+  shelter action and do not tell people to go to shelters or "safe centres": the server adds a
+  fixed action about it. Write at most four actions then.
 - In Bengali and Hindi, words for "both" (দুটি, দুই, दोनों) are number words: name the
   facilities with their placeholders, or write "each of these", instead.
 
@@ -65,9 +72,9 @@ be natural, formal language, not word-for-word translations. Do not add a title 
 
 
 NO_SHELTERS = (
-    "This block has NO mapped stand-in shelters ({{standin_count}} is 0): do not tell people to "
-    "go to shelters or safe centres; include an action, citing {{standin_count}}, saying there "
-    "are no mapped shelters and safe buildings must be identified locally.\n"
+    "This block has NO mapped stand-in shelters: do not write any shelter action and do not tell "
+    "people to go to shelters or safe centres. The server adds a fixed action about it, so write "
+    "at most four actions.\n"
 )
 
 

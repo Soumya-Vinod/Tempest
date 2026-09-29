@@ -1,0 +1,44 @@
+{
+ "en": {
+  "headline": "Urgent action required in Namkhana block",
+  "body": "Storm surge of {{peak_surge_m}} and wind of {{peak_wind_ms}} are impacting the block. Three health facilities are already isolated by flooded roads, making access to care difficult. No designated stand‑in shelters are mapped for this block.",
+  "actions": [
+   "Deploy boats and medical teams to reach {{isolated_1_name}} and {{isolated_2_name}} and {{isolated_3_name}} while routes are flooded.",
+   "Transfer patients from {{isolated_1_name}} to the next available hospital within {{isolated_1_next_hospital_min}} minutes by boat.",
+   "Transfer patients from {{isolated_2_name}} to the next available hospital within {{isolated_2_next_hospital_min}} minutes by boat.",
+   "Transfer patients from {{isolated_3_name}} to the next available hospital within {{isolated_3_next_hospital_min}} minutes by boat.",
+   "Since {{standin_count}} stand‑in shelters are mapped, identify and designate safe buildings locally for sheltering."
+  ]
+ },
+ "bn": {
+  "headline": "নামখানা ব্লকে জরুরি পদক্ষেপের প্রয়োজন",
+  "body": "বন্যার জোয়ারের উচ্চতা {{peak_surge_m}} এবং বাতাসের গতি {{peak_wind_ms}} ব্লকে প্রভাব ফেলছে। {{isolated_count}}টি স্বাস্থ্যসেবা প্রতিষ্ঠান ইতোমধ্যে স্রোতে ভাসা রাস্তায় বিচ্ছিন্ন হয়েছে, ফলে চিকিৎসা সেবা কঠিন হচ্ছে। এই ব্লকে কোনো নির্ধারিত বিকল্প শেল্টার নেই।",
+  "actions": [
+   "{{isolated_1_name}} এবং {{isolated_2_name}} এবং {{isolated_3_name}}‑এ পৌঁছাতে নৌকা ও মেডিকেল দল মোতায়েন করুন।",
+   "{{isolated_1_name}}‑এর রোগীদের নৌকার মাধ্যমে পরবর্তী হাসপাতালে {{isolated_1_next_hospital_min}} মিনিটের মধ্যে স্থানান্তর করুন।",
+   "{{isolated_2_name}}‑এর রোগীদের নৌকার মাধ্যমে পরবর্তী হাসপাতালে {{isolated_2_next_hospital_min}} মিনিটের মধ্যে স্থানান্তর করুন।",
+   "{{isolated_3_name}}‑এর রোগীদের নৌকার মাধ্যমে পরবর্তী হাসপাতালে {{isolated_3_next_hospital_min}} মিনিটের মধ্যে স্থানান্তর করুন।",
+   "{{standin_count}}টি নির্ধারিত বিকল্প শেল্টার না থাকায়, স্থানীয়ভাবে নিরাপদ ভবন সনাক্ত ও শেল্টার হিসেবে ব্যবহার করুন।"
+  ]
+ },
+ "hi": {
+  "headline": "नामखाना ब्लॉक में त्वरित कार्रवाई आवश्यक",
+  "body": "समुद्रजल के उछाल {{peak_surge_m}} और हवा की गति {{peak_wind_ms}} ब्लॉक को प्रभावित कर रहे हैं। {{isolated_count}} स्वास्थ्य सुविधाएँ वर्तमान में बाढ़‑ग्रस्त सड़कों से अलग हो गई हैं, जिससे इलाज मुश्किल हो रहा है। इस ब्लॉक में कोई निर्धारित आकस्मिक आश्रय नहीं हैं।",
+  "actions": [
+   "{{isolated_1_name}} और {{isolated_2_name}} और {{isolated_3_name}} तक पहुंचने के लिए नावें और चिकित्सा दल तैनात करें।",
+   "{{isolated_1_name}} के रोगियों को नाव के माध्यम से अगले अस्पताल में {{isolated_1_next_hospital_min}} मिनट के भीतर ले जाएँ।",
+   "{{isolated_2_name}} के रोगियों को नाव के माध्यम से अगले अस्पताल में {{isolated_2_next_hospital_min}} मिनट के भीतर ले जाएँ।",
+   "{{isolated_3_name}} के रोगियों को नाव के माध्यम से अगले अस्पताल में {{isolated_3_next_hospital_min}} मिनट के भीतर ले जाएँ।",
+   "{{standin_count}} निर्धारित आकस्मिक आश्रय न होने के कारण, स्थानीय रूप से सुरक्षित इमारतें पहचान कर आश्रय स्थल बनाएं।"
+  ]
+ },
+ "_cited_text": {
+  "isolated_1_name": "Dwariknagar Rural Hospital",
+  "isolated_2_name": "Frasergunj PHC",
+  "isolated_3_name": "Maharajganj PHC"
+ },
+ "_generated_by": {
+  "provider": "groq",
+  "model": "openai/gpt-oss-120b"
+ }
+}

@@ -5,13 +5,15 @@ import { useCallback, useMemo, useState } from 'react'
 import HealthPanel from './components/HealthPanel'
 import MapView from './components/MapView'
 import TimelineScrubber from './components/TimelineScrubber'
+import { AboutPanel } from './features/about'
 import { AdvisoryDrawer, AdvisoryPanel, useAdvisories } from './features/advisory'
+import { CountdownPanel, useCountdown } from './features/countdown'
 import { InfraPanel, infraTooltip, useInfraLayers, useInfraMap } from './features/exposure'
 import { HazardPanel, type MapViewMode, StormEdge, useHazardMap } from './features/hazard'
 import { ImpactPanel, PathwayCard, useImpactMap } from './features/impact'
 import { InsurancePanel, useInsuranceMap } from './features/insurance'
-import { RiskCard, RiskPanel, useRiskMap } from './features/risk'
-import { LANDFALL_INDEX } from './lib/constants'
+import { RiskCard, RiskPanel, SurgeHeadline, useRiskMap } from './features/risk'
+import { LANDFALL_INDEX, REPLAY_TIMESTEPS } from './lib/constants'
 import type { Horizon } from './types/contracts'
 
 export default function App() {
@@ -31,6 +33,7 @@ export default function App() {
   const risk = useRiskMap(timestepIndex, chosenView, horizon)
   const hazard = useHazardMap(timestepIndex, risk.view, setChosenView, map, horizon, setChosenHorizon)
   const insurance = useInsuranceMap(timestepIndex, risk.view === 'risk')
+  const countdown = useCountdown(REPLAY_TIMESTEPS[timestepIndex])
   // Red and orange mean impact only: exposure mutes its colours while impact results show.
   const infraLayers = useInfraLayers(infra, impact.active)
 
@@ -101,16 +104,28 @@ export default function App() {
       <StormEdge {...hazard.edge} />
       <HealthPanel>
         <HazardPanel {...hazard.panel} />
-        <InfraPanel state={infra.state} visible={infra.visible} onToggle={infra.toggle} />
+        <SurgeHeadline {...risk.surge} />
+        <CountdownPanel state={countdown.state} />
+        <InfraPanel
+          state={infra.state}
+          visible={infra.visible}
+          onToggle={infra.toggle}
+          muted={impact.active}
+        />
         <RiskPanel {...risk.panel} />
         <ImpactPanel {...impact.panel} />
         <InsurancePanel {...insurance.panel} />
         <AdvisoryPanel {...advisory.panel} />
+        <AboutPanel />
       </HealthPanel>
       <PathwayCard {...impact.card} />
       <RiskCard {...risk.card} />
       <AdvisoryDrawer {...advisory.drawer} />
-      <TimelineScrubber index={timestepIndex} onChange={setTimestepIndex} />
+      <TimelineScrubber
+        index={timestepIndex}
+        onChange={setTimestepIndex}
+        moments={countdown.moments}
+      />
     </main>
   )
 }

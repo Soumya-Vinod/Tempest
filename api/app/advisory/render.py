@@ -39,13 +39,15 @@ _EN_WORDS = (
 _EN_PLURAL = "hundred thousand lakh crore dozen".split()
 _BN_WORDS = (
     "দুই তিন চার পাঁচ ছয় সাত আট দশ এগারো বারো তেরো চোদ্দ চৌদ্দ পনেরো ষোলো সতেরো আঠারো উনিশ "
-    "বিশ কুড়ি ত্রিশ তিরিশ চল্লিশ পঞ্চাশ ষাট সত্তর আশি নব্বই শত শো একশো হাজার লাখ লক্ষ কোটি"
+    "বিশ কুড়ি ত্রিশ তিরিশ চল্লিশ পঞ্চাশ ষাট সত্তর আশি নব্বই শত শো একশো হাজার লাখ লক্ষ কোটি "
+    "শূন্য"  # zero
 ).split()
 _BN_COUNTED = "দু দুই তিন চার পাঁচ ছয় সাত আট নয় দশ".split()  # + টি / টা / টো / জন
 _BN_COUNT_SUFFIXES = ("টি", "টা", "টো", "জন")
 _HI_WORDS = (
     "दो तीन चार पाँच पांच छह छः सात आठ नौ दस ग्यारह बारह तेरह चौदह पंद्रह पन्द्रह सोलह सत्रह "
-    "अठारह उन्नीस बीस तीस चालीस पचास साठ सत्तर अस्सी नब्बे सौ हज़ार हजार लाख करोड़ करोड"
+    "अठारह उन्नीस बीस तीस चालीस पचास साठ सत्तर अस्सी नब्बे सौ हज़ार हजार लाख करोड़ करोड "
+    "शून्य"  # zero
 ).split()
 _HI_ALL = "दोनों तीनों चारों पाँचों पांचों छहों सातों आठों दसों".split()  # "both", "all three"...
 
@@ -70,6 +72,121 @@ _NUMBER_WORD_RE = {
     "bn": _words_re(NUMBER_WORDS["bn"]),
     "hi": _words_re(NUMBER_WORDS["hi"]),
 }
+
+# --- Auto-repair: a count written in words -> its count placeholder ---------------------------
+#
+# Models (Groq especially) write "two hospitals" / "দুটো হাসপাতাল" / "दोनों" although the prompt
+# says to use {{..._count}}. Before the number check, a number word whose value equals a count
+# citation of the block is replaced by that count's placeholder (any match: they render the same
+# number). A word with no matching count stays, so the check still rejects it; digits are never
+# repaired. Every repair is returned for the audit log.
+
+_EN_VALUES = {
+    **{
+        w: i
+        for i, w in enumerate(
+            "zero one two three four five six seven eight nine ten eleven twelve thirteen fourteen "
+            "fifteen sixteen seventeen eighteen nineteen twenty".split()
+        )
+    },
+    "both": 2,
+}
+_BN_BASE = {"শূন্য": 0, "দু": 2, "দুই": 2, "তিন": 3, "চার": 4, "পাঁচ": 5, "ছয়": 6, "সাত": 7,
+            "আট": 8, "নয়": 9, "দশ": 10}  # fmt: skip
+_BN_VALUES = {
+    **{w: v for w, v in _BN_BASE.items() if w not in ("দু", "নয়")},  # bare দু / নয় aren't counts
+    **{w + sfx: v for w, v in _BN_BASE.items() if v for sfx in _BN_COUNT_SUFFIXES},
+}
+_HI_VALUES = {
+    "शून्य": 0, "दो": 2, "तीन": 3, "चार": 4, "पाँच": 5, "पांच": 5, "छह": 6, "छः": 6, "सात": 7,
+    "आठ": 8, "नौ": 9, "दस": 10,
+    "दोनों": 2, "तीनों": 3, "चारों": 4, "पाँचों": 5, "पांचों": 5, "छहों": 6, "सातों": 7,
+    "आठों": 8, "दसों": 10,
+}  # fmt: skip
+REPAIR_VALUES = {"en": _EN_VALUES, "bn": _BN_VALUES, "hi": _HI_VALUES}
+_REPAIR_RE = {
+    "en": _words_re(list(_EN_VALUES), re.IGNORECASE),
+    "bn": _words_re(list(_BN_VALUES)),
+    "hi": _words_re(list(_HI_VALUES)),
+}
+# "both wind and surge": "both ... and" joins two things; it doesn't count them.
+_BOTH_AND = re.compile(r"^\s+(?:\S+\s+){0,3}and\b", re.IGNORECASE)
+
+
+@dataclass(frozen=True)
+class Repair:
+    language: str
+    field: str
+    original: str
+    placeholder: str
+
+    def as_dict(self) -> dict:
+        return {
+            "language": self.language,
+            "field": self.field,
+            "original": self.original,
+            "placeholder": self.placeholder,
+        }
+
+
+def _count_keys(citations: list[Citation]) -> dict[float, str]:
+    """Count value -> the first count key with it (citation order)."""
+    out: dict[float, str] = {}
+    for c in citations:
+        if c.key.endswith(COUNT_SUFFIX) and not isinstance(c.value, str):
+            out.setdefault(float(c.value), c.key)
+    return out
+
+
+def _repair_text(
+    text: str, language: str, counts: dict[float, str], field: str, found: list[Repair]
+) -> str:
+    values = REPAIR_VALUES[language]
+
+    def replace(m: re.Match) -> str:
+        word = m.group(0)
+        value = values[word.casefold() if language == "en" else word]
+        key = counts.get(float(value))
+        if key is None:
+            return word  # no count with this value: left for the number check to reject
+        if language == "en" and word.casefold() == "both" and _BOTH_AND.match(text[m.end() :]):
+            return word
+        placeholder = f"{{{{{key}}}}}"
+        # Bengali counted forms keep a classifier: দুটো হাসপাতাল -> {{key}}টি হাসপাতাল.
+        suffix = next((s for s in _BN_COUNT_SUFFIXES if language == "bn" and word.endswith(s)), "")
+        replacement = placeholder + ("জন" if suffix == "জন" else "টি" if suffix else "")
+        found.append(Repair(language, field, word, placeholder))
+        return replacement
+
+    # Placeholders are left alone: only the text between them is repaired.
+    parts = re.split(r"(\{\{\s*[a-z0-9_]+\s*\}\})", text)
+    return "".join(
+        part if PLACEHOLDER.fullmatch(part) else _REPAIR_RE[language].sub(replace, part)
+        for part in parts
+    )
+
+
+def repair_counts(
+    templates: AdvisoryTexts, citations: list[Citation]
+) -> tuple[AdvisoryTexts, list[Repair]]:
+    """The templates with counts written in words replaced by matching count placeholders."""
+    counts = _count_keys(citations)
+    found: list[Repair] = []
+    if not counts:
+        return templates, found
+    out = {}
+    for lang in LANGUAGES:
+        t = getattr(templates, lang)
+        out[lang] = AdvisoryText(
+            headline=_repair_text(t.headline, lang, counts, "headline", found),
+            body=_repair_text(t.body, lang, counts, "body", found),
+            actions=[
+                _repair_text(a, lang, counts, f"actions[{i}]", found)
+                for i, a in enumerate(t.actions)
+            ],
+        )
+    return (AdvisoryTexts(**out) if found else templates), found
+
 
 # --- Filling ------------------------------------------------------------------------------------
 
@@ -183,8 +300,8 @@ STANDIN_COUNT = "standin_count"
 
 def fact_problems(templates: AdvisoryTexts, citations: list[Citation]) -> list[Problem]:
     """Rules that depend on the figures: one count per statement (no sentence with two count
-    placeholders of equal value, e.g. a total and an equal subtotal), and, when the block has no
-    stand-in shelters, an action that says so by citing {{standin_count}}."""
+    placeholders of equal value, e.g. a total and an equal subtotal). (The no-shelters action is
+    added by the server: add_shelter_action.)"""
     values = {c.key: c.value for c in citations}
     problems = []
     for lang in LANGUAGES:
@@ -200,11 +317,53 @@ def fact_problems(templates: AdvisoryTexts, citations: list[Citation]) -> list[P
                     for b in counts[i + 1 :]:
                         if a in values and b in values and values[a] == values[b]:
                             problems.append(Problem(lang, field, "duplicate_count", f"{a}={b}"))
-        if values.get(STANDIN_COUNT) == 0 and not any(
-            STANDIN_COUNT in PLACEHOLDER.findall(a) for a in t.actions
-        ):
-            problems.append(Problem(lang, "actions", "missing_standin_action", STANDIN_COUNT))
     return problems
+
+
+# --- No mapped shelters: one fixed, pre-translated action, added by the server ------------------
+
+# The model is told not to write shelter actions when a block has none mapped; the server adds
+# this one to every language instead (no figures, so nothing for the number check).
+NO_SHELTERS_ACTION = {
+    "en": (
+        "No shelters are mapped in this block: identify safe concrete buildings (schools, "
+        "panchayat offices) locally before the storm."
+    ),
+    "bn": (
+        "এই ব্লকে কোনো আশ্রয়কেন্দ্র চিহ্নিত নেই: ঝড়ের আগেই স্থানীয়ভাবে নিরাপদ পাকা ভবন "
+        "(স্কুল, পঞ্চায়েত অফিস) খুঁজে বের করুন।"
+    ),
+    "hi": (
+        "इस ब्लॉक में कोई आश्रय स्थल चिह्नित नहीं है: तूफ़ान से पहले स्थानीय स्तर पर सुरक्षित "
+        "पक्की इमारतें (स्कूल, पंचायत कार्यालय) पहचानें।"
+    ),
+}
+MAX_ACTIONS = 5  # AdvisoryText: 3 to 5 actions
+
+
+def no_shelters(citations: list[Citation]) -> bool:
+    return any(c.key == STANDIN_COUNT and c.value == 0 for c in citations)
+
+
+def add_shelter_action(
+    templates: AdvisoryTexts, citations: list[Citation]
+) -> tuple[AdvisoryTexts, list[Problem]]:
+    """With no mapped shelters: the fixed action appended to every language (once). A language
+    that already has MAX_ACTIONS actions can't take it: that is a problem for a retry."""
+    if not no_shelters(citations):
+        return templates, []
+    out, problems = {}, []
+    for lang in LANGUAGES:
+        t = getattr(templates, lang)
+        action = NO_SHELTERS_ACTION[lang]
+        if action in t.actions:
+            out[lang] = t
+        elif len(t.actions) >= MAX_ACTIONS:
+            out[lang] = t
+            problems.append(Problem(lang, "actions", "too_many_actions", str(len(t.actions))))
+        else:
+            out[lang] = AdvisoryText(headline=t.headline, body=t.body, actions=[*t.actions, action])
+    return AdvisoryTexts(**out), problems
 
 
 def check(
@@ -275,14 +434,61 @@ def _starts_sentence(text: str, pos: int) -> bool:
     return not before.strip() or before.endswith(SENTENCE_END)
 
 
+# A unit the model wrote right after a placeholder that already renders one ("{{x}} minutes" ->
+# "20 min minutes"): the repeated unit word is dropped. Keyed by the citation's unit.
+_UNIT_WORDS = {
+    "min": {
+        "en": ["minutes", "minute", "mins", "min"],
+        "bn": ["মিনিট"],
+        "hi": ["मिनट"],
+    },
+    "h": {
+        "en": ["hours", "hour", "hrs", "hr", "h"],
+        "bn": ["ঘণ্টা", "ঘন্টা"],
+        "hi": ["घंटे", "घंटा", "घण्टे", "घण्टा"],
+    },
+    "km": {
+        "en": ["kilometres", "kilometre", "kilometers", "kilometer", "kms", "km"],
+        "bn": ["কিলোমিটার", "কিমি"],
+        "hi": ["किलोमीटर", "किमी"],
+    },
+    "m": {
+        "en": ["metres", "metre", "meters", "meter", "m"],
+        "bn": ["মিটার"],
+        "hi": ["मीटर"],
+    },
+    "m/s": {  # rendered as km/h
+        "en": ["km/h", "kmph", "kph", "km per hour"],
+        "bn": ["কিমি/ঘণ্টা", "কিমি/ঘন্টা", "কিলোমিটার/ঘণ্টা"],
+        "hi": ["किमी/घंटा", "किमी/घण्टा", "किलोमीटर/घंटा"],
+    },
+}
+_UNIT_RE = {
+    (unit, lang): re.compile(
+        rf"\s*(?:{'|'.join(map(re.escape, sorted(words, key=len, reverse=True)))})(?!{_LETTER})",
+        re.IGNORECASE if lang == "en" else 0,
+    )
+    for unit, by_lang in _UNIT_WORDS.items()
+    for lang, words in by_lang.items()
+}
+
+
 def fill(text: str, citations: dict[str, Citation], language: str) -> str:
-    def value(m: re.Match) -> str:
-        filled = format_value(citations[m.group(1)], language)
+    out: list[str] = []
+    pos = 0
+    for m in PLACEHOLDER.finditer(text):
+        out.append(text[pos : m.start()])
+        c = citations[m.group(1)]
+        filled = format_value(c, language)
         if language == "en" and filled and _starts_sentence(text, m.start()):
             filled = filled[0].upper() + filled[1:]
-        return filled
-
-    return PLACEHOLDER.sub(value, text)
+        out.append(filled)
+        pos = m.end()
+        repeat = _UNIT_RE.get((c.unit or "", language))
+        if repeat and not isinstance(c.value, str) and (dup := repeat.match(text, pos)):
+            pos = dup.end()
+    out.append(text[pos:])
+    return "".join(out)
 
 
 def render(templates: AdvisoryTexts, citations: list[Citation]) -> AdvisoryTexts:

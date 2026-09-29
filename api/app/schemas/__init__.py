@@ -26,6 +26,7 @@ from app.schemas.common import (
     TriggerMetric,
 )
 from app.schemas.contracts import (
+    ActionCountdown,
     Advisory,
     AdvisoryApprove,
     AdvisoryCollection,
@@ -42,6 +43,7 @@ from app.schemas.contracts import (
     AuditLog,
     ChannelResult,
     Citation,
+    CountdownFacility,
     DispatchReceipt,
     DispatchReceipts,
     DispatchRecipients,
@@ -60,6 +62,8 @@ from app.schemas.contracts import (
     InsuranceDistrictTotal,
     InsuranceSummary,
     InsuranceZoneSummary,
+    KeyMoment,
+    KeyMomentKind,
     PathwayStep,
     ReplayTimeline,
     RiskBlockBreakdown,
@@ -71,6 +75,7 @@ from app.schemas.contracts import (
     RiskScoreCollection,
     RiskScoreProperties,
     RiskVulnerabilityParts,
+    SuggestionReason,
     TelegramRecipient,
     TriggerEvent,
     TriggerEventCollection,
@@ -88,6 +93,11 @@ from app.schemas.geojson import (
 )
 
 __all__ = [
+    "SuggestionReason",
+    "ActionCountdown",
+    "CountdownFacility",
+    "KeyMoment",
+    "KeyMomentKind",
     "LANDFALL_TIMESTEP",
     "LIVE",
     "REPLAY_TIMESTEPS",

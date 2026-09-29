@@ -83,6 +83,14 @@ def is_access_hospital(name: str | None) -> bool:
     return not _EXCLUDE_RE.search(name)
 
 
+def counts_for_advisory(name: str | None) -> bool:
+    """Whether an isolated facility counts for advisories: as a suggestion reason and in the
+    advisory facts. The same exclusions as hospital access (private and specialist facilities:
+    nursing homes, diagnostic centres, clinics...; KEEP patterns win). Excluded facilities stay in
+    the impact results and on the map."""
+    return is_access_hospital(name)
+
+
 def is_access_source(infra_type: str, attributes: dict, name: str | None) -> bool:
     """A hospital access source: a facility_level "hospital" that is_access_hospital keeps.
     Shared by the risk engine and the ingest's hospital_travel_time_s."""

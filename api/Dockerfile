@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
-# Tempest API for Cloud Run. DEMO_MODE by default: every route is served from the committed
-# fixtures (data/demo) and reference files (data/reference); no data/raw or data/processed.
-# Build from api/:  docker build -t tempest-api .   (see deploy.md for Cloud Build)
+# Tempest API for Render (render.yaml). DEMO_MODE by default: every route is served from the
+# committed fixtures (data/demo) and reference files (data/reference); no data/raw or data/processed.
+# Build from api/:  docker build -t tempest-api .   (see deploy.md)
 FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -36,8 +36,9 @@ COPY data/reference ./data/reference
 RUN useradd --create-home --uid 10001 tempest
 USER tempest
 
-# DEMO_MODE on; SQLite state in /tmp (Cloud Run's only writable path; lost on every restart).
-# Keys (Gemini, Groq, Telegram, Gmail, dispatch PIN) come from Secret Manager at deploy time.
+# DEMO_MODE on; SQLite state in /tmp (lost on every restart and spin-down).
+# Keys (Gemini, Groq, Telegram, Gmail, dispatch PIN) are Render environment variables.
+# Render sets PORT at runtime; 8080 is only the default for a local `docker run`.
 ENV DEMO_MODE=true \
     STATE_DB_PATH=/tmp/tempest.db \
     CAP_XSD_PATH=/app/data/xsd/CAP-v1.2.xsd \

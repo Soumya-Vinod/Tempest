@@ -14,7 +14,14 @@ from app.advisory.prompt import SYSTEM_PROMPT, user_message
 from app.core import demo as demo_module
 from app.core.config import Settings
 from app.main import app
-from app.schemas import LANDFALL_TIMESTEP, AdvisoryTexts, Citation
+from app.schemas import (
+    LANDFALL_TIMESTEP,
+    REPLAY_TIMESTEPS,
+    AdvisoryTexts,
+    Citation,
+    GeneratedBy,
+    InfraFeature,
+)
 from tests import impact_scenario as S
 from tests import risk_scenario as R
 
@@ -635,12 +642,38 @@ def test_suggestions(env, monkeypatch):
     )
     horizons = []
     monkeypatch.setattr(service.risk, "get_scores", lambda ts, h=0: horizons.append(h) or fc)
+    monkeypatch.setattr(service, "expected_cut_off_by_block", lambda ts: {})
     resp = client.get(f"{URL}suggestions", params={"timestep": TS})
     assert resp.status_code == 200
     body = resp.json()
     assert body["threshold"] == service.SUGGEST_MIN_SCORE == 0.25
     assert [b["block_name"] for b in body["blocks"]] == ["C", "B"]
+    assert body["blocks"][0]["reasons"] == [
+        {"kind": "risk", "label": "risk 0.60", "infra_id": None}
+    ]
     assert horizons == [24]  # suggestions use the risk expected within 24 h (v1.3)
+
+    # v1.3: a facility expected to be cut off suggests its block whatever the score.
+    phc = InfraFeature.model_validate(
+        {
+            "type": "Feature",
+            "id": "hospital-node-1",
+            "geometry": {"type": "Point", "coordinates": [88.5, 22.0]},
+            "properties": {
+                "id": "hospital-node-1",
+                "infra_type": "hospital",
+                "name": "A PHC",
+                "osm_id": "node/1",
+                "attributes": {},
+            },
+        }
+    )
+    monkeypatch.setattr(service, "expected_cut_off_by_block", lambda ts: {"1": [phc]})
+    body = client.get(f"{URL}suggestions", params={"timestep": TS}).json()
+    assert [b["block_name"] for b in body["blocks"]] == ["C", "B", "A"]
+    assert body["blocks"][2]["reasons"] == [
+        {"kind": "expected_cut_off", "label": "A PHC expected to be cut off", "infra_id": phc.id}
+    ]
 
 
 # --- Facts --------------------------------------------------------------------------------------
@@ -735,7 +768,7 @@ def fixture_script(env, monkeypatch):
 
     written = []
 
-    def run(todo, max_calls, *responses):
+    def run(todo, max_calls, *responses, allow_groq=False):
         generate(list(responses))
         return script.run(
             todo,
@@ -743,6 +776,7 @@ def fixture_script(env, monkeypatch):
             lambda block_id, ts, payload: written.append((block_id, ts, payload)),
             sleep=sleep,
             clock=lambda: clock["now"],
+            allow_groq=allow_groq,
         )
 
     return type("Script", (), {"run": staticmethod(run), "clock": clock, "written": written})
@@ -796,7 +830,7 @@ def test_script_writes_the_cited_text_with_the_response(fixture_script):
     fixture_script.run([PAIR], 20, CLEAN)
     [(block_id, ts, payload)] = fixture_script.written
     assert (block_id, ts) == (BLOCK, TS)
-    assert payload == service.fixture_payload(CLEAN, FACTS)
+    assert payload == service.fixture_payload(CLEAN, FACTS, providers.GEMINI)
     assert payload[service.CITED_TEXT_KEY]["isolated_1_name"] == "Ward 12 PHC"
     assert service.staleness(payload, FACTS) is None
 
@@ -969,10 +1003,11 @@ COUNTED = with_citations(
     cite_count("isolated_hospital_count", "Isolated hospitals and health centres", 2),
     cite_count("isolated_shelter_count", "Isolated shelters", 0),
 )
+# Three: no count of this block is 3, so the auto-repair leaves it for the check to reject.
 COUNT_IN_WORDS = {
-    "en": lang(body="The storm has cut off two health facilities in {{block_name}}."),
-    "bn": lang(body="{{block_name}}-এ দুইটি স্বাস্থ্যকেন্দ্র বিচ্ছিন্ন।"),
-    "hi": lang(body="{{block_name}} में दो स्वास्थ्य केंद्र कट गए हैं।"),
+    "en": lang(body="The storm has cut off three health facilities in {{block_name}}."),
+    "bn": lang(body="{{block_name}}-এ তিনটি স্বাস্থ্যকেন্দ্র বিচ্ছিন্ন।"),
+    "hi": lang(body="{{block_name}} में तीन स्वास्थ्य केंद्र कट गए हैं।"),
 }
 
 
@@ -984,15 +1019,15 @@ def test_counting_in_words_is_rejected_and_the_retry_names_the_count_placeholder
     [failed] = [e for e in store.events() if e.action == "number_check_failed"]
     found = json.loads(failed.details)["found"]
     assert [(f["language"], f["field"], f["text"]) for f in found] == [
-        ("en", "body", "two"),
-        ("bn", "body", "দুইটি"),
-        ("hi", "body", "दो"),
+        ("en", "body", "three"),
+        ("bn", "body", "তিনটি"),
+        ("hi", "body", "तीन"),
     ]
     # The correction quotes each word and points at the block's count placeholders.
     retry = fake.calls[1]
-    assert '"two" in en.body is a number word' in retry
-    assert '"দুইটি" in bn.body is a number word' in retry
-    assert '"दो" in hi.body is a number word' in retry
+    assert '"three" in en.body is a number word' in retry
+    assert '"তিনটি" in bn.body is a number word' in retry
+    assert '"तीन" in hi.body is a number word' in retry
     assert "{{isolated_count}} (Isolated facilities: 2)" in retry
     assert "{{isolated_hospital_count}} (Isolated hospitals and health centres: 2)" in retry
 
@@ -1001,7 +1036,7 @@ def test_counting_in_words_twice_is_refused(env, monkeypatch):
     monkeypatch.setattr(service, "build_facts", lambda block_id, ts: COUNTED)
     resp, fake = create(env, COUNT_IN_WORDS, COUNT_IN_WORDS)
     assert resp.status_code == 502 and len(fake.calls) == 2
-    assert any("'two'" in p for p in resp.json()["detail"]["problems"])
+    assert any("'three'" in p for p in resp.json()["detail"]["problems"])
 
 
 def test_retry_note_for_other_problems_has_no_count_hint():
@@ -1086,9 +1121,13 @@ def test_old_drafts_using_the_risk_score_can_still_be_edited(env):
 
 
 def test_isolated_facilities_are_labelled_already_cut_off():
-    assert "Tense: an isolated facility is already cut off now" in SYSTEM_PROMPT
-    assert 'never "before it is disrupted" or "while routes are open"' in SYSTEM_PROMPT
-    assert "Only things at risk may be" in SYSTEM_PROMPT
+    prompt_text = " ".join(SYSTEM_PROMPT.split())  # wrapping doesn't matter
+    assert "Tense: an isolated facility is already cut off now" in prompt_text
+    assert (
+        '"before it is disrupted", "while routes are open" or "before road routes become '
+        'impassable"'
+    ) in prompt_text
+    assert "Only things at risk may be described as threatened" in prompt_text
 
 
 EQUAL = with_citations(
@@ -1135,25 +1174,397 @@ def test_duplicate_count_check(hospitals, body, ok):
 
 
 NO_SHELTERS = with_citations(cite_count("standin_count", "Stand-in shelters (not designated)", 0))
-SHELTER_ACTION = "No shelters are mapped ({{standin_count}}): identify safe buildings locally."
 
 
-def test_no_shelters_needs_an_action_citing_standin_count(env, monkeypatch):
+def test_no_shelters_the_server_adds_one_fixed_action_to_every_language(env, monkeypatch):
     monkeypatch.setattr(service, "build_facts", lambda block_id, ts: NO_SHELTERS)
-    good = {
-        lang_: lang(actions=("Move patients from {{isolated_1_name}}.", SHELTER_ACTION, "c"))
+    resp, fake = create(env, CLEAN)  # three actions, none about shelters
+    assert resp.status_code == 200 and len(fake.calls) == 1  # no citation required any more
+    assert "do not write any shelter action" in fake.calls[0]
+    p = resp.json()["properties"]
+    for lang_ in ("en", "bn", "hi"):
+        assert p["templates"][lang_]["actions"][-1] == render.NO_SHELTERS_ACTION[lang_]
+        assert p["texts"][lang_]["actions"][-1] == render.NO_SHELTERS_ACTION[lang_]
+        assert p["texts"][lang_]["actions"].count(render.NO_SHELTERS_ACTION[lang_]) == 1
+    assert render.NO_SHELTERS_ACTION["en"] == (
+        "No shelters are mapped in this block: identify safe concrete buildings (schools, "
+        "panchayat offices) locally before the storm."
+    )
+
+
+def test_the_fixed_shelter_action_passes_the_number_check():
+    texts = {
+        lang_: lang(actions=("a", "b", render.NO_SHELTERS_ACTION[lang_]))
         for lang_ in ("en", "bn", "hi")
     }
-    resp, fake = create(env, CLEAN, good)
+    assert render.check(AdvisoryTexts.model_validate(texts), {c.key for c in CITATIONS}) == []
+
+
+def test_five_actions_leave_no_room_for_the_shelter_action_so_the_draft_is_retried(
+    env, monkeypatch
+):
+    monkeypatch.setattr(service, "build_facts", lambda block_id, ts: NO_SHELTERS)
+    five = {**CLEAN, "en": lang(actions=("a", "b", "c", "d", "e"))}
+    resp, fake = create(env, five, CLEAN)
     assert resp.status_code == 200 and len(fake.calls) == 2
-    assert "This block has NO mapped stand-in shelters" in fake.calls[0]
-    assert "en has no action citing {{standin_count}}" in fake.calls[1]
-    en = resp.json()["properties"]["texts"]["en"]["actions"][1]
-    assert en == "No shelters are mapped (0): identify safe buildings locally."
+    assert "en has 5 actions" in fake.calls[1] and "at most four" in fake.calls[1]
+    assert len(resp.json()["properties"]["texts"]["en"]["actions"]) == 4
+
+
+def test_an_edit_keeps_the_shelter_action_once(env, monkeypatch):
+    monkeypatch.setattr(service, "build_facts", lambda block_id, ts: NO_SHELTERS)
+    resp, _ = create(env, CLEAN)
+    templates = resp.json()["properties"]["templates"]
+    templates["en"]["headline"] = "Updated {{block_name}}"
+    r = client.patch(f"{URL}{resp.json()['id']}", json={"templates": templates})
+    assert r.status_code == 200, r.text
+    en = r.json()["properties"]["texts"]["en"]["actions"]
+    assert en.count(render.NO_SHELTERS_ACTION["en"]) == 1
 
 
 def test_shelter_action_not_required_when_shelters_exist():
     some = with_citations(cite_count("standin_count", "Stand-in shelters (not designated)", 4))
     templates = AdvisoryTexts.model_validate(CLEAN)
     assert render.fact_problems(templates, some.citations) == []
+    assert render.add_shelter_action(templates, some.citations) == (templates, [])
     assert "NO mapped stand-in shelters" not in user_message(some)
+
+
+# --- Fixture script: --pairs and --allow-groq-fallback (both providers mocked) -----------------
+
+CODES = ["02413", "02435", "02438", "02439"]
+NAMES = ["Budge Budge-I", "Gosaba", "Sagar", "Namkhana"]
+
+
+def script_module():
+    import importlib
+
+    return importlib.import_module("scripts.build_advisory_fixtures")
+
+
+@pytest.mark.usefixtures("fixture_script")
+def test_parse_pairs_accepts_names_codes_t_labels_and_iso():
+    parse = script_module().parse_pairs
+    got = parse(
+        "Namkhana:T-33, gosaba:t-27 ,02438:T-24,budge budge-i:T-0,Sagar:2020-05-20T09:00:00Z,"
+        "Namkhana:T-33",  # duplicate: dropped
+        CODES,
+        NAMES,
+    )
+    assert got == [
+        ("02439", "Namkhana", "2020-05-19T03:00:00Z"),
+        ("02435", "Gosaba", "2020-05-19T09:00:00Z"),
+        ("02438", "Sagar", "2020-05-19T12:00:00Z"),
+        ("02413", "Budge Budge-I", "2020-05-20T12:00:00Z"),
+        ("02438", "Sagar", "2020-05-20T09:00:00Z"),
+    ]
+
+
+@pytest.mark.usefixtures("fixture_script")
+@pytest.mark.parametrize(
+    ("text", "message"),
+    [
+        ("Kolkata:T-3", "unknown block"),
+        ("Gosaba:T-4", "not a replay step"),
+        ("Gosaba:T-75", "not a replay step"),
+        ("Gosaba", "expected <block>:<time>"),
+        ("Gosaba:", "expected <block>:<time>"),
+        ("Gosaba:tomorrow", "not a T-label or a replay timestep"),
+        ("Gosaba:2020-05-20T10:00:00Z", "not a T-label or a replay timestep"),
+        (" , ", "empty"),
+    ],
+)
+def test_parse_pairs_rejects_bad_input(text, message):
+    with pytest.raises(ValueError, match=message):
+        script_module().parse_pairs(text, CODES, NAMES)
+
+
+def test_script_gemini_success_is_labelled_gemini(env, groq, fixture_script):
+    result = fixture_script.run([PAIR], 20, CLEAN, allow_groq=True)
+    [(_, _, payload)] = fixture_script.written
+    assert payload[service.GENERATED_BY_KEY] == {"provider": "gemini", "model": "gemini-3.7-flash"}
+    assert payload[service.CITED_TEXT_KEY]  # the staleness guard's values are still stored
+    assert [(r.provider, r.ok) for r in result.summary] == [("gemini", True)]
+    assert groq.requests == []
+
+
+def test_script_503_after_the_back_off_goes_to_groq_with_the_flag(env, groq, fixture_script):
+    groq.responses = [CLEAN]
+    result = fixture_script.run([PAIR], 20, OVERLOADED, OVERLOADED, allow_groq=True)
+    assert 60.0 in fixture_script.clock["sleeps"]  # one back-off before giving up on Gemini
+    assert len(fixture_script.clock["calls"]) == 2 and len(groq.requests) == 1
+    [(_, _, payload)] = fixture_script.written
+    assert payload[service.GENERATED_BY_KEY]["provider"] == "groq"
+    assert [(r.provider, r.ok) for r in result.summary] == [("groq", True)]
+    assert result.calls == 3  # every call counts towards --max-calls
+
+
+def test_script_429_switches_every_remaining_pair_to_groq(env, groq, fixture_script):
+    groq.responses = [CLEAN, CLEAN]
+    other = (BLOCK, "Gosaba", REPLAY_TIMESTEPS[-3])
+    result = fixture_script.run([PAIR, other], 20, QUOTA, allow_groq=True)
+    assert len(fixture_script.clock["calls"]) == 1  # Gemini asked once, never again
+    assert len(groq.requests) == 2
+    assert [(r.provider, r.ok) for r in result.summary] == [("groq", True), ("groq", True)]
+    assert not result.remaining
+    assert all(
+        p[service.GENERATED_BY_KEY]["provider"] == "groq" for *_, p in fixture_script.written
+    )
+
+
+def test_script_without_the_flag_never_uses_groq(env, groq, fixture_script):
+    # 503: the back-off repeats on Gemini; 429: the run stops. Groq is never called.
+    result = fixture_script.run([PAIR, PAIR], 20, OVERLOADED, OVERLOADED, CLEAN, QUOTA)
+    assert groq.requests == []
+    assert [(r.provider, r.ok) for r in result.summary] == [
+        ("gemini", True),
+        (None, False),
+    ]
+    assert result.summary[1].reason == "not attempted: Gemini quota (429)"
+
+
+def test_script_groq_failure_is_reported_with_its_reason(env, groq, fixture_script):
+    bad = with_en(headline="Surge of 3 m")
+    groq.responses = [bad, bad]
+    result = fixture_script.run([PAIR], 20, QUOTA, allow_groq=True)
+    [r] = result.summary
+    assert (r.provider, r.ok) == ("groq", False) and "Groq" in r.reason and "digit" in r.reason
+    assert fixture_script.written == []
+
+
+def test_a_groq_fixture_is_served_labelled_groq(env, groq):
+    env.mode(True, key=None, groq_key=GROQ_KEY)
+    groq_by = GeneratedBy(provider="groq", model="openai/gpt-oss-120b")
+    write_cached(env, service.fixture_payload(CLEAN, FACTS, groq_by))
+    resp, fake = create(env)
+    assert resp.status_code == 200 and fake.calls == [] and groq.requests == []
+    assert resp.json()["properties"]["generated_by"] == groq_by.model_dump()
+
+
+# --- Auto-repair: counts written in words -> count placeholders -----------------------------------
+
+REPAIR_FACTS = with_citations(
+    cite_count("isolated_count", "Isolated facilities", 2),
+    cite_count("isolated_hospital_count", "Isolated hospitals and health centres", 2),
+    cite_count("standin_count", "Stand-in shelters (not designated)", 0),
+)
+SHELTER_OK = "No shelters are mapped ({{standin_count}}): identify safe buildings locally."
+
+
+def repaired(language: str, text: str, facts: Facts = REPAIR_FACTS):
+    """The repaired body of one language, and the repairs."""
+    texts = {lang_: lang() for lang_ in ("en", "bn", "hi")}
+    texts[language] = lang(body=text)
+    out, found = render.repair_counts(AdvisoryTexts.model_validate(texts), facts.citations)
+    return getattr(out, language).body, found
+
+
+@pytest.mark.parametrize(
+    ("language", "text", "expected"),
+    [
+        ("en", "Two health centres are cut off.", "{{isolated_count}} health centres are cut off."),
+        ("en", "Both clinics are cut off.", "{{isolated_count}} clinics are cut off."),
+        ("en", "There are zero mapped shelters.", "There are {{standin_count}} mapped shelters."),
+        ("bn", "দুটো হাসপাতাল বিচ্ছিন্ন।", "{{isolated_count}}টি হাসপাতাল বিচ্ছিন্ন।"),
+        ("bn", "দুটি কেন্দ্র, দুই দল।", "{{isolated_count}}টি কেন্দ্র, {{isolated_count}} দল।"),
+        ("bn", "শূন্য আশ্রয়কেন্দ্র।", "{{standin_count}} আশ্রয়কেন্দ্র।"),
+        ("hi", "दोनों अस्पताल कट गए हैं।", "{{isolated_count}} अस्पताल कट गए हैं।"),
+        ("hi", "दो केंद्र, शून्य आश्रय।", "{{isolated_count}} केंद्र, {{standin_count}} आश्रय।"),
+    ],
+)
+def test_counts_in_words_are_repaired_to_a_matching_count_placeholder(language, text, expected):
+    body, found = repaired(language, text)
+    assert body == expected
+    assert found and all(r.language == language and r.field == "body" for r in found)
+
+
+def test_repair_leaves_what_it_cannot_match():
+    body, found = repaired("en", "Three boats and 2 crews; both wind and surge rise.")
+    assert body == "Three boats and 2 crews; both wind and surge rise." and found == []
+    # ...so the number check still rejects the word without a matching count, and the digit.
+    templates = AdvisoryTexts.model_validate({**CLEAN, "en": lang(body=body)})
+    kinds = {(p.kind, p.text) for p in render.check(templates, {c.key for c in CITATIONS})}
+    assert {("number_word", "Three"), ("digit", "2")} <= kinds
+
+
+def test_repair_needs_a_count_citation():
+    no_counts = Facts(BLOCK, "Gosaba", TS, [c for c in CITATIONS if not c.key.endswith("_count")])
+    body, found = repaired("en", "Two clinics.", no_counts)
+    assert body == "Two clinics." and found == []
+
+
+def test_repaired_draft_passes_and_the_audit_records_each_repair(env, monkeypatch):
+    monkeypatch.setattr(service, "build_facts", lambda block_id, ts: REPAIR_FACTS)
+    draft = {
+        "en": lang(body="Both health centres are cut off.", actions=("a", SHELTER_OK, "c")),
+        "bn": lang(body="দুটো হাসপাতাল বিচ্ছিন্ন।", actions=("a", SHELTER_OK, "c")),
+        "hi": lang(body="दोनों अस्पताल कट गए हैं।", actions=("a", SHELTER_OK, "c")),
+    }
+    resp, fake = create(env, draft)
+    assert resp.status_code == 200 and len(fake.calls) == 1  # no retry needed
+    texts = resp.json()["properties"]["texts"]
+    assert "2 health centres are cut off." in texts["en"]["body"]
+    assert "২টি হাসপাতাল" in texts["bn"]["body"]
+    details = json.loads(next(e for e in store.events() if e.action == "generated").details)
+    assert details["auto_repaired"] == [
+        {
+            "language": "en",
+            "field": "body",
+            "original": "Both",
+            "placeholder": "{{isolated_count}}",
+        },
+        {"language": "bn", "field": "body", "original": "দুটো", "placeholder": "{{isolated_count}}"},
+        {
+            "language": "hi",
+            "field": "body",
+            "original": "दोनों",
+            "placeholder": "{{isolated_count}}",
+        },
+    ]
+
+
+def test_a_digit_is_never_repaired(env, monkeypatch):
+    monkeypatch.setattr(service, "build_facts", lambda block_id, ts: REPAIR_FACTS)
+    digit = {lang_: lang(body="2 health centres.", actions=("a", SHELTER_OK, "c"))
+             for lang_ in ("en", "bn", "hi")}  # fmt: skip
+    resp, _ = create(env, digit, digit)
+    assert resp.status_code == 502
+    assert any("digit '2'" in p for p in resp.json()["detail"]["problems"])
+
+
+def test_groq_drafts_are_repaired_too(env, groq, monkeypatch):
+    monkeypatch.setattr(service, "build_facts", lambda block_id, ts: REPAIR_FACTS)
+    groq.responses = [
+        {
+            **{lang_: lang(actions=("a", SHELTER_OK, "c")) for lang_ in ("en", "bn", "hi")},
+            "en": lang(body="Two clinics are cut off.", actions=("a", SHELTER_OK, "c")),
+        }
+    ]
+    resp, _ = create(env, QUOTA)
+    assert resp.status_code == 200
+    assert resp.json()["properties"]["generated_by"]["provider"] == "groq"
+    details = json.loads(next(e for e in store.events() if e.action == "generated").details)
+    assert [r["original"] for r in details["auto_repaired"]] == ["Two"]
+
+
+# An edit can't remove a placeholder.
+KEPT_EDIT = "Surge up to {{peak_surge_m}} in {{hours_to_landfall}}; {{reach}}."
+
+
+def test_edits_are_repaired_and_audited(env, monkeypatch):
+    monkeypatch.setattr(service, "build_facts", lambda block_id, ts: REPAIR_FACTS)
+    base = {lang_: lang(actions=("a", SHELTER_OK, "c")) for lang_ in ("en", "bn", "hi")}
+    resp, _ = create(env, base)
+    advisory_id = resp.json()["id"]
+    edited = {
+        **base,
+        "en": lang(
+            body="Two clinics are cut off. " + KEPT_EDIT,
+            actions=("a", SHELTER_OK, "c"),
+        ),
+    }
+    r = client.patch(f"{URL}{advisory_id}", json={"templates": edited})
+    assert r.status_code == 200, r.text
+    assert (
+        r.json()["properties"]["templates"]["en"]["body"]
+        == "{{isolated_count}} clinics are cut off. " + KEPT_EDIT
+    )
+    event = next(e for e in store.events(advisory_id) if e.action == "edited")
+    assert json.loads(event.details)["auto_repaired"][0]["original"] == "Two"
+
+
+# --- Duplicated units, road times, trivial facts, time to landfall --------------------------------
+
+UNITS = {
+    c.key: c
+    for c in [
+        Citation(key="t", label="t", value=20, unit="min", source="x"),
+        Citation(key="h", label="h", value=3, unit="h", source="x"),
+        Citation(key="k", label="k", value=12.5, unit="km", source="x"),
+        Citation(key="s", label="s", value=2.71, unit="m", source="x"),
+        Citation(key="w", label="w", value=37, unit="m/s", source="x"),
+    ]
+}
+
+
+@pytest.mark.parametrize(
+    ("language", "template", "expected"),
+    [
+        ("en", "within {{t}} minutes", "within 20 min"),
+        ("en", "within {{t}} min", "within 20 min"),
+        ("en", "in {{h}} hours", "in 3 hours"),
+        ("en", "in {{h}} h", "in 3 hours"),
+        ("en", "{{k}} km of road", "12.5 km of road"),
+        ("en", "{{k}} kilometres of road", "12.5 km of road"),
+        ("en", "{{s}} metres of surge", "2.7 m of surge"),
+        ("en", "{{s}} m surge", "2.7 m surge"),
+        ("en", "winds of {{w}} km/h", "winds of 135 km/h"),
+        ("en", "{{s}} more than before", "2.7 m more than before"),  # "more" isn't "m"
+        ("bn", "{{t}} মিনিট", "২০ মিনিট"),
+        ("bn", "{{h}} ঘন্টা পরে", "৩ ঘণ্টা পরে"),
+        ("bn", "{{k}} কিলোমিটার", "১২.৫ কিমি"),
+        ("bn", "{{w}} কিমি/ঘণ্টা", "১৩৫ কিমি/ঘণ্টা"),
+        ("hi", "{{t}} मिनट", "20 मिनट"),
+        ("hi", "{{h}} घंटे बाद", "3 घंटे बाद"),
+        ("hi", "{{s}} मीटर", "2.7 मीटर"),
+        ("hi", "{{w}} किमी/घंटा", "135 किमी/घंटा"),
+    ],
+)
+def test_a_unit_repeated_after_the_placeholder_is_dropped(language, template, expected):
+    assert render.fill(template, UNITS, language) == expected
+
+
+def test_road_times_are_labelled_normal_conditions(monkeypatch):
+    from app.exposure import service as exposure
+    from app.impact import service as impact
+    from app.risk import service as risk
+
+    s = settings(True, None)
+    for module in (impact, risk, exposure, demo_module):
+        monkeypatch.setattr(module, "get_settings", lambda: s)
+    for module in (impact, risk, exposure):
+        module.clear_cache()
+    try:
+        f = facts_module.build_facts(BLOCK, "2020-05-20T09:00:00Z")
+    finally:
+        for module in (impact, risk, exposure):
+            module.clear_cache()
+    labels = {c.label for c in f.citations if c.key.endswith("_next_hospital_min")}
+    assert labels == {"Normal road time to next hospital (before the storm)"}
+    prompt_text = " ".join(SYSTEM_PROMPT.split())
+    assert "road travel times in normal conditions, before the storm" in prompt_text
+    assert "never as boat times" in prompt_text
+
+
+def test_hours_to_landfall_rule():
+    prompt_text = " ".join(SYSTEM_PROMPT.split())
+    assert "{{hours_to_landfall}} is only the time until the cyclone makes landfall" in prompt_text
+    assert "Never use it as the time until something is cut off" in prompt_text
+
+
+@pytest.mark.parametrize(
+    ("surge", "road_km", "offered"),
+    [(0.05, 0.0, set()), (0.1, 0.0, {"peak_surge_m"}), (0.0, 3.2, {"cut_road_km"})],
+)
+def test_trivial_facts_are_cited_but_not_offered(surge, road_km, offered):
+    facts = with_citations(
+        Citation(key="peak_surge_m", label="Surge", value=surge, unit="m", source="hazard"),
+        Citation(key="cut_road_km", label="Cut roads", value=road_km, unit="km", source="impact"),
+    )
+    keys = facts_module.offered_keys(facts.citations)
+    assert {"peak_surge_m", "cut_road_km"} & keys == offered
+    assert {"peak_surge_m", "cut_road_km"} <= {c.key for c in facts.citations}  # still cited
+    message = user_message(facts)
+    assert ('"peak_surge_m"' in message) == ("peak_surge_m" in offered)
+
+
+def test_a_template_citing_a_trivial_surge_is_rejected(env, monkeypatch):
+    calm = with_citations(
+        Citation(key="peak_surge_m", label="Surge", value=0.03, unit="m", source="hazard")
+    )
+    monkeypatch.setattr(service, "build_facts", lambda block_id, ts: calm)
+    cites_surge = {**CLEAN, "en": lang(body="Surge up to {{peak_surge_m}}.")}
+    calm_draft = {lang_: lang(body="{{reach}}.") for lang_ in ("en", "bn", "hi")}
+    resp, fake = create(env, cites_surge, calm_draft)
+    assert resp.status_code == 200 and len(fake.calls) == 2
+    assert "{{peak_surge_m}} in en.body is not in the list" in fake.calls[1]

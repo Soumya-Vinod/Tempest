@@ -1,189 +1,153 @@
-# Deploying Tempest (Day 5)
+# Deploying Tempest (Render + Vercel)
 
-The API runs on **Cloud Run** (`tempest-api`, region `asia-south1`), built from `api/Dockerfile`
-with `DEMO_MODE=true`. The web app is on **Firebase Hosting**, which serves `web/dist` and
-forwards `/api/**` and `/health` to the Cloud Run service (same origin, so no CORS). Keys come
-from **Secret Manager** as environment variables; none are in the image.
+The API runs on **Render** as one Docker web service (`tempest-api`, region Singapore, free
+plan), built from `api/Dockerfile` with `DEMO_MODE=true`. `render.yaml` at the repo root is the
+Blueprint that defines it. The web app is on **Vercel**, which builds `web/` and forwards
+`/api/*` and `/health` to the Render service (`web/vercel.json`). The browser only talks to the
+Vercel origin, so no CORS setup is needed. Keys are Render environment variables; none are in
+the image or in the repo.
 
-All commands are PowerShell, run from the repo root. Nothing here has been run for you.
+Nothing here has been run for you. Deploys are manual on Render (`autoDeploy: false`).
 
 > **State is not durable.** Advisories, the audit log and dispatch receipts live in SQLite at
-> `/tmp/tempest.db` inside the container. `/tmp` is in memory: it is lost on every restart,
-> redeploy or scale-down, and it counts against the memory limit. `--max-instances=1` keeps a
-> single instance, so every request sees the same queue; `--min-instances=1` during judging
-> stops it being scaled to zero (and wiped) between visits.
+> `/tmp/tempest.db` inside the container. They are lost on every deploy, restart and free-tier
+> spin-down (below), and the queue starts empty again.
 
-## 0. One-time setup
+## 1. API on Render
 
-```powershell
-$PROJECT = "YOUR-GCP-PROJECT-ID"
-$REGION  = "asia-south1"
-$REPO    = "tempest"
-$SA      = "tempest-api@$PROJECT.iam.gserviceaccount.com"
+1. Sign in at <https://dashboard.render.com> with GitHub (or connect GitHub to your existing
+   Render account) and give Render access to the Tempest repository.
+2. **New → Blueprint.** Pick the Tempest repository and the branch to deploy (`main`). Render
+   reads `render.yaml` and shows one service, `tempest-api` (Docker, Singapore, Free).
+3. Render asks for a value for each variable marked `sync: false`. Paste them in:
 
-gcloud config set project $PROJECT
-gcloud services enable run.googleapis.com cloudbuild.googleapis.com `
-  artifactregistry.googleapis.com secretmanager.googleapis.com firebasehosting.googleapis.com
+   | Variable | Value |
+   |---|---|
+   | `GEMINI_API_KEY` | Gemini API key |
+   | `GROQ_API_KEY` | Groq API key (fallback advisory model) |
+   | `TELEGRAM_BOT_TOKEN` | Telegram bot token |
+   | `TELEGRAM_CHAT_ID` | Telegram chat id (from `api\scripts\telegram_chat_ids.py`) |
+   | `GMAIL_ADDRESS` | Gmail address that sends dispatch e-mails |
+   | `GMAIL_APP_PASSWORD` | Gmail app password (16 characters) |
+   | `DISPATCH_EMAIL_TO` | Dispatch recipients, comma-separated |
+   | `DISPATCH_PIN` | PIN required for a live dispatch |
 
-# Container images
-gcloud artifacts repositories create $REPO --repository-format=docker --location=$REGION
+   `DEMO_MODE=true` and `STATE_DB_PATH=/tmp/tempest.db` come from `render.yaml`. A key left
+   empty just turns that feature off (`/health` reports it as `false`).
+4. Click **Apply** to create the service. Open it (**Dashboard → tempest-api**).
+5. Check **Settings → Build & Deploy**: Root Directory `api`, Dockerfile Path `./Dockerfile`
+   (shown as `api/ ./Dockerfile`), Auto-Deploy **Off**. The build context is `api/`, which is
+   what the Dockerfile expects (`COPY requirements.txt`, `COPY app`).
+6. If no deploy started on its own: **Manual Deploy → Deploy latest commit**. Follow **Logs**:
+   the build downloads the CAP 1.2 XSD and fails if its SHA-256 doesn't match, then installs
+   the requirements (the first build takes several minutes).
+7. When the deploy is **Live**, copy the service URL from the top of the page, e.g.
+   `https://tempest-api-xxxx.onrender.com`, and open `https://tempest-api-xxxx.onrender.com/health`.
+   It should show `"demo_mode": true` and `true` for every key you set.
 
-# A service account for the API (it only needs to read its secrets)
-gcloud iam service-accounts create tempest-api --display-name="Tempest API"
+The Dockerfile starts uvicorn on `$PORT`. Render sets `PORT` for the service, so no port
+configuration is needed.
 
-# Firebase CLI (once): npm install -g firebase-tools; then:
-firebase login
-```
+To change a key later: **tempest-api → Environment** → edit the value → **Save, rebuild, and
+deploy** (or **Save only**, then **Manual Deploy**).
 
-Set your project id in `.firebaserc` (`"default": "YOUR-GCP-PROJECT-ID"`), and add Firebase to
-the GCP project in the Firebase console if it isn't already.
+## 2. Web app on Vercel
 
-## 1. Secrets (Secret Manager)
+1. Sign in at <https://vercel.com> with GitHub.
+2. **Add New… → Project → Import** the Tempest repository.
+3. On **Configure Project**:
+   - **Root Directory:** click **Edit** and choose `web`.
+   - **Framework Preset:** Vite. Build Command `npm run build` and Output Directory `dist` are
+     the defaults; leave them.
+   - **Environment Variables:** none. Leave `VITE_API_BASE_URL` unset so the app calls `/api/...`
+     on its own origin and `vercel.json` forwards it.
+4. **Deploy.** When it finishes, note the production URL, e.g. `https://tempest-xxxx.vercel.app`.
 
-The helper reads each value without echoing it and writes it via a temporary file, so the value
-is not in your shell history and has no trailing newline (piping a string to gcloud in
-PowerShell 5.1 would add one).
+The site loads at this point but API calls fail: `vercel.json` still points at a placeholder.
 
-```powershell
-function Set-TempestSecret([string]$Name, [string]$Prompt) {
-  $secure = Read-Host -AsSecureString $Prompt
-  $plain  = [System.Net.NetworkCredential]::new("", $secure).Password
-  $tmp    = New-TemporaryFile
-  try {
-    [System.IO.File]::WriteAllText($tmp, $plain)          # exact bytes, no newline
-    gcloud secrets describe $Name *> $null
-    if ($LASTEXITCODE -eq 0) {
-      gcloud secrets versions add $Name --data-file=$tmp  # update an existing secret
-    } else {
-      gcloud secrets create $Name --replication-policy=automatic --data-file=$tmp
-    }
-  } finally { Remove-Item $tmp -Force }
-}
+## 3. Point Vercel at the Render API
 
-Set-TempestSecret gemini-api-key      "Gemini API key"
-Set-TempestSecret groq-api-key        "Groq API key"
-Set-TempestSecret telegram-bot-token  "Telegram bot token"
-Set-TempestSecret telegram-chat-id    "Telegram chat id (from api\scripts\telegram_chat_ids.py)"
-Set-TempestSecret gmail-address       "Gmail address"
-Set-TempestSecret gmail-app-password  "Gmail app password"
-Set-TempestSecret dispatch-email-to   "Dispatch recipients (comma-separated)"
-Set-TempestSecret dispatch-pin        "Dispatch PIN"
+1. In `web/vercel.json`, replace `REPLACE-WITH-RENDER-HOST.onrender.com` with your Render host
+   from step 1.7, without `https://` and without a trailing slash (e.g.
+   `tempest-api-xxxx.onrender.com`). It appears **twice**:
+   - line 7, the `/api/(.*)` rewrite (keep the `/api/$1` after the host), and
+   - line 11, the `/health` rewrite (keep the `/health` after the host).
+2. Commit and push to the branch Vercel deploys (`main`).
+3. Vercel deploys each push to that branch on its own. If it doesn't, open the project →
+   **Deployments** → the latest deployment → **⋯ → Redeploy**.
 
-# Let the API's service account read them
-foreach ($s in "gemini-api-key","groq-api-key","telegram-bot-token","telegram-chat-id",
-               "gmail-address","gmail-app-password","dispatch-email-to","dispatch-pin") {
-  gcloud secrets add-iam-policy-binding $s `
-    --member="serviceAccount:$SA" --role="roles/secretmanager.secretAccessor"
-}
-```
+## 4. Check it end to end
 
-To change a value later, run `Set-TempestSecret` again (it adds a new version), then redeploy
-(step 3) or `gcloud run services update tempest-api --region $REGION` so the service picks up
-`latest`.
+1. Open `https://tempest-xxxx.vercel.app/health`. This goes through Vercel to Render. It should
+   return the same JSON as step 1.7. An HTML page here means the `/health` rewrite is wrong.
+   A 404 or 502 from Vercel means the Render host in `vercel.json` is wrong.
+2. Open the site, scrub the timeline once, and open one block's risk breakdown and an advisory.
 
-## 2. Build the API image (Cloud Build)
+## Free-tier sleep and warming up before the demo
 
-`api/.gcloudignore` (which includes `api/.dockerignore`) keeps `.venv`, `data/raw`,
-`data/processed`, `data/state`, `.env` files and `secrets/` out of the upload. The build
-downloads the CAP 1.2 XSD and fails if its SHA-256 doesn't match.
+A free Render service **spins down after about 15 minutes without traffic**. The next request
+starts it again, which takes about a minute. While it starts, requests through Vercel can fail
+or time out. A spin-down also wipes `/tmp`, so the advisory queue starts empty.
 
-```powershell
-$TAG   = (git rev-parse --short HEAD)
-$IMAGE = "$REGION-docker.pkg.dev/$PROJECT/$REPO/tempest-api:$TAG"
+Before the demo (10 minutes ahead is enough):
 
-gcloud builds submit api --tag $IMAGE
-```
+1. Open `https://<render-host>/health` **directly** (not through Vercel) and wait for the JSON.
+2. Open the Vercel site and scrub the timeline once. The first load of each timestep's impact
+   layer is large (about 12 MB of JSON) and is slow on the free instance's small CPU.
+3. Keep a tab open, or use the monitor below, so it doesn't spin down again.
 
-## 3. Deploy to Cloud Run
+**Keep it awake with UptimeRobot (optional).** At <https://uptimerobot.com> (free account):
+**Add New Monitor → HTTP(s)**, URL `https://<render-host>/health` (the Render URL, not Vercel),
+interval **5 minutes** → **Create Monitor**. It pings the API often enough that it never
+sleeps, and alerts you if it goes down. Render's free plan includes a monthly allowance of
+instance hours per workspace, and one always-on service fits in it, but a second free service
+kept awake would not. Pause the monitor after the demo.
 
-```powershell
-$SECRETS = @(
-  "GEMINI_API_KEY=gemini-api-key:latest",
-  "GROQ_API_KEY=groq-api-key:latest",
-  "TELEGRAM_BOT_TOKEN=telegram-bot-token:latest",
-  "TELEGRAM_CHAT_ID=telegram-chat-id:latest",
-  "GMAIL_ADDRESS=gmail-address:latest",
-  "GMAIL_APP_PASSWORD=gmail-app-password:latest",
-  "DISPATCH_EMAIL_TO=dispatch-email-to:latest",
-  "DISPATCH_PIN=dispatch-pin:latest"
-) -join ","
+## Watching memory
 
-gcloud run deploy tempest-api `
-  --image $IMAGE `
-  --region $REGION `
-  --service-account $SA `
-  --allow-unauthenticated `
-  --min-instances 1 `
-  --max-instances 1 `
-  --memory 2Gi `
-  --cpu 1 `
-  --timeout 300 `
-  --set-env-vars "DEMO_MODE=true,STATE_DB_PATH=/tmp/tempest.db" `
-  --set-secrets $SECRETS
+A free instance has **512 MB of RAM** and a fraction of a CPU (the old Cloud Run setup had
+2 GiB). Run locally in DEMO_MODE, the API used about 140 MB at start-up and about 220 MB (peak
+about 280 MB) after serving the hazard, exposure, impact, risk and insurance routes. So it fits,
+without much headroom.
 
-# Check it directly
-$URL = gcloud run services describe tempest-api --region $REGION --format "value(status.url)"
-Invoke-RestMethod "$URL/health"
-```
+- **tempest-api → Metrics** shows memory and CPU. Check it after scrubbing the whole timeline.
+- If the instance goes over the limit, Render restarts it. The **Events** tab shows the failure
+  and the queue in `/tmp` is lost. If that happens, move the service to a paid instance type
+  with more memory (**Settings → Instance Type**).
 
-`/health` should show `demo_mode: true` and `true` for every key you set.
+**E-mail dispatch:** the API sends mail through Gmail SMTP on port 587. Render may block
+outbound SMTP ports on free instances (check Render's current free-tier limits). Test one live
+e-mail dispatch well before the demo. If it fails, Telegram still works, or move to a paid
+instance type.
 
-## 4. Build and deploy the web app (Firebase Hosting)
+## Roll back
 
-The web app calls `/api/...` on its own origin (`VITE_API_BASE_URL` stays unset), and
-`firebase.json` forwards those paths to `tempest-api`.
+**API (Render):** open **tempest-api → Events**, find the last good deploy and click
+**Rollback**. With Auto-Deploy off you can also use **Manual Deploy → Deploy a specific
+commit** and pick the good commit. Either way the instance restarts, so the SQLite queue in
+`/tmp` starts empty. The next **Manual Deploy → Deploy latest commit** goes forward again.
 
-```powershell
-Push-Location web
-npm ci
-npm run build          # writes web/dist
-Pop-Location
+**Web (Vercel):** open the project → **Deployments**, find the last good production deployment,
+**⋯ → Instant Rollback** (or **Promote to Production**). The next push deploys forward again.
+A rollback keeps that deployment's `vercel.json`, so check the Render host in it is still right.
 
-firebase deploy --only hosting --project $PROJECT
-```
+## After the demo
 
-Open the Hosting URL it prints, then check `https://<site>.web.app/health` and scrub the
-timeline once (every replay timestep is served from fixtures).
-
-Notes:
-- Requests forwarded from Hosting to Cloud Run time out after 60 s. Advisory generation with
-  retries and the Groq fallback normally takes well under that. If it ever times out, the API
-  may still finish the request: refresh the queue before generating again.
-- The Hosting rewrite needs the Cloud Run service in the same project and region as named in
-  `firebase.json` (`tempest-api`, `asia-south1`).
-
-## 5. Roll back
-
-**API** (Cloud Run keeps every revision):
-
-```powershell
-gcloud run revisions list --service tempest-api --region $REGION
-gcloud run services update-traffic tempest-api --region $REGION `
-  --to-revisions "tempest-api-00007-abc=100"   # the revision to return to
-```
-
-A later `gcloud run deploy` sends traffic to the new revision again. Rolling back starts a fresh
-instance, so the SQLite queue in `/tmp` starts empty.
-
-**Web** (Firebase Hosting keeps every release): in the Firebase console, Hosting → release
-history → the release to restore → Rollback. From the CLI, with the version id shown there:
-
-```powershell
-firebase hosting:clone "${PROJECT}:@VERSION_ID" "${PROJECT}:live"
-```
-
-## 6. After judging
-
-```powershell
-gcloud run services update tempest-api --region $REGION --min-instances 0
-```
-
-This lets the service scale to zero (no idle cost); the next request starts a new instance with
-an empty queue.
+- Pause or delete the UptimeRobot monitor, so the free service can spin down.
+- To stop the API entirely: **tempest-api → Settings → Suspend Web Service** (resume from the
+  same page).
 
 ## Local check before deploying
 
 ```powershell
 api\.venv\Scripts\python -m pytest api\tests\test_smoke_demo.py   # the container's view: DEMO_MODE,
                                                                    # no keys, no raw/processed data
+```
+
+To try the image the way Render runs it (Docker Desktop, from the repo root):
+
+```powershell
+docker build -t tempest-api api
+docker run --rm -p 10000:10000 -e PORT=10000 tempest-api
+# then open http://localhost:10000/health
 ```

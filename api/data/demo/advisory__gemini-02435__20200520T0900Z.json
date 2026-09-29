@@ -1,0 +1,40 @@
+{
+ "en": {
+  "headline": "Gosaba block faces imminent isolation as cyclone approaches",
+  "body": "Storm surge of {{peak_surge_m}} and wind of {{peak_wind_ms}} are expected to cut the block off within {{hours_to_landfall}}. Two health facilities, {{isolated_1_name}} and {{isolated_2_name}}, are already isolated because the ferry is suspended by wind, with road travel to the next hospital now taking over {{isolated_1_next_hospital_min}} and {{isolated_2_next_hospital_min}} respectively. No stand‑in shelters are mapped for this block.",
+  "actions": [
+   "Deploy boats and medical teams to {{isolated_1_name}} and {{isolated_2_name}} immediately.",
+   "Arrange temporary evacuation of patients from {{isolated_1_name}} to the nearest functional hospital before road routes become impassable.",
+   "Coordinate with transport authorities to secure alternative river crossings for critical supplies.",
+   "Identify and designate safe buildings locally as temporary shelters, noting that {{standin_count}} mapped shelters are unavailable."
+  ]
+ },
+ "bn": {
+  "headline": "গোসাবা ব্লকে সাইক্লোনের আগমনে বিচ্ছিন্নতা ঘটার আশঙ্কা",
+  "body": "প্রত্যাশিত ঝড়ের সুর্যের উচ্চতা {{peak_surge_m}} এবং বায়ুর গতি {{peak_wind_ms}} ব্লকটিকে {{hours_to_landfall}} মধ্যে বিচ্ছিন্ন করে দিতে পারে। দুটি স্বাস্থ্যকেন্দ্র, {{isolated_1_name}} ও {{isolated_2_name}}, ইতিমধ্যে বাতাসের কারণে ফেরি বন্ধ হওয়ায় বিচ্ছিন্ন, এবং পরবর্তী হাসপাতাল পর্যন্ত রোডে যাত্রা যথাক্রমে {{isolated_1_next_hospital_min}} ও {{isolated_2_next_hospital_min}} নিতে পারে। এই ব্লকে কোনো মানচিত্রিত স্ট্যান্ড‑ইন শেল্টার নেই।",
+  "actions": [
+   "{{isolated_1_name}} এবং {{isolated_2_name}}-এ তৎক্ষণাৎ নৌকা ও চিকিৎসা দল পাঠান।",
+   "রোড বন্ধ হওয়ার আগে {{isolated_1_name}} থেকে রোগীদের নিকটস্থ কার্যকরী হাসপাতালে স্থানান্তর নিশ্চিত করুন।",
+   "গুরুত্বপূর্ণ সামগ্রী সরবরাহের জন্য বিকল্প নদী পারাপার ব্যবস্থা করতে পরিবহন বিভাগসহ সমন্বয় করুন।",
+   "{{standin_count}} মানচিত্রিত শেল্টার না থাকায় স্থানীয়ভাবে নিরাপদ ভবন চিহ্নিত ও অস্থায়ী শেল্টার হিসেবে নির্ধারণ করুন।"
+  ]
+ },
+ "hi": {
+  "headline": "गोसाबा ब्लॉक में साइक्लोन के कारण अलग‑होने की गंभीर स्थिति",
+  "body": "आने वाले साइक्लोन की लहर {{peak_surge_m}} और हवाओं की गति {{peak_wind_ms}} ब्लॉक को {{hours_to_landfall}} में अलग कर सकती है। दो स्वास्थ्य केंद्र, {{isolated_1_name}} और {{isolated_2_name}}, पहले ही हवा से नावें रद्द होने के कारण अलग हो चुके हैं, और अगले अस्पताल तक का मार्ग क्रमशः {{isolated_1_next_hospital_min}} और {{isolated_2_next_hospital_min}} ले रहा है। इस ब्लॉक के लिए कोई मानचित्रित स्टैंड‑इन शेल्टर नहीं है।",
+  "actions": [
+   "{{isolated_1_name}} और {{isolated_2_name}} पर तुरंत नाव और चिकित्सकीय टीम तैनात करें।",
+   "सड़क मार्ग बंद होने से पहले {{isolated_1_name}} से रोगियों को निकटतम कार्यरत अस्पताल में स्थानांतरित करें।",
+   "आवश्यक वस्तुओं की आपूर्ति के लिए वैकल्पिक नदी पारगमन के प्रबंध हेतु परिवहन विभाग के साथ समन्वय स्थापित करें।",
+   "{{standin_count}} मानचित्रित शेल्टर न होने के कारण स्थानीय स्तर पर सुरक्षित इमारतों की पहचान करके उन्हें अस्थायी शेल्टर के रूप में उपयोग में लाएँ।"
+  ]
+ },
+ "_cited_text": {
+  "isolated_1_name": "Chotomollakhali PHC",
+  "isolated_2_name": "Gosaba Rural Hospital"
+ },
+ "_generated_by": {
+  "provider": "groq",
+  "model": "openai/gpt-oss-120b"
+ }
+}

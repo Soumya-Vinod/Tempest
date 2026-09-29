@@ -20,6 +20,7 @@ from app.risk import service as risk
 from app.risk.blocks import load_blocks
 from app.schemas import (
     REPLAY_TIMESTEPS,
+    ActionCountdown,
     HazardLayerCollection,
     HazardType,
     ImpactResultCollection,
@@ -57,6 +58,8 @@ ROUTE_SCHEMAS = {
     # in test_horizon.py.
     "impact": [
         (r"results-h24-(index|[0-9a-f]{12})", None, False, None),
+        # v1.3 change, pending Dev A: every timestep's ActionCountdown in one file (§7).
+        (r"countdown", ActionCountdown, False, None),
         (r"results(-[a-z0-9-]+)?", ImpactResultCollection, True, None),
     ],
     "risk": [
@@ -109,6 +112,14 @@ def test_fixture_matches_contract(path):
     assert bool(ts) == timed, "timestep suffix required iff the resource is time-dependent"
     if schema is None:  # a horizon-24 dedup file or index (test_horizon.py resolves them)
         json.loads(raw)
+        return
+    if (module, resource) == ("impact", "countdown"):  # one file for the replay (§7, v1.3)
+        data = json.loads(raw)
+        assert set(data["timesteps"]) == set(REPLAY_TIMESTEPS)
+        for t, entry in data["timesteps"].items():
+            ActionCountdown.model_validate(
+                {"timestep": t, **entry, "key_moments": data["key_moments"]}
+            )
         return
     if (module, resource) == ("risk", "scores"):  # compact: polygons added on load (§7)
         data = json.loads(raw)

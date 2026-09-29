@@ -180,6 +180,42 @@ class ImpactResultCollection(FeatureCollection[ImpactResult]):
     pass
 
 
+# --- Action countdown (v1.3 change, pending Dev A) ---
+
+KeyMomentKind = Literal[
+    "first_alert", "first_expected_isolation", "first_actual_isolation", "landfall"
+]
+
+
+class CountdownFacility(ContractModel):
+    """A facility in the action countdown. `expected`: cut off within the forecast window but
+    not yet, with `hours_remaining` until the observed hazard cuts it off (null if it never
+    does later in the replay). `cut_off`: cut off now, `since` the start of that isolation."""
+
+    infra_id: str
+    name: str
+    infra_type: InfraType
+    cause: str  # e.g. "ferry suspended by wind", "road cut by surge"
+    cut_infra_id: str | None  # the first cut link on its usual route
+    cut_name: str | None
+    hours_remaining: int | None = Field(default=None, ge=0)
+    since: Timestep | None = None
+
+
+class KeyMoment(ContractModel):
+    kind: KeyMomentKind
+    timestep: Timestep | None  # null: it never happens in the replay
+    label: str
+
+
+class ActionCountdown(ContractModel):
+    timestep: Timestep
+    horizon_h: Horizon = 24  # the forecast window the expected list uses
+    expected: list[CountdownFacility]  # soonest first
+    cut_off: list[CountdownFacility]  # longest cut off first
+    key_moments: list[KeyMoment]  # the same at every timestep
+
+
 # --- 4.4 RiskScore (Dev B) ---
 
 
@@ -251,6 +287,9 @@ class RiskBlockBreakdown(ContractModel):
     block_id: BlockId
     block_name: str
     population_2011: int = Field(ge=0)
+    # v1.3 change, pending Dev A: population_2011 x the share of inhabited land with surge >= 0.3 m,
+    # an estimate (population spread evenly over inhabited land).
+    surge_population: int = Field(ge=0)
     hospital_travel_min: float | None = Field(ge=0)  # null: no road node reaches a hospital
     reach: RiskReach  # which of hazard or exposure scaled the score
     hazard: RiskHazardParts
@@ -262,6 +301,7 @@ class RiskBreakdown(ContractModel):
     timestep: Timestep
     blocks: list[RiskBlockBreakdown]
     horizon_h: Horizon = 0  # v1.3 change, pending Dev A
+    surge_population_total: int = Field(ge=0)  # v1.3 change, pending Dev A: sum over the blocks
 
 
 # --- 4.5 Advisory (Dev B) ---
@@ -529,10 +569,19 @@ class AuditLog(ContractModel):
     events: list[AuditEvent]
 
 
+class SuggestionReason(ContractModel):
+    """v1.3 change, pending Dev A: why a block is suggested."""
+
+    kind: Literal["risk", "expected_cut_off"]
+    label: str  # "risk 0.28", "Frasergunj PHC expected to be cut off"
+    infra_id: str | None  # expected_cut_off: the facility
+
+
 class AdvisorySuggestion(ContractModel):
     block_id: BlockId
     block_name: str
     score: UnitFraction
+    reasons: list[SuggestionReason] = Field(min_length=1)  # v1.3 change, pending Dev A
 
 
 class AdvisorySuggestions(ContractModel):

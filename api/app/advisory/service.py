@@ -24,7 +24,8 @@ import re
 import time
 import uuid
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from functools import lru_cache
 
 from pydantic import ValidationError
 
@@ -38,23 +39,31 @@ from app.advisory.facts import (
     offered_keys,
 )
 from app.advisory.prompt import SYSTEM_PROMPT, user_message
+from app.advisory.suggest import (
+    SUGGEST_MIN_SCORE,
+    expected_by_block,
+    facility_blocks,
+    suggest,
+)
 from app.core.config import get_settings
 from app.core.demo import load_fixture
+from app.exposure import service as exposure
+from app.impact import service as impact
 from app.impact.fixtures import compact_timestep
 from app.impact.horizon import FORECAST_HORIZON_H
 from app.risk import service as risk
+from app.risk.blocks import load_blocks
 from app.schemas import (
     LIVE,
     Advisory,
     AdvisoryProperties,
-    AdvisorySuggestion,
     AdvisorySuggestions,
     AdvisoryTexts,
     Citation,
     GeneratedBy,
+    InfraFeature,
 )
 
-SUGGEST_MIN_SCORE = 0.25  # blocks at or above this risk score are suggested for an advisory
 MAX_ATTEMPTS = 2  # one retry after a failed number check
 DESIGNATIONS = ("BDO", "SDO", "ADM (Disaster Management)", "District Magistrate")
 _APPROVER_RE = re.compile(
@@ -113,17 +122,30 @@ def suggestions(timestep: str) -> AdvisorySuggestions:
     if timestep == LIVE:
         raise NotImplementedError("timestep=live is not implemented yet")
     # On the expected hazard (v1.3 change, pending Dev A): suggest a block while there is still
-    # time to act, not once it is hit.
-    scores = [f.properties for f in risk.get_scores(timestep, FORECAST_HORIZON_H).features]
-    picked = sorted((p for p in scores if p.score >= SUGGEST_MIN_SCORE), key=lambda p: -p.score)
+    # time to act, not once it is hit. The rule is in suggest.py (the countdown's first alert
+    # uses it too).
+    scores = [
+        (p.block_id, p.block_name, p.score)
+        for p in (f.properties for f in risk.get_scores(timestep, FORECAST_HORIZON_H).features)
+    ]
     return AdvisorySuggestions(
         timestep=timestep,
         threshold=SUGGEST_MIN_SCORE,
-        blocks=[
-            AdvisorySuggestion(block_id=p.block_id, block_name=p.block_name, score=p.score)
-            for p in picked
-        ],
+        blocks=suggest(scores, expected_cut_off_by_block(timestep)),
     )
+
+
+def expected_cut_off_by_block(timestep: str) -> dict[str, list[InfraFeature]]:
+    """Block code -> its facilities isolated at horizon 24 that count for advisories."""
+    infra = {f.id: f for f in exposure.get_infra().features}
+    return expected_by_block(
+        impact.isolated_ids(timestep, FORECAST_HORIZON_H), infra, _facility_blocks()
+    )
+
+
+@lru_cache(maxsize=1)
+def _facility_blocks() -> dict[str, str]:
+    return facility_blocks(exposure.get_infra().features, load_blocks())
 
 
 # --- Generation --------------------------------------------------------------------------------
@@ -132,15 +154,23 @@ def suggestions(timestep: str) -> AdvisorySuggestions:
 def evaluate(
     raw: dict, keys: set[str], citations: list[Citation] | None = None
 ) -> tuple[AdvisoryTexts | None, str | None, dict]:
-    """(templates, None, {}) if the draft passes; else (None, audit action, details)."""
+    """(templates, None, details) if the draft passes; else (None, audit action, details).
+    With citations, counts written in words are first replaced by matching count placeholders
+    (render.repair_counts); the repairs are in details["auto_repaired"] either way."""
     try:
         draft = gemini.GeminiDraft.model_validate(raw)
         templates = AdvisoryTexts.model_validate(draft.model_dump())
     except ValidationError as e:
         return None, "invalid_response", {"errors": [err["msg"] for err in e.errors()][:5]}
-    problems = render.check(templates, keys, citations=citations)
+    repairs: list[dict] = []
+    added: list[render.Problem] = []
+    if citations is not None:
+        templates, found = render.repair_counts(templates, citations)
+        repairs = [r.as_dict() for r in found]
+        templates, added = render.add_shelter_action(templates, citations)
+    problems = added + render.check(templates, keys, citations=citations)
     if not problems:
-        return templates, None, {}
+        return templates, None, ({"auto_repaired": repairs} if repairs else {})
     kind = (
         "number_check_failed"
         if any(p.kind in ("digit", "number_word") for p in problems)
@@ -161,7 +191,10 @@ def evaluate(
     found = [
         {"language": p.language, "field": p.field, "kind": p.kind, "text": p.text} for p in problems
     ]
-    return None, kind, {"problems": [str(p) for p in problems], "text": offending, "found": found}
+    details = {"problems": [str(p) for p in problems], "text": offending, "found": found}
+    if repairs:
+        details["auto_repaired"] = repairs
+    return None, kind, details
 
 
 def _count_hint(facts: Facts) -> str:
@@ -192,11 +225,10 @@ def _retry_note(details: dict, facts: Facts) -> str:
                 f"{where} states {{{{{a}}}}} and {{{{{b}}}}} in one sentence, but they are "
                 "equal: state one count only"
             )
-        elif f["kind"] == "missing_standin_action":
+        elif f["kind"] == "too_many_actions":
             notes.append(
-                f"{f['language']} has no action citing {{{{standin_count}}}}: the block has no "
-                "mapped shelters, so one action must say so (with {{standin_count}}) and that "
-                "safe buildings must be identified locally"
+                f"{f['language']} has {f['text']} actions: the block has no mapped shelters and "
+                "the server adds an action about it, so write at most four"
             )
         else:
             notes.append(f"{where}: {f['kind']} {f['text']!r}")
@@ -225,6 +257,7 @@ class Generated:
     calls: int  # model calls made, all providers
     generated_by: GeneratedBy
     fallback_reason: str | None = None  # e.g. "gemini 429", "gemini 503 x2"
+    auto_repaired: list[dict] = field(default_factory=list)  # counts written in words, fixed
 
 
 def _status(e: BaseException | None) -> int | None:
@@ -238,7 +271,7 @@ def _draft(
     max_attempts: int,
     before_call: Callable[[], None] | None,
     retry_503: bool = False,
-) -> tuple[AdvisoryTexts, dict, int]:
+) -> tuple[AdvisoryTexts, dict, int, list[dict]]:
     """Call one provider until a draft passes the checks (at most `max_attempts` drafts). With
     `retry_503`, a 503 is retried once after RETRY_503_AFTER_S (that call counts too). A failed
     call raises DraftRejected from the provider's error (its .status); `calls` counts every
@@ -266,7 +299,7 @@ def _draft(
             raise DraftRejected(str(e), calls=calls, statuses=statuses) from e
         templates, action, details = evaluate(raw, keys, facts.citations)
         if templates is not None:
-            return templates, raw, calls
+            return templates, raw, calls, details.get("auto_repaired", [])
         last = details
         with store.transaction() as conn:
             store.audit(
@@ -302,6 +335,21 @@ def _fallback_reason(e: DraftRejected) -> str | None:
     return "gemini " + ", ".join(str(s) for s in statuses)
 
 
+def generate_groq(
+    facts: Facts,
+    actor: str | None = None,
+    max_attempts: int = MAX_ATTEMPTS,
+    before_call: Callable[[], None] | None = None,
+) -> Generated:
+    """Groq only, under the same checks (the fixture script's fallback when Gemini is out)."""
+    settings = get_settings()
+    if not settings.is_configured("GROQ_API_KEY"):
+        raise DraftRejected("GROQ_API_KEY is not set: no Groq fallback", calls=0)
+    groq = providers.groq(settings)
+    templates, raw, calls, repairs = _draft(groq, facts, actor, max_attempts, before_call)
+    return Generated(templates, raw, calls, groq.generated_by, auto_repaired=repairs)
+
+
 def generate_live(
     facts: Facts,
     actor: str | None = None,
@@ -321,10 +369,10 @@ def generate_live(
             f"{facts.timestep}, and GEMINI_API_KEY is not set"
         )
     try:
-        templates, raw, calls = _draft(
+        templates, raw, calls, repairs = _draft(
             providers.GEMINI_PROVIDER, facts, actor, max_attempts, before_call, retry_503=fallback
         )
-        return Generated(templates, raw, calls, providers.GEMINI)
+        return Generated(templates, raw, calls, providers.GEMINI, auto_repaired=repairs)
     except DraftRejected as e:
         reason = _fallback_reason(e)
         if not fallback or reason is None or not settings.is_configured("GROQ_API_KEY"):
@@ -332,11 +380,13 @@ def generate_live(
         gemini_calls = e.calls
     groq = providers.groq(settings)
     try:
-        templates, raw, calls = _draft(groq, facts, actor, max_attempts, None)
+        templates, raw, calls, repairs = _draft(groq, facts, actor, max_attempts, None)
     except DraftRejected as e:
         e.calls += gemini_calls
         raise DraftRejected(f"{e} (Groq fallback after {reason})", e.problems, calls=e.calls) from e
-    return Generated(templates, raw, gemini_calls + calls, groq.generated_by, reason)
+    return Generated(
+        templates, raw, gemini_calls + calls, groq.generated_by, reason, auto_repaired=repairs
+    )
 
 
 CITED_TEXT_KEY = "_cited_text"  # in a Gemini fixture: {key: text value} its templates used
@@ -355,11 +405,25 @@ def _used_keys(raw: dict) -> set[str] | None:
     )
 
 
-def fixture_payload(raw: dict, facts: Facts) -> dict:
-    """What the fixture script writes: Gemini's response plus the text values it refers to."""
+GENERATED_BY_KEY = "_generated_by"  # in a fixture: the model that wrote it (default Gemini)
+
+
+def fixture_payload(raw: dict, facts: Facts, generated_by: GeneratedBy | None = None) -> dict:
+    """What the fixture script writes: the model's response, the text values it refers to (for
+    the staleness check) and, when given, the model that wrote it."""
     used = _used_keys(raw) or set()
     cited = {c.key: c.value for c in facts.citations if c.key in used and isinstance(c.value, str)}
-    return {**raw, CITED_TEXT_KEY: dict(sorted(cited.items()))}
+    payload = {**raw, CITED_TEXT_KEY: dict(sorted(cited.items()))}
+    if generated_by is not None:
+        payload[GENERATED_BY_KEY] = generated_by.model_dump()
+    return payload
+
+
+def fixture_generated_by(cached: dict) -> GeneratedBy:
+    """The model a cached response came from: stored by the fixture script, else Gemini (the
+    only model fixtures came from before it was stored)."""
+    stored = cached.get(GENERATED_BY_KEY)
+    return GeneratedBy.model_validate(stored) if isinstance(stored, dict) else providers.GEMINI
 
 
 def staleness(cached: dict, facts: Facts) -> dict | None:
@@ -410,7 +474,14 @@ def _templates_for(facts: Facts, actor: str | None) -> tuple[Generated, str]:
     if cached is not None:
         templates, action, details = evaluate(cached, keys, facts.citations)
         if templates is not None:
-            return Generated(templates, cached, 0, providers.GEMINI), "fixture"
+            generated = Generated(
+                templates,
+                cached,
+                0,
+                fixture_generated_by(cached),
+                auto_repaired=details.get("auto_repaired", []),
+            )
+            return generated, "fixture"
         with store.transaction() as conn:
             store.audit(
                 conn,
@@ -454,6 +525,8 @@ def create(block_id: str, timestep: str, actor: str | None = None) -> Advisory:
     }
     if generated.fallback_reason:
         details["fallback_reason"] = generated.fallback_reason
+    if generated.auto_repaired:
+        details["auto_repaired"] = generated.auto_repaired
     with store.transaction() as conn:
         store.save(conn, advisory)
         store.audit(conn, props.id, "generated", actor, details)
@@ -494,11 +567,15 @@ def edit(advisory_id: str, templates: AdvisoryTexts, actor: str | None = None) -
         }
         # Offered keys, plus any a draft from before a rule change already uses.
         keys = offered_keys(p.citations) | set().union(*required.values())
+        templates, found = render.repair_counts(templates, p.citations)
+        repairs = [r.as_dict() for r in found]
         problems = render.check(templates, keys, required, p.citations)
         if problems:
             numbers = any(x.kind in ("digit", "number_word") for x in problems)
             action = "number_check_failed" if numbers else "invalid_response"
             details = {"problems": [str(x) for x in problems], "source": "edit"}
+            if repairs:
+                details["auto_repaired"] = repairs
             store.audit(conn, advisory_id, action, actor, details)
         else:
             changed = [
@@ -512,7 +589,10 @@ def edit(advisory_id: str, templates: AdvisoryTexts, actor: str | None = None) -
                 texts=render.render(templates, p.citations).model_dump(),
             )
             store.save(conn, advisory)
-            store.audit(conn, advisory_id, "edited", actor, {"languages": changed})
+            edited = {"languages": changed}
+            if repairs:
+                edited["auto_repaired"] = repairs
+            store.audit(conn, advisory_id, "edited", actor, edited)
     if problems:
         raise Invalid("the edit failed the checks", [str(x) for x in problems])
     return advisory

@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 
 from app.advisory import facts as facts_module
 from app.advisory import prompt
+from app.advisory import suggest as suggest_rule
 from app.core import demo as demo_module
 from app.core.config import Settings
 from app.core.demo import DEMO_DIR
@@ -22,11 +23,12 @@ from app.risk import fixtures as risk_fixtures
 from app.risk import service as risk
 from app.risk.blocks import load_blocks
 from app.risk.engine import to_breakdown, to_collection
-from app.schemas import REPLAY_TIMESTEPS, RiskBreakdown
+from app.schemas import REPLAY_TIMESTEPS, InfraFeature, RiskBreakdown
 
 client = TestClient(app)
 T6, T3, T0 = REPLAY_TIMESTEPS[-3], REPLAY_TIMESTEPS[-2], REPLAY_TIMESTEPS[-1]
 T27, T33 = REPLAY_TIMESTEPS[-10], REPLAY_TIMESTEPS[-12]
+T18, T42 = REPLAY_TIMESTEPS[-7], REPLAY_TIMESTEPS[-15]
 
 
 def set_demo(monkeypatch, on: bool) -> None:
@@ -115,6 +117,71 @@ def test_isolation_is_expected_earlier_than_it_happens(demo):
     assert first(0) == T3 and first(24) == T27  # a full day of warning
 
 
+def test_readme_gosaba_timesteps_match_the_committed_fixtures():
+    """README.md quotes these timesteps: Gosaba Rural Hospital isolated at T-3 and expected-isolated
+    at T-27; the first suggestion at T-18 and, on the expected hazard, at T-42.
+    Read straight from the committed JSON (no service code), so the README can't drift from it."""
+
+    def read(key: str) -> dict:
+        return json.loads((DEMO_DIR / f"{key}.json").read_text("utf-8"))
+
+    (gosaba,) = [
+        f["id"]
+        for f in read("exposure__infra-hospital")["features"]
+        if f["properties"].get("name") == "Gosaba Rural Hospital"
+    ]
+    h24_files = read(fh.index_key(impact.H24_PREFIX))["files"]
+
+    def isolated(fixture: dict) -> bool:
+        return any(
+            r["properties"]["infra_id"] == gosaba and r["properties"]["status"] == "isolated"
+            for r in fixture["features"]
+        )
+
+    def first(fixture_for) -> str:
+        return next(ts for ts in REPLAY_TIMESTEPS if isolated(fixture_for(ts)))
+
+    assert first(lambda ts: read(impact_fixtures.fixture_key(ts))) == T3
+    assert first(lambda ts: read(h24_files[ts])) == T27
+
+    # "The first suggestion at T-42 (Namkhana, Frasergunj PHC expected to be cut off) instead of
+    # T-18": the suggestion rule (app/advisory/suggest.py) on each horizon's committed risk scores
+    # and impact results. On horizon 0 a "cut off" facility is one isolated now.
+    infra = {
+        f["id"]: InfraFeature.model_validate(f)
+        for t in ("hospital", "shelter")
+        for f in read(f"exposure__infra-{t}")["features"]
+    }
+    blocks_of = suggest_rule.facility_blocks(infra.values(), load_blocks())
+    scores_h24_files = read(fh.index_key(risk.SCORES_H24_PREFIX))["files"]
+
+    def ids(fixture: dict) -> set[str]:
+        return {
+            r["properties"]["infra_id"]
+            for r in fixture["features"]
+            if r["properties"]["status"] == "isolated"
+        }
+
+    def first_suggested(scores_for, impact_for) -> tuple[str, list[tuple[str, list[str]]]]:
+        for ts in REPLAY_TIMESTEPS:
+            scores = [
+                (p["block_id"], p["block_name"], p["score"])
+                for p in (f["properties"] for f in scores_for(ts)["features"])
+            ]
+            expected = suggest_rule.expected_by_block(ids(impact_for(ts)), infra, blocks_of)
+            if picked := suggest_rule.suggest(scores, expected):
+                return ts, [(s.block_name, [r.label for r in s.reasons]) for s in picked]
+        raise AssertionError("no block is ever suggested")
+
+    frasergunj = [("Namkhana", ["Frasergunj PHC expected to be cut off"])]
+    assert first_suggested(
+        lambda ts: read(risk.fixture_key(ts)), lambda ts: read(impact_fixtures.fixture_key(ts))
+    ) == (T18, frasergunj)
+    assert first_suggested(
+        lambda ts: read(scores_h24_files[ts]), lambda ts: read(h24_files[ts])
+    ) == (T42, frasergunj)
+
+
 # --- Deduplicated fixtures ------------------------------------------------------------------------
 
 
@@ -185,15 +252,21 @@ def test_prompt_rule_for_expected_isolation():
     assert "preparatory actions" in prompt.SYSTEM_PROMPT
 
 
-def test_suggestions_start_from_the_expected_risk(demo):
+def test_suggestions_start_from_the_expected_hazard(demo):
+    """v1.3: expected risk >= 0.25 or a facility expected to be cut off within 24 h. The first
+    is Namkhana at T-42, for Frasergunj PHC; its risk alone first reaches 0.25 at T-33."""
     first = next(
         ts
         for ts in REPLAY_TIMESTEPS
         if client.get("/api/advisory/suggestions", params={"timestep": ts}).json()["blocks"]
     )
-    assert first == T33
-    blocks = client.get("/api/advisory/suggestions", params={"timestep": T33}).json()["blocks"]
+    assert first == T42
+    blocks = client.get("/api/advisory/suggestions", params={"timestep": T42}).json()["blocks"]
     assert [b["block_name"] for b in blocks] == ["Namkhana"]
+    assert [r["label"] for r in blocks[0]["reasons"]] == ["Frasergunj PHC expected to be cut off"]
+    at_t33 = client.get("/api/advisory/suggestions", params={"timestep": T33}).json()["blocks"]
+    namkhana = next(b for b in at_t33 if b["block_name"] == "Namkhana")
+    assert namkhana["reasons"][0]["kind"] == "risk"
 
 
 def test_insurance_pays_on_the_observed_hazard_but_shows_the_expected_tier(demo):

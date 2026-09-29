@@ -23,6 +23,7 @@ from app.impact.engine import FIRST_CUT_LABEL
 from app.impact.horizon import FORECAST_HORIZON_H, window
 from app.risk import blocks as block_data
 from app.risk import service as risk
+from app.risk import weights as W
 from app.schemas import (
     LANDFALL_TIMESTEP,
     Citation,
@@ -75,9 +76,20 @@ MODEL_SCORE_KEYS = frozenset(
 )
 
 
+# Trivial figures aren't offered either (the citations table keeps them): a surge under 0.1 m
+# and 0 km of cut roads say nothing worth a sentence.
+TRIVIAL_BELOW = {"peak_surge_m": 0.1, "cut_road_km": 1e-9}
+
+
+def _trivial(c: Citation) -> bool:
+    limit = TRIVIAL_BELOW.get(c.key)
+    return limit is not None and not isinstance(c.value, str) and c.value < limit
+
+
 def offered_citations(citations: list[Citation]) -> list[Citation]:
-    """The citations the model may use as {{placeholders}}."""
-    return [c for c in citations if c.key not in MODEL_SCORE_KEYS]
+    """The citations the model may use as {{placeholders}}: not the model scores, not trivial
+    figures."""
+    return [c for c in citations if c.key not in MODEL_SCORE_KEYS and not _trivial(c)]
 
 
 def offered_keys(citations: list[Citation]) -> set[str]:
@@ -232,16 +244,19 @@ def build_facts(block_id: str, timestep: str) -> Facts:
         )
     )
 
-    # Isolated facilities: one entry per facility (first hazard in the engine's order).
+    # Isolated facilities: one entry per facility (first hazard in the engine's order). Only
+    # facilities that count for advisories (v1.3: not nursing homes, diagnostic centres... as
+    # for hospital access, weights.counts_for_advisory); the others stay in the impact results.
     block_geom = blocks.geometry.iloc[b]
     points = [f for f in infra.features if f.geometry.type == "Point"]
     in_block = {f.id for f in _in_block(points, block_geom)}
+    counted = {i for i in in_block if W.counts_for_advisory(by_id[i].properties.name)}
     isolated: dict[str, object] = {}
     cut_subs: set[str] = set()
     cut_roads: set[str] = set()
     for r in impacts.features:
         p = r.properties
-        if p.status == "isolated" and p.infra_id in in_block and p.infra_id not in isolated:
+        if p.status == "isolated" and p.infra_id in counted and p.infra_id not in isolated:
             isolated[p.infra_id] = p
         elif p.status == "cut" and p.infra_id in in_block and p.infra_id.startswith("substation-"):
             cut_subs.add(p.infra_id)
@@ -280,11 +295,7 @@ def build_facts(block_id: str, timestep: str) -> Facts:
             )
         t = f.properties.attributes.get("hospital_travel_time_s")
         if t is not None:
-            label = (
-                "Next hospital by road"
-                if f.properties.infra_type == "hospital"
-                else "Nearest hospital by road"
-            )
+            label = "Normal road time to next hospital (before the storm)"
             c.append(
                 _cite(f"isolated_{i}_next_hospital_min", label, round(t / 60), "min", "exposure")
             )
@@ -298,7 +309,7 @@ def build_facts(block_id: str, timestep: str) -> Facts:
         p = r.properties
         if (
             p.status == "isolated"
-            and p.infra_id in in_block
+            and p.infra_id in counted
             and p.infra_id not in isolated
             and p.infra_id not in expected
         ):

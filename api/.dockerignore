@@ -14,7 +14,7 @@ data/cache/
 data/processed/
 data/state/
 
-# Secrets: never in the image (Secret Manager provides keys as env vars)
+# Secrets: never in the image (Render provides keys as env vars)
 .env
 .env.*
 !.env.example
