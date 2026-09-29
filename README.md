@@ -135,7 +135,7 @@ Deployment: [deploy.md](deploy.md).
   Google Earth Engine for the elevation sampling.
 - **Frontend:** React 19, TypeScript, Vite, Tailwind CSS v4, MapLibre GL, deck.gl, d3-contour.
 - **Dispatch:** Telegram Bot API, Gmail SMTP, CAP 1.2 (validated with xmlschema).
-- **Deployment:** Docker on Cloud Run, Firebase Hosting, Secret Manager.
+- **Deployment:** Docker on Render (API), Vercel (web app).
 
 ## About the data
 

@@ -1,7 +1,7 @@
 # Development
 
-Setup, checks and the scripts that build Tempest's data. For deployment (Cloud Run and Firebase
-Hosting), see [deploy.md](../deploy.md). The API contract between the two developers is
+Setup, checks and the scripts that build Tempest's data. For deployment (Render for the API,
+Vercel for the web app), see [deploy.md](../deploy.md). The API contract between the two developers is
 [shared/contracts.md](../shared/contracts.md).
 
 ## Repository layout
@@ -109,10 +109,12 @@ Demo fixtures built from Dev A's hazard layers:
 api\.venv\Scripts\python api\scripts\build_impact_risk_fixtures.py  # impact, risk, breakdown (0 and 24 h)
 api\.venv\Scripts\python api\scripts\build_insurance_fixtures.py    # insurance triggers and summary
 api\.venv\Scripts\python api\scripts\build_countdown_fixture.py     # action countdown, key moments
+api\.venv\Scripts\python api\scripts\build_departures_fixture.py    # last safe departure (needs the road graph)
 ```
 
 `build_countdown_fixture.py` reads only the committed impact and risk fixtures, so run it after
-`build_impact_risk_fixtures.py`; `tests/test_countdown.py` fails if it is out of date.
+`build_impact_risk_fixtures.py`; `tests/test_countdown.py` fails if it is out of date. The same
+goes for `build_departures_fixture.py` and `tests/test_departures.py`.
 
 Advisory drafts (live model calls; paced, capped by `--max-calls`):
 
@@ -146,8 +148,8 @@ cd ..
 ```
 
 For a production build against an API on another origin, copy `.env.example` to `.env` and set
-`VITE_API_BASE_URL` before `npm run build`. The Firebase Hosting setup in `firebase.json` serves
-the API on the same origin, so it leaves that unset.
+`VITE_API_BASE_URL` before `npm run build`. The Vercel setup in `web/vercel.json` forwards `/api`
+and `/health` to the API, so it serves the API on the same origin and leaves that unset.
 
 ## Updating "About the data"
 

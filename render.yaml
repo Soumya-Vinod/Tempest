@@ -1,0 +1,36 @@
+# Render Blueprint for the Tempest API (see deploy.md).
+# One Docker web service built from api/Dockerfile. DEMO_MODE: every route is served from the
+# committed fixtures. Secrets have `sync: false`: Render asks for their values when the Blueprint
+# is first applied, and they are never stored in this file.
+services:
+  - type: web
+    name: tempest-api
+    runtime: docker
+    rootDir: api
+    dockerfilePath: ./Dockerfile
+    region: singapore
+    plan: free
+    healthCheckPath: /health
+    autoDeploy: false
+    envVars:
+      - key: DEMO_MODE
+        value: "true"
+      # /tmp is the only writable path; the SQLite state is lost on every restart and spin-down.
+      - key: STATE_DB_PATH
+        value: /tmp/tempest.db
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_CHAT_ID
+        sync: false
+      - key: GMAIL_ADDRESS
+        sync: false
+      - key: GMAIL_APP_PASSWORD
+        sync: false
+      - key: DISPATCH_EMAIL_TO
+        sync: false
+      - key: DISPATCH_PIN
+        sync: false
