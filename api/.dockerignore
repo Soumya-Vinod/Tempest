@@ -7,12 +7,14 @@
 .ruff_cache/
 tests/
 scripts/
+!scripts/build_static_responses.py
 
 # Data not needed in DEMO_MODE (and large or git-ignored)
 data/raw/
 data/cache/
 data/processed/
 data/state/
+data/static/
 
 # Secrets: never in the image (Render provides keys as env vars)
 .env

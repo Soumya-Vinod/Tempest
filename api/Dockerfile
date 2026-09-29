@@ -33,6 +33,11 @@ COPY app ./app
 COPY data/demo ./data/demo
 COPY data/reference ./data/reference
 
+# Pre-render every GET the web app makes (DEMO_MODE) into data/static/, gzip-compressed; the API
+# serves those files as they are (app/core/static_responses.py). About 9 MB, 1-2 min to build.
+COPY scripts/build_static_responses.py ./scripts/
+RUN python scripts/build_static_responses.py
+
 RUN useradd --create-home --uid 10001 tempest
 USER tempest
 

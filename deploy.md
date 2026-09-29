@@ -3,9 +3,20 @@
 The API runs on **Render** as one Docker web service (`tempest-api`, region Singapore, free
 plan), built from `api/Dockerfile` with `DEMO_MODE=true`. `render.yaml` at the repo root is the
 Blueprint that defines it. The web app is on **Vercel**, which builds `web/` and forwards
-`/api/*` and `/health` to the Render service (`web/vercel.json`). The browser only talks to the
-Vercel origin, so no CORS setup is needed. Keys are Render environment variables; none are in
-the image or in the repo.
+The browser calls the Render service **directly**:
+the production build has `VITE_API_BASE_URL` set to the Render URL, and Render allows the Vercel
+origin through `CORS_ORIGINS`. (Going through Vercel's `/api/*` rewrite in `web/vercel.json`
+timed out on the free instance and returned 502s; the rewrite is still there as a fallback for
+a build without `VITE_API_BASE_URL`.) Keys are Render environment variables; none are in the
+image or in the repo.
+
+**Pre-rendered responses.** The image build runs `api/scripts/build_static_responses.py`, which
+requests every route and parameter combination the web app uses (25 timesteps × both horizons ×
+each impact status, plus hazard layers, exposure, risk, insurance, countdown, departures, track,
+unscored areas and validation) and stores each final response gzip-compressed in
+`/app/data/static/` (about 9 MB, 371 responses). In DEMO_MODE the API sends those files as they
+are, so a request costs a file read instead of parsing, rebuilding and compressing large
+fixtures. Anything else (advisories, dispatch, an unexpected parameter) runs the route code.
 
 Nothing here has been run for you. Deploys are manual on Render (`autoDeploy: false`).
 
@@ -31,6 +42,7 @@ Nothing here has been run for you. Deploys are manual on Render (`autoDeploy: fa
    | `GMAIL_APP_PASSWORD` | Gmail app password (16 characters) |
    | `DISPATCH_EMAIL_TO` | Dispatch recipients, comma-separated |
    | `DISPATCH_PIN` | PIN required for a live dispatch |
+   | `CORS_ORIGINS` | The Vercel site's origin, e.g. `https://tempest-xxxx.vercel.app` (no trailing slash; several: comma-separated). Leave it empty for now and fill it in at step 3. |
 
    `DEMO_MODE=true` and `STATE_DB_PATH=/tmp/tempest.db` come from `render.yaml`. A key left
    empty just turns that feature off (`/health` reports it as `false`).
@@ -40,7 +52,8 @@ Nothing here has been run for you. Deploys are manual on Render (`autoDeploy: fa
    what the Dockerfile expects (`COPY requirements.txt`, `COPY app`).
 6. If no deploy started on its own: **Manual Deploy → Deploy latest commit**. Follow **Logs**:
    the build downloads the CAP 1.2 XSD and fails if its SHA-256 doesn't match, then installs
-   the requirements (the first build takes several minutes).
+   the requirements, then pre-renders the responses (`N responses, … MB in /app/data/static`,
+   a minute or two). The first build takes several minutes.
 7. When the deploy is **Live**, copy the service URL from the top of the page, e.g.
    `https://tempest-api-xxxx.onrender.com`, and open `https://tempest-api-xxxx.onrender.com/health`.
    It should show `"demo_mode": true` and `true` for every key you set.
@@ -59,41 +72,46 @@ deploy** (or **Save only**, then **Manual Deploy**).
    - **Root Directory:** click **Edit** and choose `web`.
    - **Framework Preset:** Vite. Build Command `npm run build` and Output Directory `dist` are
      the defaults; leave them.
-   - **Environment Variables:** none. Leave `VITE_API_BASE_URL` unset so the app calls `/api/...`
-     on its own origin and `vercel.json` forwards it.
+   - **Environment Variables:** add `VITE_API_BASE_URL` = the Render URL from step 1.7, e.g.
+     `https://tempest-api-xxxx.onrender.com` (with `https://`, no trailing slash), for the
+     **Production** environment (and Preview, if you use preview deployments). Vite bakes it in
+     at build time, so changing it later needs a redeploy.
 4. **Deploy.** When it finishes, note the production URL, e.g. `https://tempest-xxxx.vercel.app`.
 
 The site loads at this point but API calls fail: `vercel.json` still points at a placeholder.
 
-## 3. Point Vercel at the Render API
+## 3. Allow the Vercel site on Render (CORS)
 
-1. In `web/vercel.json`, replace `REPLACE-WITH-RENDER-HOST.onrender.com` with your Render host
-   from step 1.7, without `https://` and without a trailing slash (e.g.
-   `tempest-api-xxxx.onrender.com`). It appears **twice**:
-   - line 7, the `/api/(.*)` rewrite (keep the `/api/$1` after the host), and
-   - line 11, the `/health` rewrite (keep the `/health` after the host).
-2. Commit and push to the branch Vercel deploys (`main`).
-3. Vercel deploys each push to that branch on its own. If it doesn't, open the project →
-   **Deployments** → the latest deployment → **⋯ → Redeploy**.
+1. On Render: **tempest-api → Environment**, set `CORS_ORIGINS` to the Vercel production URL
+   from step 2.4, e.g. `https://tempest-xxxx.vercel.app` (exactly the origin: `https://`, no
+   path, no trailing slash). For a custom domain or preview URLs too, list them comma-separated.
+   `http://localhost:5173` is always allowed.
+2. **Save, rebuild, and deploy** (the setting is read at start-up).
+3. Optional fallback: `web/vercel.json` still forwards `/api/*` and `/health` to Render. If the
+   Render host changes, update it there too (it appears twice), but the app only uses it when
+   `VITE_API_BASE_URL` is unset.
 
 ## 4. Check it end to end
 
-1. Open `https://tempest-xxxx.vercel.app/health`. This goes through Vercel to Render. It should
-   return the same JSON as step 1.7. An HTML page here means the `/health` rewrite is wrong.
-   A 404 or 502 from Vercel means the Render host in `vercel.json` is wrong.
-2. Open the site, scrub the timeline once, and open one block's risk breakdown and an advisory.
+1. Open the site with the browser's developer tools (**Network** tab). Requests should go to
+   `https://tempest-api-xxxx.onrender.com/api/...`, not the Vercel origin; if they go to Vercel,
+   `VITE_API_BASE_URL` wasn't set for that build (set it and redeploy).
+2. A request blocked with a CORS error in the **Console** means `CORS_ORIGINS` on Render doesn't
+   match the site's origin exactly (check `https`, the trailing slash, and the redeploy).
+3. Large responses (`/api/impact/results`) should show `content-encoding: gzip` and come back
+   in well under a second once the service is awake.
+4. Scrub the timeline once, press Play, and open one block's risk breakdown and an advisory.
 
 ## Free-tier sleep and warming up before the demo
 
 A free Render service **spins down after about 15 minutes without traffic**. The next request
-starts it again, which takes about a minute. While it starts, requests through Vercel can fail
-or time out. A spin-down also wipes `/tmp`, so the advisory queue starts empty.
+starts it again, which takes about a minute. While it starts the web app shows "Waking up the
+server…" and keeps its requests queued (at most 4 in flight). A spin-down also wipes `/tmp`, so the advisory queue starts empty.
 
 Before the demo (10 minutes ahead is enough):
 
 1. Open `https://<render-host>/health` **directly** (not through Vercel) and wait for the JSON.
-2. Open the Vercel site and scrub the timeline once. The first load of each timestep's impact
-   layer is large (about 12 MB of JSON) and is slow on the free instance's small CPU.
+2. Open the Vercel site and scrub the timeline once.
 3. Keep a tab open, or use the monitor below, so it doesn't spin down again.
 
 **Keep it awake with UptimeRobot (optional).** At <https://uptimerobot.com> (free account):

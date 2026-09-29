@@ -18,6 +18,9 @@ services:
       # /tmp is the only writable path; the SQLite state is lost on every restart and spin-down.
       - key: STATE_DB_PATH
         value: /tmp/tempest.db
+      # The Vercel site's origin(s), comma-separated: the web app calls this service directly.
+      - key: CORS_ORIGINS
+        sync: false
       - key: GEMINI_API_KEY
         sync: false
       - key: GROQ_API_KEY

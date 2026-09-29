@@ -8,6 +8,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 from app.advisory import store as advisory_store
 from app.advisory.router import router as advisory_router
 from app.core.config import get_settings
+from app.core.static_responses import StaticResponseMiddleware
 from app.dispatch.router import router as dispatch_router
 from app.exposure.router import router as exposure_router
 from app.hazard.router import router as hazard_router
@@ -28,9 +29,13 @@ app = FastAPI(title="Tempest API", lifespan=lifespan)
 # (< 1000 bytes) stay plain.
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
+# DEMO_MODE: pre-rendered, pre-compressed GET responses (scripts/build_static_responses.py).
+# Added after GZip so it sits outside it (the files are gzip already), inside CORS.
+app.add_middleware(StaticResponseMiddleware)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=get_settings().cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

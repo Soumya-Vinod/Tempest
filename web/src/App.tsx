@@ -5,6 +5,7 @@ import { useCallback, useMemo, useState } from 'react'
 import HealthPanel from './components/HealthPanel'
 import MapView from './components/MapView'
 import TimelineScrubber from './components/TimelineScrubber'
+import WakingNotice from './components/WakingNotice'
 import { AboutPanel } from './features/about'
 import { AdvisoryDrawer, AdvisoryPanel, useAdvisories } from './features/advisory'
 import { CountdownPanel, useCountdown } from './features/countdown'
@@ -147,6 +148,7 @@ export default function App() {
       />
       <RiskCard {...risk.card} />
       <AdvisoryDrawer {...advisory.drawer} />
+      <WakingNotice />
       <TimelineScrubber
         index={timestepIndex}
         onChange={setTimestepIndex}

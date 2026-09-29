@@ -60,7 +60,74 @@ export class ApiError extends Error {
 
 type Query = Record<string, string | undefined>
 
-async function request<T>(
+// --- Load control: at most MAX_IN_FLIGHT requests at a time, the rest wait in order. The free
+// API instance has a fraction of a CPU; ~30 parallel requests on load made them all time out.
+
+const MAX_IN_FLIGHT = 4
+/** No response yet this long after the first request: the server is probably starting up. */
+const WAKING_AFTER_MS = 3000
+
+/** busy: a request is queued or in flight. waking: still no response WAKING_AFTER_MS in. */
+export interface ApiStatus {
+  busy: boolean
+  waking: boolean
+}
+
+let pending = 0 // queued or in flight
+let inFlight = 0
+const waiting: (() => void)[] = []
+let status: ApiStatus = { busy: false, waking: false }
+let answered = false // any response (even an error) has arrived
+let wakeTimer: number | undefined
+const listeners = new Set<() => void>()
+
+function setStatus(next: ApiStatus) {
+  if (next.busy === status.busy && next.waking === status.waking) return
+  status = next
+  listeners.forEach((l) => l())
+}
+
+/** For useSyncExternalStore (lib/useApiStatus.ts). */
+export const subscribeApiStatus = (listener: () => void) => {
+  listeners.add(listener)
+  return () => void listeners.delete(listener)
+}
+export const getApiStatus = () => status
+
+async function queued<T>(run: () => Promise<T>): Promise<T> {
+  pending++
+  setStatus({ ...status, busy: true })
+  if (!answered && wakeTimer === undefined) {
+    wakeTimer = window.setTimeout(() => {
+      if (!answered) setStatus({ ...status, waking: true })
+    }, WAKING_AFTER_MS)
+  }
+  // A finishing request hands its slot straight to the next in line (inFlight unchanged).
+  if (inFlight < MAX_IN_FLIGHT) inFlight++
+  else await new Promise<void>((resolve) => waiting.push(resolve))
+  try {
+    return await run()
+  } finally {
+    pending--
+    answered = true
+    window.clearTimeout(wakeTimer)
+    const next = waiting.shift()
+    if (next) next()
+    else inFlight--
+    setStatus({ busy: pending > 0, waking: false })
+  }
+}
+
+function request<T>(
+  method: 'GET' | 'POST' | 'PATCH',
+  path: string,
+  options: { query?: Query; body?: unknown } = {},
+): Promise<T> {
+  return queued(() => send<T>(method, path, options))
+}
+
+/** One request, body read included (a slot is held until the whole response has arrived). */
+async function send<T>(
   method: 'GET' | 'POST' | 'PATCH',
   path: string,
   { query, body }: { query?: Query; body?: unknown } = {},

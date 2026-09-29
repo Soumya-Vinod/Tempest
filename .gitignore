@@ -37,6 +37,9 @@ api/data/cache/*
 !api/data/cache/.gitkeep
 # Regenerate with api\.venv\Scripts\python api\scripts\ingest_osm.py (see README)
 api/data/processed/*
+# Pre-rendered DEMO_MODE responses (api/scripts/build_static_responses.py; built in the image)
+api/data/static/
+api/data/static.tmp/
 !api/data/processed/.gitkeep
 # Advisory queue and audit log (SQLite, created on start)
 api/data/state/*

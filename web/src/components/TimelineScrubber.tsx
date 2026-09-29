@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { LANDFALL_INDEX, REPLAY_TIMESTEPS, relativeLabel } from '../lib/constants'
 import { TIMELINE_HEIGHT, UI_GAP } from '../lib/layout'
+import { useApiStatus } from '../lib/useApiStatus'
 import type { KeyMoment, KeyMomentKind } from '../types/contracts'
 
 interface Props {
@@ -53,23 +54,30 @@ function MomentMarker({
 export default function TimelineScrubber({ index, onChange, moments = [] }: Props) {
   const timestep = REPLAY_TIMESTEPS[index]
   const [playing, setPlaying] = useState(false)
+  const { busy } = useApiStatus()
+  const lastStepAt = useRef(0)
   const step = (delta: number) =>
     onChange(Math.min(LANDFALL_INDEX, Math.max(0, index + delta)))
 
-  // Play: one step every PLAY_STEP_MS, stopping at landfall.
+  // Play: one step every PLAY_STEP_MS at most, stopping at landfall. It waits while any API
+  // request is queued or in flight, so the current timestep's data has loaded before the next
+  // step (never more than one timestep ahead of the data).
   useEffect(() => {
-    if (!playing) return
+    if (!playing || busy) return
+    const wait = Math.max(0, PLAY_STEP_MS - (Date.now() - lastStepAt.current))
     const id = window.setTimeout(() => {
       const next = Math.min(LANDFALL_INDEX, index + 1)
+      lastStepAt.current = Date.now()
       onChange(next)
       if (next === LANDFALL_INDEX) setPlaying(false)
-    }, PLAY_STEP_MS)
+    }, wait)
     return () => window.clearTimeout(id)
-  }, [playing, index, onChange])
+  }, [playing, busy, index, onChange])
 
   const togglePlay = () => {
     if (playing) return setPlaying(false)
     if (index === LANDFALL_INDEX) onChange(0) // replay from the start
+    lastStepAt.current = Date.now()
     setPlaying(true)
   }
 
