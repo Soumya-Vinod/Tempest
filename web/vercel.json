@@ -4,11 +4,11 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://REPLACE-WITH-RENDER-HOST.onrender.com/api/$1"
+      "destination": "https://tempest-api-hp91.onrender.com/api/$1"
     },
     {
       "source": "/health",
-      "destination": "https://REPLACE-WITH-RENDER-HOST.onrender.com/health"
+      "destination": "https://tempest-api-hp91.onrender.com/health"
     },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
