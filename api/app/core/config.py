@@ -44,8 +44,8 @@ class Settings(BaseSettings):
     DISPATCH_PIN: str | None = None
     DEMO_MODE: bool = True
     # SQLite state (advisories, audit log, dispatch receipts). Unset: api/data/state/tempest.db.
-    # On Cloud Run: /tmp/tempest.db, the only writable path; it is lost on every restart, so run
-    # one instance (--max-instances=1) for a single shared queue.
+    # On Render: /tmp/tempest.db (set in render.yaml), the only writable path; it is lost on every
+    # deploy, restart and spin-down. One instance keeps a single shared queue.
     STATE_DB_PATH: str | None = None
     # The OASIS CAP 1.2 XSD. Unset: api/data/raw/CAP-v1.2.xsd, downloaded on first use; the API
     # image downloads and checks it at build time (api/Dockerfile).
