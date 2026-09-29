@@ -1,6 +1,7 @@
-"""Hazard API endpoints for replay timeline and hazard layers (shared/contracts.md §5)."""
+"""Hazard API endpoints for replay timeline, hazard layers, and Sentinel-1 validation."""
 
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import FileResponse
 
 from app.hazard import service
 from app.hazard.models import (
@@ -10,6 +11,7 @@ from app.hazard.models import (
     ReplayTimeline,
     TimestepParam,
 )
+from app.hazard.validation import service as val_service
 from app.schemas.common import LIVE
 
 router = APIRouter(prefix="/hazard", tags=["hazard"])
@@ -44,3 +46,79 @@ def get_layers(hazard_type: HazardType, timestep: TimestepParam) -> HazardLayerC
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e)) from e
 
+
+# ---------------------------------------------------------------------------
+# Sentinel-1 Observational Validation Endpoints (Phase 10)
+# Read-only: routes serve pre-computed artifacts; never execute the pipeline.
+# ---------------------------------------------------------------------------
+@router.get("/validation")
+def get_validation_overview() -> dict:
+    """Overview summary of Sentinel-1 observational validation across all benchmarked blocks."""
+    try:
+        return val_service.get_validation_overview()
+    except val_service.ValidationDataUnavailableError as e:
+        raise HTTPException(status_code=503, detail=str(e)) from e
+
+
+@router.get("/validation/{block}")
+def get_block_validation(block: str) -> dict:
+    """Detailed Sentinel-1 validation report for a specific coastal administrative block."""
+    try:
+        res = val_service.get_block_validation(block)
+    except val_service.ValidationDataUnavailableError as e:
+        raise HTTPException(status_code=503, detail=str(e)) from e
+    if res is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Administrative block '{block}' not found in validation benchmark suite.",
+        )
+    return res
+
+
+@router.get("/validation/{block}/metrics")
+def get_block_metrics(block: str) -> dict:
+    """Quantitative cell-level (5.5 km) validation metrics and confusion matrix for a block."""
+    try:
+        res = val_service.get_block_metrics(block)
+    except val_service.ValidationDataUnavailableError as e:
+        raise HTTPException(status_code=503, detail=str(e)) from e
+    if res is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Administrative block '{block}' metrics not found.",
+        )
+    return res
+
+
+@router.get("/validation/{block}/artifacts")
+def get_block_artifacts(block: str) -> dict:
+    """List available exported artifacts (cell-label GeoTIFFs, GeoJSONs, JSON) for a block."""
+    res = val_service.get_block_artifacts(block)
+    if res is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Artifacts for block '{block}' not found.",
+        )
+    return res
+
+
+@router.get("/validation/{block}/artifacts/{artifact_name}")
+def download_block_artifact(block: str, artifact_name: str) -> FileResponse:
+    """Download an exported validation artifact (cell-label GeoTIFF, GeoJSON, or JSON)."""
+    file_path = val_service.get_artifact_file_path(block, artifact_name)
+    if file_path is None or not file_path.is_file():
+        raise HTTPException(
+            status_code=404,
+            detail=f"Artifact '{artifact_name}' for block '{block}' not found.",
+        )
+
+    suffix = file_path.suffix.lower()
+    media_types = {
+        ".tif": "image/tiff",
+        ".tiff": "image/tiff",
+        ".geojson": "application/geo+json",
+        ".json": "application/json",
+        ".md": "text/markdown",
+    }
+    media_type = media_types.get(suffix, "application/octet-stream")
+    return FileResponse(path=file_path, media_type=media_type, filename=file_path.name)

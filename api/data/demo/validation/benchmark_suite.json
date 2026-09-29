@@ -1,0 +1,357 @@
+{
+  "execution_timestamp": "2026-09-29T12:37:08Z",
+  "event_name": "Cyclone Amphan",
+  "landfall_timestamp": "2020-05-20T12:00:00Z",
+  "aggregate_metrics": {
+    "mean_iou": 0.0,
+    "mean_precision": 0.0,
+    "mean_recall": 0.0,
+    "mean_f1": 0.0,
+    "mean_accuracy": 0.2747,
+    "total_observed_km2": 0.0,
+    "total_predicted_km2": 1527.6,
+    "evaluated_blocks_count": 4
+  },
+  "blocks": {
+    "sagar": {
+      "block": {
+        "identifier": "02438",
+        "name": "Sagar",
+        "census_code": "02438",
+        "area_km2": 235.5,
+        "population": 212037,
+        "bbox": [
+          88.04167,
+          21.62877,
+          88.17217,
+          21.93756
+        ],
+        "centroid": [
+          88.1144,
+          21.73789
+        ]
+      },
+      "acquisition": {
+        "aoi_identifier": "02438",
+        "aoi_name": "Sagar",
+        "matched_orbit": true,
+        "pairing_strategy": "post_first",
+        "before_acquisition": {
+          "image_id": "COPERNICUS/S1_GRD/S1B_IW_GRDH_1SDV_20200516T000357_20200516T000422_021599_029010_EE74",
+          "acquisition_time": "2020-05-16T00:03:57Z",
+          "platform": "S1B",
+          "orbit_pass": "DESCENDING",
+          "relative_orbit": 48,
+          "absolute_orbit": 21599,
+          "polarization": "VV",
+          "instrument_mode": "IW",
+          "slice_number": 3,
+          "footprint_bbox": null
+        },
+        "after_acquisition": {
+          "image_id": "COPERNICUS/S1_GRD/S1A_IW_GRDH_1SDV_20200522T000444_20200522T000509_032670_03C8AC_A6E3",
+          "acquisition_time": "2020-05-22T00:04:44Z",
+          "platform": "S1A",
+          "orbit_pass": "DESCENDING",
+          "relative_orbit": 48,
+          "absolute_orbit": 32670,
+          "polarization": "VV",
+          "instrument_mode": "IW",
+          "slice_number": 16,
+          "footprint_bbox": null
+        }
+      },
+      "metrics": {
+        "iou": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1_score": 0.0,
+        "accuracy": 0.1428,
+        "specificity": 0.1428,
+        "cohens_kappa": 0.0,
+        "flooded_area_observed_km2": 0.0,
+        "flooded_area_predicted_km2": 201.86,
+        "intersection_area_km2": 0.0,
+        "union_area_km2": 201.86,
+        "flooded_area_agreement": 0.0,
+        "confusion_matrix": {
+          "tp_km2": 0.0,
+          "fp_km2": 201.86,
+          "fn_km2": 0.0,
+          "tn_km2": 33.64,
+          "tp_cells": 0,
+          "fp_cells": 18,
+          "fn_cells": 0,
+          "tn_cells": 3
+        }
+      },
+      "artifacts": {
+        "observed_flood_tif": "observed_flood.tif",
+        "predicted_flood_tif": "predicted_flood.tif",
+        "agreement_tif": "agreement.tif",
+        "disagreement_tif": "disagreement.tif",
+        "observed_flood_geojson": "observed_flood.geojson",
+        "predicted_flood_geojson": "predicted_flood.geojson",
+        "validation_overlap_geojson": "validation_overlap.geojson",
+        "metrics_json": "metrics.json",
+        "acquisition_metadata_json": "acquisition_metadata.json"
+      },
+      "sar_water_km2": 4.22
+    },
+    "namkhana": {
+      "block": {
+        "identifier": "02439",
+        "name": "Namkhana",
+        "census_code": "02439",
+        "area_km2": 243.6,
+        "population": 182830,
+        "bbox": [
+          88.17075,
+          21.55897,
+          88.34945,
+          21.82107
+        ],
+        "centroid": [
+          88.25975,
+          21.68491
+        ]
+      },
+      "acquisition": {
+        "aoi_identifier": "02439",
+        "aoi_name": "Namkhana",
+        "matched_orbit": true,
+        "pairing_strategy": "post_first",
+        "before_acquisition": {
+          "image_id": "COPERNICUS/S1_GRD/S1B_IW_GRDH_1SDV_20200516T000357_20200516T000422_021599_029010_EE74",
+          "acquisition_time": "2020-05-16T00:03:57Z",
+          "platform": "S1B",
+          "orbit_pass": "DESCENDING",
+          "relative_orbit": 48,
+          "absolute_orbit": 21599,
+          "polarization": "VV",
+          "instrument_mode": "IW",
+          "slice_number": 3,
+          "footprint_bbox": null
+        },
+        "after_acquisition": {
+          "image_id": "COPERNICUS/S1_GRD/S1A_IW_GRDH_1SDV_20200522T000444_20200522T000509_032670_03C8AC_A6E3",
+          "acquisition_time": "2020-05-22T00:04:44Z",
+          "platform": "S1A",
+          "orbit_pass": "DESCENDING",
+          "relative_orbit": 48,
+          "absolute_orbit": 32670,
+          "polarization": "VV",
+          "instrument_mode": "IW",
+          "slice_number": 16,
+          "footprint_bbox": null
+        }
+      },
+      "metrics": {
+        "iou": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1_score": 0.0,
+        "accuracy": 0.0952,
+        "specificity": 0.0952,
+        "cohens_kappa": 0.0,
+        "flooded_area_observed_km2": 0.0,
+        "flooded_area_predicted_km2": 220.4,
+        "intersection_area_km2": 0.0,
+        "union_area_km2": 220.4,
+        "flooded_area_agreement": 0.0,
+        "confusion_matrix": {
+          "tp_km2": 0.0,
+          "fp_km2": 220.4,
+          "fn_km2": 0.0,
+          "tn_km2": 23.2,
+          "tp_cells": 0,
+          "fp_cells": 19,
+          "fn_cells": 0,
+          "tn_cells": 2
+        }
+      },
+      "artifacts": {
+        "observed_flood_tif": "observed_flood.tif",
+        "predicted_flood_tif": "predicted_flood.tif",
+        "agreement_tif": "agreement.tif",
+        "disagreement_tif": "disagreement.tif",
+        "observed_flood_geojson": "observed_flood.geojson",
+        "predicted_flood_geojson": "predicted_flood.geojson",
+        "validation_overlap_geojson": "validation_overlap.geojson",
+        "metrics_json": "metrics.json",
+        "acquisition_metadata_json": "acquisition_metadata.json"
+      },
+      "sar_water_km2": 0.54
+    },
+    "gosaba": {
+      "block": {
+        "identifier": "02435",
+        "name": "Gosaba",
+        "census_code": "02435",
+        "area_km2": 1918.6,
+        "population": 246598,
+        "bbox": [
+          88.61201,
+          21.55748,
+          89.09394,
+          22.28568
+        ],
+        "centroid": [
+          88.87738,
+          21.91349
+        ]
+      },
+      "acquisition": {
+        "aoi_identifier": "02435",
+        "aoi_name": "Gosaba",
+        "matched_orbit": true,
+        "pairing_strategy": "post_first",
+        "before_acquisition": {
+          "image_id": "COPERNICUS/S1_GRD/S1B_IW_GRDH_1SDV_20200516T000357_20200516T000422_021599_029010_EE74",
+          "acquisition_time": "2020-05-16T00:03:57Z",
+          "platform": "S1B",
+          "orbit_pass": "DESCENDING",
+          "relative_orbit": 48,
+          "absolute_orbit": 21599,
+          "polarization": "VV",
+          "instrument_mode": "IW",
+          "slice_number": 3,
+          "footprint_bbox": null
+        },
+        "after_acquisition": {
+          "image_id": "COPERNICUS/S1_GRD/S1A_IW_GRDH_1SDV_20200522T000444_20200522T000509_032670_03C8AC_A6E3",
+          "acquisition_time": "2020-05-22T00:04:44Z",
+          "platform": "S1A",
+          "orbit_pass": "DESCENDING",
+          "relative_orbit": 48,
+          "absolute_orbit": 32670,
+          "polarization": "VV",
+          "instrument_mode": "IW",
+          "slice_number": 16,
+          "footprint_bbox": null
+        }
+      },
+      "metrics": {
+        "iou": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1_score": 0.0,
+        "accuracy": 0.6106,
+        "specificity": 0.6106,
+        "cohens_kappa": 0.0,
+        "flooded_area_observed_km2": 0.0,
+        "flooded_area_predicted_km2": 747.07,
+        "intersection_area_km2": 0.0,
+        "union_area_km2": 747.07,
+        "flooded_area_agreement": 0.0,
+        "confusion_matrix": {
+          "tp_km2": 0.0,
+          "fp_km2": 747.07,
+          "fn_km2": 0.0,
+          "tn_km2": 1171.53,
+          "tp_cells": 0,
+          "fp_cells": 44,
+          "fn_cells": 0,
+          "tn_cells": 69
+        }
+      },
+      "artifacts": {
+        "observed_flood_tif": "observed_flood.tif",
+        "predicted_flood_tif": "predicted_flood.tif",
+        "agreement_tif": "agreement.tif",
+        "disagreement_tif": "disagreement.tif",
+        "observed_flood_geojson": "observed_flood.geojson",
+        "predicted_flood_geojson": "predicted_flood.geojson",
+        "validation_overlap_geojson": "validation_overlap.geojson",
+        "metrics_json": "metrics.json",
+        "acquisition_metadata_json": "acquisition_metadata.json"
+      },
+      "sar_water_km2": 5.11
+    },
+    "patharpratima": {
+      "block": {
+        "identifier": "02440",
+        "name": "Patharpratima",
+        "census_code": "02440",
+        "area_km2": 477.7,
+        "population": 331823,
+        "bbox": [
+          88.26004,
+          21.60326,
+          88.5192,
+          22.00271
+        ],
+        "centroid": [
+          88.39115,
+          21.80655
+        ]
+      },
+      "acquisition": {
+        "aoi_identifier": "02440",
+        "aoi_name": "Patharpratima",
+        "matched_orbit": true,
+        "pairing_strategy": "post_first",
+        "before_acquisition": {
+          "image_id": "COPERNICUS/S1_GRD/S1B_IW_GRDH_1SDV_20200516T000357_20200516T000422_021599_029010_EE74",
+          "acquisition_time": "2020-05-16T00:03:57Z",
+          "platform": "S1B",
+          "orbit_pass": "DESCENDING",
+          "relative_orbit": 48,
+          "absolute_orbit": 21599,
+          "polarization": "VV",
+          "instrument_mode": "IW",
+          "slice_number": 3,
+          "footprint_bbox": null
+        },
+        "after_acquisition": {
+          "image_id": "COPERNICUS/S1_GRD/S1A_IW_GRDH_1SDV_20200522T000444_20200522T000509_032670_03C8AC_A6E3",
+          "acquisition_time": "2020-05-22T00:04:44Z",
+          "platform": "S1A",
+          "orbit_pass": "DESCENDING",
+          "relative_orbit": 48,
+          "absolute_orbit": 32670,
+          "polarization": "VV",
+          "instrument_mode": "IW",
+          "slice_number": 16,
+          "footprint_bbox": null
+        }
+      },
+      "metrics": {
+        "iou": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1_score": 0.0,
+        "accuracy": 0.25,
+        "specificity": 0.25,
+        "cohens_kappa": 0.0,
+        "flooded_area_observed_km2": 0.0,
+        "flooded_area_predicted_km2": 358.27,
+        "intersection_area_km2": 0.0,
+        "union_area_km2": 358.27,
+        "flooded_area_agreement": 0.0,
+        "confusion_matrix": {
+          "tp_km2": 0.0,
+          "fp_km2": 358.27,
+          "fn_km2": 0.0,
+          "tn_km2": 119.42,
+          "tp_cells": 0,
+          "fp_cells": 30,
+          "fn_cells": 0,
+          "tn_cells": 10
+        }
+      },
+      "artifacts": {
+        "observed_flood_tif": "observed_flood.tif",
+        "predicted_flood_tif": "predicted_flood.tif",
+        "agreement_tif": "agreement.tif",
+        "disagreement_tif": "disagreement.tif",
+        "observed_flood_geojson": "observed_flood.geojson",
+        "predicted_flood_geojson": "predicted_flood.geojson",
+        "validation_overlap_geojson": "validation_overlap.geojson",
+        "metrics_json": "metrics.json",
+        "acquisition_metadata_json": "acquisition_metadata.json"
+      },
+      "sar_water_km2": 7.49
+    }
+  }
+}

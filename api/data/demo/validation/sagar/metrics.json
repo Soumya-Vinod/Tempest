@@ -1,0 +1,43 @@
+{
+  "block": {
+    "identifier": "02438",
+    "name": "Sagar",
+    "census_code": "02438",
+    "area_km2": 235.5,
+    "population": 212037,
+    "bbox": [
+      88.04167,
+      21.62877,
+      88.17217,
+      21.93756
+    ],
+    "centroid": [
+      88.1144,
+      21.73789
+    ]
+  },
+  "metrics": {
+    "iou": 0.0,
+    "precision": 0.0,
+    "recall": 0.0,
+    "f1_score": 0.0,
+    "accuracy": 0.1428,
+    "specificity": 0.1428,
+    "cohens_kappa": 0.0,
+    "flooded_area_observed_km2": 0.0,
+    "flooded_area_predicted_km2": 201.86,
+    "intersection_area_km2": 0.0,
+    "union_area_km2": 201.86,
+    "flooded_area_agreement": 0.0,
+    "confusion_matrix": {
+      "tp_km2": 0.0,
+      "fp_km2": 201.86,
+      "fn_km2": 0.0,
+      "tn_km2": 33.64,
+      "tp_cells": 0,
+      "fp_cells": 18,
+      "fn_cells": 0,
+      "tn_cells": 3
+    }
+  }
+}
