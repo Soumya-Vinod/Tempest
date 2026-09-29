@@ -221,7 +221,7 @@ water measurements** (no cell threshold).
 
 | Block Name | Census Code | Total Area | SAR Water (km²) | Predicted Surge (km²) | IoU | Precision | Recall | F1 Score | Accuracy |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Sagar** | `02438` | 235.5 km² | 0.54 | 201.9 km² | **0.000** | 0.000 | 0.000 | **0.000** | 0.143 |
+| **Sagar** | `02438` | 235.5 km² | 4.22 | 201.9 km² | **0.000** | 0.000 | 0.000 | **0.000** | 0.143 |
 | **Namkhana** | `02439` | 243.6 km² | 0.54 | 220.4 km² | **0.000** | 0.000 | 0.000 | **0.000** | 0.095 |
 | **Gosaba** | `02435` | 1918.6 km² | 5.11 | 747.1 km² | **0.000** | 0.000 | 0.000 | **0.000** | 0.611 |
 | **Patharpratima** | `02440` | 477.7 km² | 7.49 | 358.3 km² | **0.000** | 0.000 | 0.000 | **0.000** | 0.250 |
@@ -232,7 +232,7 @@ water measurements** (no cell threshold).
 - **Mean Precision:** `0.000`
 - **Mean Recall:** `0.000`
 - **Mean Overall Accuracy:** `0.275`
-- **Total SAR-Measured Water (pixel-area):** `13.68 km²`
+- **Total SAR-Measured Water (pixel-area):** `17.36 km²`
 - **Total Observed Flood Extent (cell-level):** `0.0 km²`
 - **Total Simulated Surge Extent:** `1,527.6 km²`
 
@@ -256,18 +256,17 @@ This is a **legitimate finding**, not a pipeline defect:
 3. **Mangrove canopy scattering:** In Gosaba, C-band radar cannot penetrate the
    Sundarbans canopy, so sub-canopy flooding is invisible to S1.
 
-The per-block **SAR-measured water km²** (pixel-area, no threshold) and
-**`sar_water_mask.png`** overlays provide the raw radar observation for the demo
-without imposing a cell-level discretisation.
+The per-block **SAR-measured water km²** (pixel-area, no threshold) provides
+the raw radar observation for the demo without imposing a cell-level discretisation.
 
 ---
 
 ## 10. Automated Export Pipeline & Publication Artifacts
 
-For every evaluated block, the pipeline generates artifacts into `api/data/artifacts/validation/{block_slug}/`:
+For every evaluated block, the committed artifacts reside in `api/data/demo/validation/{block_slug}/` (pipeline output defaults to `api/data/artifacts/validation/{block_slug}/`):
 
 ```
-api/data/artifacts/validation/sagar/
+api/data/demo/validation/sagar/
 ├── observed_flood.tif            <- 8-bit cell-label GeoTIFF (1=flooded cell, 0=dry) with EPSG:4326 tags
 ├── predicted_flood.tif           <- 8-bit cell-label GeoTIFF of hazard engine surge prediction
 ├── agreement.tif                 <- 8-bit cell-label GeoTIFF of spatial agreement (TP + TN)
@@ -276,9 +275,7 @@ api/data/artifacts/validation/sagar/
 ├── predicted_flood.geojson       <- GeoJSON polygons of simulated inundation
 ├── validation_overlap.geojson    <- Unified GeoJSON with per-cell audit properties
 ├── metrics.json                  <- Structured benchmark metrics and confusion matrix
-├── acquisition_metadata.json     <- Complete Copernicus Sentinel-1 scene provenance
-├── sar_water_mask.png            <- RGBA PNG of SAR water extent (Leaflet overlay)
-└── sar_water_mask_bounds.json    <- Geographic bounds [[S,W],[N,E]] for L.imageOverlay
+└── acquisition_metadata.json     <- Complete Copernicus Sentinel-1 scene provenance
 ```
 
 > **Terminology:** The GeoTIFFs are "cell labels" (rasterized from ~5.5 km grid cells), not fine-resolution flood masks. They show the validation state of each model grid cell.
@@ -347,4 +344,4 @@ print(benchmark_suite.aggregate_metrics)
 cd api
 pytest tests/test_sentinel_validation_pipeline.py -v
 ```
-All 25 validation tests pass deterministically.
+All 24 validation tests pass deterministically.

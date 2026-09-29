@@ -94,9 +94,7 @@
         "predicted_flood_geojson": "predicted_flood.geojson",
         "validation_overlap_geojson": "validation_overlap.geojson",
         "metrics_json": "metrics.json",
-        "acquisition_metadata_json": "acquisition_metadata.json",
-        "sar_water_mask_png": "sar_water_mask.png",
-        "sar_water_mask_bounds": "sar_water_mask_bounds.json"
+        "acquisition_metadata_json": "acquisition_metadata.json"
       },
       "sar_water_km2": 4.22
     },
@@ -181,9 +179,7 @@
         "predicted_flood_geojson": "predicted_flood.geojson",
         "validation_overlap_geojson": "validation_overlap.geojson",
         "metrics_json": "metrics.json",
-        "acquisition_metadata_json": "acquisition_metadata.json",
-        "sar_water_mask_png": "sar_water_mask.png",
-        "sar_water_mask_bounds": "sar_water_mask_bounds.json"
+        "acquisition_metadata_json": "acquisition_metadata.json"
       },
       "sar_water_km2": 0.54
     },
@@ -268,9 +264,7 @@
         "predicted_flood_geojson": "predicted_flood.geojson",
         "validation_overlap_geojson": "validation_overlap.geojson",
         "metrics_json": "metrics.json",
-        "acquisition_metadata_json": "acquisition_metadata.json",
-        "sar_water_mask_png": "sar_water_mask.png",
-        "sar_water_mask_bounds": "sar_water_mask_bounds.json"
+        "acquisition_metadata_json": "acquisition_metadata.json"
       },
       "sar_water_km2": 5.11
     },
@@ -355,9 +349,7 @@
         "predicted_flood_geojson": "predicted_flood.geojson",
         "validation_overlap_geojson": "validation_overlap.geojson",
         "metrics_json": "metrics.json",
-        "acquisition_metadata_json": "acquisition_metadata.json",
-        "sar_water_mask_png": "sar_water_mask.png",
-        "sar_water_mask_bounds": "sar_water_mask_bounds.json"
+        "acquisition_metadata_json": "acquisition_metadata.json"
       },
       "sar_water_km2": 7.49
     }

@@ -336,11 +336,11 @@ stated; `timestep=live` returns `501` in v1.1. FC = FeatureCollection.
 |---|---|---|---|---|
 | A | GET | `/api/hazard/timesteps` | — | `{ event: "amphan", landfall: Timestep, timesteps: Timestep[] }` |
 | A | GET | `/api/hazard/layers` | `hazard_type: HazardType`, `timestep` | FC&lt;HazardLayer&gt; |
-| A | GET | `/api/hazard/validation` | — | Validation overview: `{ execution_timestamp, event_name, aggregate_metrics, blocks[] }`. Each block includes `sar_water_km2` (pixel-area, no threshold) when GEE was online. Read-only; `503` if artifacts missing from both `data/artifacts/validation/` and `data/demo/validation/`. *v1.3 change, pending Dev B* |
+| A | GET | `/api/hazard/validation` | — | Validation overview: `{ execution_timestamp, event_name, aggregate_metrics, blocks[] }`. Each block includes `sar_water_km2` (pixel-area, no threshold) when GEE was online. Read-only; `503` if artifacts missing from `data/demo/validation/`. *v1.3 change, pending Dev B* |
 | A | GET | `/api/hazard/validation/{block}` | — | Detailed block validation (metrics, acquisition, artifact downloads). Prediction uses **max surge depth over all 25 timesteps**. `404` unknown block; `503` if not run. *v1.3 change, pending Dev B* |
 | A | GET | `/api/hazard/validation/{block}/metrics` | — | `{ block, metrics }` with IoU, Precision, Recall, F1, confusion matrix. Cell-level (~5.5 km), 10% flood-fraction threshold, surge-only prediction. `503` if not run. *v1.3 change, pending Dev B* |
-| A | GET | `/api/hazard/validation/{block}/artifacts` | — | `{ block, artifacts[] }` with download URLs. Includes `sar_water_mask.png` (Leaflet overlay) and `sar_water_mask_bounds.json`. `404` if block missing. *v1.3 change, pending Dev B* |
-| A | GET | `/api/hazard/validation/{block}/artifacts/{artifact_name}` | — | File download (cell-label GeoTIFF, GeoJSON, JSON, PNG). `404` if missing. *v1.3 change, pending Dev B* |
+| A | GET | `/api/hazard/validation/{block}/artifacts` | — | `{ block, artifacts[] }` with download URLs (GeoTIFFs, GeoJSONs, metrics JSON, acquisition metadata JSON). `404` if block missing. *v1.3 change, pending Dev B* |
+| A | GET | `/api/hazard/validation/{block}/artifacts/{artifact_name}` | — | File download (cell-label GeoTIFF, GeoJSON, JSON). `404` if missing. *v1.3 change, pending Dev B* |
 | B | GET | `/api/exposure/infra` | `infra_type?: InfraType` | FC&lt;InfraFeature&gt; (not time-dependent) |
 | B | GET | `/api/impact/results` | `timestep`, `hazard_type?`, `status?: ImpactStatus` | FC&lt;ImpactResult&gt; |
 | B | GET | `/api/risk/scores` | `timestep` | FC&lt;RiskScore&gt; |

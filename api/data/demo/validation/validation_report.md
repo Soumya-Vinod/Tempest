@@ -72,8 +72,6 @@
 - Overlap Layer GeoJSON: `validation_overlap.geojson`
 - Metrics JSON: `metrics.json`
 - Acquisition Metadata JSON: `acquisition_metadata.json`
-- SAR Water Mask PNG (Leaflet overlay): `sar_water_mask.png`
-- SAR Overlay Bounds JSON: `sar_water_mask_bounds.json`
 
 ---
 
@@ -123,8 +121,6 @@
 - Overlap Layer GeoJSON: `validation_overlap.geojson`
 - Metrics JSON: `metrics.json`
 - Acquisition Metadata JSON: `acquisition_metadata.json`
-- SAR Water Mask PNG (Leaflet overlay): `sar_water_mask.png`
-- SAR Overlay Bounds JSON: `sar_water_mask_bounds.json`
 
 ---
 
@@ -179,8 +175,6 @@
 - Overlap Layer GeoJSON: `validation_overlap.geojson`
 - Metrics JSON: `metrics.json`
 - Acquisition Metadata JSON: `acquisition_metadata.json`
-- SAR Water Mask PNG (Leaflet overlay): `sar_water_mask.png`
-- SAR Overlay Bounds JSON: `sar_water_mask_bounds.json`
 
 ---
 
@@ -230,8 +224,6 @@
 - Overlap Layer GeoJSON: `validation_overlap.geojson`
 - Metrics JSON: `metrics.json`
 - Acquisition Metadata JSON: `acquisition_metadata.json`
-- SAR Water Mask PNG (Leaflet overlay): `sar_water_mask.png`
-- SAR Overlay Bounds JSON: `sar_water_mask_bounds.json`
 
 ---
 

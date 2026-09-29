@@ -334,14 +334,6 @@ def generate_benchmark_report(
             f"- Metrics JSON: `{b_res.artifacts.metrics_json.name}`",
             f"- Acquisition Metadata JSON: `{b_res.artifacts.acquisition_metadata_json.name}`",
         ]
-        if b_res.artifacts.sar_water_mask_png is not None:
-            artifact_lines.append(
-                f"- SAR Water Mask PNG (Leaflet overlay): `{b_res.artifacts.sar_water_mask_png.name}`"
-            )
-        if b_res.artifacts.sar_water_mask_bounds is not None:
-            artifact_lines.append(
-                f"- SAR Overlay Bounds JSON: `{b_res.artifacts.sar_water_mask_bounds.name}`"
-            )
         artifact_lines.extend(["", "---", ""])
         lines.extend(artifact_lines)
 

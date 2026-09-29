@@ -46,12 +46,10 @@ class ExportedArtifacts:
     validation_overlap_geojson: Path
     metrics_json: Path
     acquisition_metadata_json: Path
-    sar_water_mask_png: Path | None = None
-    sar_water_mask_bounds: Path | None = None
 
     def to_dict(self) -> dict[str, str]:
         """Map artifact keys to portable filenames (not absolute paths)."""
-        d = {
+        return {
             "observed_flood_tif": self.observed_flood_tif.name,
             "predicted_flood_tif": self.predicted_flood_tif.name,
             "agreement_tif": self.agreement_tif.name,
@@ -62,11 +60,6 @@ class ExportedArtifacts:
             "metrics_json": self.metrics_json.name,
             "acquisition_metadata_json": self.acquisition_metadata_json.name,
         }
-        if self.sar_water_mask_png is not None:
-            d["sar_water_mask_png"] = self.sar_water_mask_png.name
-        if self.sar_water_mask_bounds is not None:
-            d["sar_water_mask_bounds"] = self.sar_water_mask_bounds.name
-        return d
 
 
 def write_geotiff(
@@ -196,53 +189,6 @@ def rasterize_cell_evaluations(
     }
 
 
-def write_sar_water_mask_png(
-    output_path: Path,
-    observed_bytes: bytes,
-    width: int,
-    height: int,
-    water_rgba: tuple[int, int, int, int] = (30, 120, 230, 180),
-) -> None:
-    """Write an RGBA PNG where water pixels are semi-transparent blue.
-
-    Pure-Python PNG writer (no Pillow dependency) producing an uncompressed
-    RGBA image suitable for Leaflet ``L.imageOverlay``.
-
-    Args:
-        output_path: Destination file.
-        observed_bytes: Row-major uint8 array (0/1) of shape (height, width).
-        width: Image width in pixels.
-        height: Image height in pixels.
-        water_rgba: RGBA tuple for water pixels.
-    """
-    import zlib
-
-    # Build RGBA raw data with filter byte per row
-    raw_rows = bytearray()
-    for y in range(height):
-        raw_rows.append(0)  # filter: None
-        for x in range(width):
-            px = observed_bytes[y * width + x]
-            if px:
-                raw_rows.extend(water_rgba)
-            else:
-                raw_rows.extend((0, 0, 0, 0))
-
-    def _png_chunk(chunk_type: bytes, data: bytes) -> bytes:
-        chunk = chunk_type + data
-        crc = zlib.crc32(chunk) & 0xFFFFFFFF
-        return struct.pack(">I", len(data)) + chunk + struct.pack(">I", crc)
-
-    sig = b"\x89PNG\r\n\x1a\n"
-    ihdr_data = struct.pack(">IIBBBBB", width, height, 8, 6, 0, 0, 0)
-    idat_data = zlib.compress(bytes(raw_rows), 9)
-
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    with output_path.open("wb") as f:
-        f.write(sig)
-        f.write(_png_chunk(b"IHDR", ihdr_data))
-        f.write(_png_chunk(b"IDAT", idat_data))
-        f.write(_png_chunk(b"IEND", b""))
 
 
 def export_block_validation_artifacts(
@@ -314,24 +260,6 @@ def export_block_validation_artifacts(
     disagree_tif_path = block_dir / "disagreement.tif"
     write_geotiff(disagree_tif_path, w, h, raster_bytes["disagreement"], block.bbox)
 
-    # 5. Export SAR water mask as georeferenced PNG + bounds JSON
-    sar_png_path = block_dir / "sar_water_mask.png"
-    write_sar_water_mask_png(sar_png_path, raster_bytes["observed_flood"], w, h)
-
-    min_lon, min_lat, max_lon, max_lat = block.bbox
-    bounds_path = block_dir / "sar_water_mask_bounds.json"
-    bounds_payload = {
-        "bounds": [[min_lat, min_lon], [max_lat, max_lon]],
-        "block": block.name,
-        "crs": "EPSG:4326",
-        "description": (
-            f"Sentinel-1 SAR observed water extent for {block.name} "
-            f"(post-landfall {acquisition_pair.after_metadata.acquisition_time}). "
-            "Use with Leaflet L.imageOverlay(url, bounds)."
-        ),
-    }
-    bounds_path.write_text(json.dumps(bounds_payload, indent=2), encoding="utf-8")
-
     return ExportedArtifacts(
         block_identifier=block.identifier,
         block_name=block.name,
@@ -345,7 +273,5 @@ def export_block_validation_artifacts(
         validation_overlap_geojson=overlap_geojson_path,
         metrics_json=metrics_path,
         acquisition_metadata_json=acquisition_path,
-        sar_water_mask_png=sar_png_path,
-        sar_water_mask_bounds=bounds_path,
     )
 

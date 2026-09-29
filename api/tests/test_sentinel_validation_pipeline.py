@@ -607,9 +607,11 @@ def test_committed_metrics_reproducibility() -> None:
     This ensures that no manual editing of the JSON can silently introduce
     inconsistencies between the confusion matrix and the derived metrics.
     """
-    from app.hazard.validation.config import VALIDATION_ARTIFACTS_DIR
+    from app.hazard.validation.config import VALIDATION_ARTIFACTS_DIR, VALIDATION_DEMO_DIR
 
     suite_path = VALIDATION_ARTIFACTS_DIR / "benchmark_suite.json"
+    if not suite_path.is_file():
+        suite_path = VALIDATION_DEMO_DIR / "benchmark_suite.json"
     if not suite_path.is_file():
         return  # Skip if pipeline hasn't been run yet
 
@@ -722,51 +724,7 @@ def test_max_surge_over_event_ge_single_timestep() -> None:
 
 
 # ---------------------------------------------------------------------------
-# 15. SAR Water Mask PNG Export (Dev B feature request)
-# ---------------------------------------------------------------------------
-def test_sar_water_mask_png_exported() -> None:
-    """Verify the pipeline exports sar_water_mask.png and bounds JSON for each block."""
-    from app.hazard.validation.config import VALIDATION_ARTIFACTS_DIR
-
-    suite_path = VALIDATION_ARTIFACTS_DIR / "benchmark_suite.json"
-    if not suite_path.is_file():
-        return  # Pipeline hasn't run yet; skip silently
-
-    suite = json.loads(suite_path.read_text(encoding="utf-8"))
-    for block_key, block_data in suite.get("blocks", {}).items():
-        arts = block_data.get("artifacts", {})
-
-        # PNG artifact reference in benchmark_suite.json
-        assert "sar_water_mask_png" in arts, (
-            f"{block_key}: missing sar_water_mask_png in artifacts"
-        )
-        assert "sar_water_mask_bounds" in arts, (
-            f"{block_key}: missing sar_water_mask_bounds in artifacts"
-        )
-
-        # Actual files on disk
-        block_dir = VALIDATION_ARTIFACTS_DIR / block_key
-        png_path = block_dir / "sar_water_mask.png"
-        bounds_path = block_dir / "sar_water_mask_bounds.json"
-
-        assert png_path.is_file(), f"{block_key}: sar_water_mask.png not on disk"
-        assert bounds_path.is_file(), f"{block_key}: sar_water_mask_bounds.json not on disk"
-
-        # PNG starts with valid PNG signature
-        with png_path.open("rb") as f:
-            sig = f.read(8)
-        assert sig == b"\x89PNG\r\n\x1a\n", f"{block_key}: invalid PNG signature"
-
-        # Bounds JSON is valid and has expected structure
-        bounds = json.loads(bounds_path.read_text(encoding="utf-8"))
-        assert "bounds" in bounds, f"{block_key}: bounds JSON missing 'bounds'"
-        assert len(bounds["bounds"]) == 2, f"{block_key}: bounds should be [[S,W],[N,E]]"
-        assert len(bounds["bounds"][0]) == 2
-        assert len(bounds["bounds"][1]) == 2
-
-
-# ---------------------------------------------------------------------------
-# 16. Service Demo Fallback (Dev B review item: ship artifacts)
+# 15. Service Demo Fallback (Dev B review item: ship artifacts)
 # ---------------------------------------------------------------------------
 def test_service_demo_fallback_resolution() -> None:
     """Verify _get_validation_dir falls back to data/demo/validation if primary is missing."""
