@@ -1,4 +1,4 @@
-// TypeScript mirror of shared/contracts.md v1.2 (FROZEN).
+// TypeScript mirror of shared/contracts.md v1.3 (FROZEN).
 // Keep in sync with api/app/schemas/. Changing anything here breaks the other dev: flag it.
 
 // ---------- GeoJSON (EPSG:4326, [lon, lat]) ----------

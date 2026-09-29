@@ -1,4 +1,4 @@
-"""Pydantic mirror of shared/contracts.md v1.2 (FROZEN).
+"""Pydantic mirror of shared/contracts.md v1.3 (FROZEN).
 
 Keep in sync with web/src/types/contracts.ts.
 """

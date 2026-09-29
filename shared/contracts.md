@@ -1,11 +1,11 @@
-# Tempest contracts — v1.2 (FROZEN)
+# Tempest contracts — v1.3 (FROZEN)
 
 The interface between **Dev A (hazard)** and **Dev B (exposure, impact, risk, advisory, dispatch,
 insurance)**. This file is the source of truth. `api/app/schemas/` (Pydantic) and
 `web/src/types/contracts.ts` (TypeScript) mirror it exactly.
 
 **Change rule (active):** any change needs sign-off from both devs, a version bump here, and the
-matching Pydantic + TS edits in the same commit. Proposed changes are marked *v1.3 change, pending
+matching Pydantic + TS edits in the same commit. Proposed changes are marked *v1.4 change, pending
 Dev A* (or *Dev B*) until both devs sign off and the version is bumped.
 
 ---
@@ -46,7 +46,7 @@ Dev A* (or *Dev B*) until both devs sign off and the version is bumped.
 
 Live mode is reserved but not implemented in v1.1. See the `"live"` value above.
 
-### Forecast horizon (*v1.3 change, pending Dev A*)
+### Forecast horizon (*added in v1.3*)
 `Horizon = 0 | 24` (hours). `FORECAST_HORIZON_H = 24`. The **expected hazard** at timestep t is,
 per hazard type and grid cell, the maximum `value` (and `severity`) over the replay timesteps
 from t to t + 24 h, capped at landfall. Impact and risk accept `horizon` (default 0 = now, on the
@@ -170,7 +170,7 @@ One feature per (infra, hazard, timestep). Geometry: same as the referenced Infr
 | `status` | ImpactStatus | |
 | `timestep` | Timestep | |
 | `pathway` | PathwayStep[] | Ordered, cause first. Empty when `status = "ok"`. |
-| `horizon_h` | Horizon | *v1.3 change, pending Dev A.* 0 = the status now; 24 = expected within 24 h. Default 0. |
+| `horizon_h` | Horizon | *added in v1.3.* 0 = the status now; 24 = expected within 24 h. Default 0. |
 
 `PathwayStep = { id: string, label: string, type: StepType }`
 - `hazard` step: `id = "hazard:<hazard_type>"`, e.g. `{"id":"hazard:surge","label":"Surge 2.4 m","type":"hazard"}`
@@ -190,7 +190,7 @@ fragments join the network only through minor roads outside the ingest's road cl
 - A feature not reachable from the main component at baseline is **never** marked `isolated`; the
   impact engine leaves it to the baseline flag instead, so hazard isolation is not overstated.
 
-**Action countdown** (*v1.3 change, pending Dev A*): per replay timestep, derived from the
+**Action countdown** (*added in v1.3*): per replay timestep, derived from the
 ImpactResults at both horizons. `ActionCountdown = { timestep, horizon_h: Horizon (24), expected:
 CountdownFacility[], cut_off: CountdownFacility[], key_moments: KeyMoment[] }`.
 - `expected`: facilities `isolated` at horizon 24 but not at horizon 0, soonest first by
@@ -206,7 +206,7 @@ CountdownFacility[], cut_off: CountdownFacility[], key_moments: KeyMoment[] }`.
   `first_alert` (the first advisory suggestion, by the rule in §4.5), `first_expected_isolation`, `first_actual_isolation`, `landfall`, in that
   order; the same at every timestep. `timestep` is null if it never happens.
 
-**Last safe departure** (*v1.3 change, pending Dev A*): not time-dependent.
+**Last safe departure** (*added in v1.3*): not time-dependent.
 `Departures = { resolution_h: 3, departures: Departure[] }`, by `deadline` (null last), then name.
 One `Departure` per hospital or health centre (`infra_type` `hospital`; shelter stand-ins have
 none) that is `isolated` at horizon 0 at some step, except
@@ -245,7 +245,7 @@ aren't available, an H3 resolution-7 cell. Geometry: block `Polygon | MultiPolyg
 | `score` | float [0, 1] | |
 | `components` | `{ hazard, exposure, vulnerability }` | Each a float in [0, 1]. The formula belongs to the risk engine, not this contract. |
 | `top_driver` | RiskDriver \| null, optional | *added in v1.1.* The largest contributing part: `surge`, `wind`, `flood`, `isolated_facilities`, `cut_roads`, `cut_substations`, `population_density`, `hospital_access`, `low_literacy`, `mapped_shelters`. Null when `score` is 0. |
-| `horizon_h` | Horizon | *v1.3 change, pending Dev A.* 24 = on the expected hazard. Default 0. |
+| `horizon_h` | Horizon | *added in v1.3.* 24 = on the expected hazard. Default 0. |
 
 **Unscored areas** *(added in v1.1)*: parts of the AOI clip that no block covers
 (Kolkata, and South 24 Parganas municipal areas outside the CD blocks) get no RiskScore. They are
@@ -254,12 +254,12 @@ label: string, area_km2: number }`, with `label` "Municipal area, not scored".
 
 **Risk breakdown** *(added in v1.1)*: the parts behind each block's score, for
 explaining it. `RiskBreakdown = { timestep, blocks: RiskBlockBreakdown[], horizon_h }` (`horizon_h`:
-*v1.3 change, pending Dev A*) with
-`RiskBlockBreakdown = { block_id, block_name, population_2011: int, surge_population: int (*v1.3
-change, pending Dev A*), hospital_travel_min:
+*added in v1.3*) with
+`RiskBlockBreakdown = { block_id, block_name, population_2011: int, surge_population: int (*added in
+v1.3*), hospital_travel_min:
 number | null, reach: RiskReach, hazard: { surge, wind, flood }, exposure: { isolated_facilities, cut_roads,
 cut_substations }, vulnerability: { population_density, hospital_access, low_literacy,
-mapped_shelters } }`; every part is a float in [0, 1]. *v1.3 change, pending Dev A:*
+mapped_shelters } }`; every part is a float in [0, 1]. *added in v1.3:*
 `surge_population` is an estimate of the people in areas with surge ≥ 0.3 m:
 `round(population_2011 × hazard.surge)`, i.e. the 2011 population spread evenly over the block's
 inhabited land (at horizon 24, the worst case over the next 24 h); `RiskBreakdown` adds
@@ -314,7 +314,7 @@ no advisory (its draft failed the checks); `details` is JSON text.
 
 `AdvisorySuggestions = { timestep, threshold: float, blocks: { block_id, block_name, score,
 reasons: SuggestionReason[] }[] }` (*added in v1.2*): the suggested blocks, highest score first,
-then by name. *v1.3 change, pending Dev A:* a block is suggested when, on the expected hazard
+then by name. *added in v1.3:* a block is suggested when, on the expected hazard
 (horizon 24), its risk score is at or above `threshold` (0.25) **or** a hospital or shelter inside
 it is `isolated` in the horizon-24 impact results (expected to be cut off within 24 h, including
 already cut off). Facilities whose name matches the hospital-access exclusions (nursing homes,
@@ -350,7 +350,7 @@ pay 25 / 50 / 100 % of a sum insured of ₹1,000 per resident (2011 population).
 | `sum_insured_inr` | float | *added in v1.2.* |
 | `released_tier` | int ≥ `tier` | *added in v1.2.* The highest tier at any timestep up to this one: released money is never taken back. |
 | `released_payout_inr` | float ≥ `payout_estimate_inr` | *added in v1.2.* The payout for `released_tier`. |
-| `expected_tier_24h` | int ≥ 0 | *v1.3 change, pending Dev A.* The tier the expected hazard (next 24 h) would reach. Information only: payouts follow the observed hazard. |
+| `expected_tier_24h` | int ≥ 0 | *added in v1.3.* The tier the expected hazard (next 24 h) would reach. Information only: payouts follow the observed hazard. |
 
 **InsuranceSummary** (*added in v1.2*), `GET /api/insurance/summary`:
 `{ district: [{ timestep, released_payout_inr, triggered_zones, released_zones }] (25, never
@@ -413,11 +413,11 @@ stated; `timestep=live` returns `501` in v1.1. FC = FeatureCollection.
 | A | GET | `/api/hazard/validation/{block}/artifacts` | — | `{ block, artifacts[] }` with download URLs (GeoTIFFs, GeoJSONs, metrics JSON, acquisition metadata JSON). `404` if block missing. *v1.3 change, pending Dev B* |
 | A | GET | `/api/hazard/validation/{block}/artifacts/{artifact_name}` | — | File download (cell-label GeoTIFF, GeoJSON, JSON). `404` if missing. *v1.3 change, pending Dev B* |
 | B | GET | `/api/exposure/infra` | `infra_type?: InfraType` | FC&lt;InfraFeature&gt; (not time-dependent) |
-| B | GET | `/api/impact/results` | `timestep`, `hazard_type?`, `status?: ImpactStatus`, `horizon?: 0 \| 24` (*v1.3 change, pending Dev A*; other values `422`) | FC&lt;ImpactResult&gt; |
-| B | GET | `/api/impact/countdown` | `timestep` | ActionCountdown (§4.3). *v1.3 change, pending Dev A* |
-| B | GET | `/api/impact/departures` | — | Departures (§4.3). *v1.3 change, pending Dev A* |
-| B | GET | `/api/risk/scores` | `timestep`, `horizon?: 0 \| 24` (*v1.3 change, pending Dev A*) | FC&lt;RiskScore&gt; |
-| B | GET | `/api/risk/breakdown` | `timestep`, `horizon?: 0 \| 24` (*v1.3 change, pending Dev A*) | RiskBreakdown. *added in v1.1.* |
+| B | GET | `/api/impact/results` | `timestep`, `hazard_type?`, `status?: ImpactStatus`, `horizon?: 0 \| 24` (*added in v1.3*; other values `422`) | FC&lt;ImpactResult&gt; |
+| B | GET | `/api/impact/countdown` | `timestep` | ActionCountdown (§4.3). *added in v1.3* |
+| B | GET | `/api/impact/departures` | — | Departures (§4.3). *added in v1.3* |
+| B | GET | `/api/risk/scores` | `timestep`, `horizon?: 0 \| 24` (*added in v1.3*) | FC&lt;RiskScore&gt; |
+| B | GET | `/api/risk/breakdown` | `timestep`, `horizon?: 0 \| 24` (*added in v1.3*) | RiskBreakdown. *added in v1.1.* |
 | B | GET | `/api/risk/unscored-areas` | — | FC&lt;UnscoredArea&gt; (static; live from reference data, DEMO_MODE from the `unscored-areas` fixture). *added in v1.1.* |
 | B | GET | `/api/advisory/` | `status?`, `block_id?`, `timestep?` (*added in v1.2*) | FC&lt;Advisory&gt;, newest first |
 | B | POST | `/api/advisory/` | `{ block_id, timestep }` (*added in v1.2*: no `language`) | Advisory (`draft`). `502` if Gemini's draft fails the numbers rule twice; `503` with no cached response and no Gemini key. |
@@ -484,8 +484,8 @@ the schema listed here, and fails on any route resource not in this table.
 | `GET /api/hazard/layers` | `layers-<hazard_type>` | yes | FC&lt;HazardLayer&gt; |
 | `GET /api/exposure/infra` | `infra-<infra_type>`, one per type. Unfiltered: no fixture of its own; composed from the per-type files *(added in v0.9)* | no | FC&lt;InfraFeature&gt; |
 | `GET /api/impact/results` | `results`, or `results-<filter>` with `[a-z0-9-]` filter values | yes | FC&lt;ImpactResult&gt; |
-| `GET /api/impact/countdown` | `countdown`, one file for the whole replay (see below) *(v1.3 change, pending Dev A)* | no | ActionCountdown per timestep |
-| `GET /api/impact/departures` | `departures` *(v1.3 change, pending Dev A)* | no | Departures |
+| `GET /api/impact/countdown` | `countdown`, one file for the whole replay (see below) *(added in v1.3)* | no | ActionCountdown per timestep |
+| `GET /api/impact/departures` | `departures` *(added in v1.3)* | no | Departures |
 | `GET /api/risk/scores` | `scores` | yes | FC&lt;RiskScore&gt; |
 | `GET /api/risk/breakdown` | `breakdown` *(added in v1.1)* | yes | RiskBreakdown |
 | `GET /api/risk/unscored-areas` | `unscored-areas` *(added in v1.1)* | no | FC&lt;UnscoredArea&gt; |
@@ -504,8 +504,8 @@ hazard__gee-flood-susceptibility.json
 exposure__infra-power-line.json
 exposure__overpass-substations.json
 impact__results__20200519T0000Z.json
-impact__countdown.json *(v1.3 change, pending Dev A)*
-impact__departures.json *(v1.3 change, pending Dev A)*
+impact__countdown.json *(added in v1.3)*
+impact__departures.json *(added in v1.3)*
 risk__scores__20200520T1200Z.json
 advisory__gemini-<census_code>__20200520T1200Z.json *(added in v1.2)*
 insurance__triggers__20200520T1200Z.json
@@ -525,14 +525,14 @@ type not present, so the response is exactly the full contract collection.
 geometry back from the block reference file (`api/data/reference/s24p_blocks.geojson`), so the
 response is exactly the full contract collection. `risk__breakdown__<ts>` has no geometry and is
 stored as is.
-*Exception (v1.3 change, pending Dev A):* `impact__countdown` holds the whole replay:
+*Exception (added in v1.3):* `impact__countdown` holds the whole replay:
 `{ key_moments: KeyMoment[], timesteps: { <Timestep>: { expected, cut_off } } }`. The route
 returns one timestep's entry with `timestep`, `horizon_h` and the shared `key_moments`. It is
 built from the committed impact and risk fixtures by `api/scripts/build_countdown_fixture.py`.
 *Exception (added in v1.2):* `insurance__triggers__<ts>` stores each TriggerEvent
 without its `geometry`, which the route adds back from the same block reference file, as for
 `risk__scores__<ts>`.
-*Exception (v1.3 change, pending Dev A):* results at `horizon=24` are deduplicated, since the
+*Exception (added in v1.3):* results at `horizon=24` are deduplicated, since the
 expected hazard is the same at many timesteps. Each distinct result is stored once as
 `<module>__<resource>-h24-<hash>` (`impact__results-h24-…`, `risk__scores-h24-…`,
 `risk__breakdown-h24-…`; hash = the first 12 hex digits of the SHA-256 of the result with its

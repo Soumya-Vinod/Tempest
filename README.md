@@ -158,6 +158,9 @@ The full list of sources, models and limits is in the app (side panel → About 
 - **Simplified coastline.** Distance to coast is measured to a straight line, not the real
   Sundarbans shoreline, and surge fades inland based on it.
 - **Parametric surge.** Pressure drop plus wind set-up, decaying inland; not a hydrodynamic model.
+- **Surge not validated.** Sentinel-1 radar on 22 May (~36 h after landfall) found 0.5–7.5 km² of
+  standing water per coastal block, far less than modelled: much had drained, and radar can't see
+  water under mangrove canopy.
 - **Flood proxies.** 3 of the 6 flood susceptibility inputs (surface water, rainfall, land cover)
   are simplified proxies, not the JRC, IMERG or WorldCover datasets.
 - **Perfect-forecast replay.** The "Next 24 h" view uses the replay's own next 24 hours (the worst
