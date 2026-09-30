@@ -1,0 +1,85 @@
+{
+  "bulletin_id": "imd-bulletin-13",
+  "bulletin_number_meta": "National Bulletin No. 13",
+  "target_stage": "T-72",
+  "nominal_timestep": "2020-05-17T12:00:00Z",
+  "hours_to_landfall": -72.0,
+  "source_url": "https://rsmcnewdelhi.imd.gov.in/uploads/archive/1/1_900001_13.National%20Bulletin%2020200517_1200UTC.pdf",
+  "filename": "national_bulletin_13_20200517_1200utc.pdf",
+  "sha256": "fc21f7f58b091615e7f9b39328136fcf6fd3f67d7fd1b5696bbe4966622768f7",
+  "model": "gemini-2.5-flash",
+  "extracted_at": "2026-09-30T09:07:21.809349+00:00",
+  "system_prompt": "You are an expert meteorological archivist and data analyst. Your task is to accurately extract structured information from the provided official India Meteorological Department (IMD) cyclone bulletin.\nSTRICT INTEGRITY RULES:\n1. Do not invent, estimate, hallucinate, or extrapolate any value. Extract only what is explicitly printed in the bulletin.\n2. If any metric, district, block, or coordinate is not mentioned or available, leave it null (or an empty list).\n3. For every field or section, record the exact 1-indexed PDF page number where that information appears in the document.\n4. For landfall forecasts: record the exact descriptive landfall area (e.g. 'between Digha and Hatiya Islands close to Sundarbans'), and the expected landfall time window as stated.\n5. In the storm surge forecast: extract the predicted surge height and all specifically named districts and blocks / taluks/ mandals.\n6. In warned areas: extract districts mentioned under wind / rainfall warnings for West Bengal and Odisha.\n",
+  "user_prompt": "Carefully analyze this official IMD cyclone bulletin and extract all requested parameters according to the schema. Ensure page numbers are accurately populated for each section.",
+  "raw_response": {
+    "bulletin_number": "13",
+    "issue_date_time": {
+      "date_str": "17.05.2020",
+      "time_ist": "2030 HOURS IST",
+      "time_utc": null,
+      "page": 1
+    },
+    "current_storm_position": {
+      "latitude_deg_north": 12.0,
+      "longitude_deg_east": 86.0,
+      "location_description": "over central parts of South Bay of Bengal near latitude 12.0°N and longitude 86.0°E, about 930 km south of Paradip (Odisha), 1080 km south-southwest of Digha (West Bengal) and 1200 km south-southwest of Khepupara (Bangladesh)",
+      "page": 1
+    },
+    "current_intensity": {
+      "classification": "Very Severe Cyclonic Storm",
+      "max_sustained_surface_wind_kmph": "125-135 gusting to 150 kmph",
+      "max_sustained_surface_wind_kts": null,
+      "estimated_central_pressure_hpa": null,
+      "page": 1
+    },
+    "forecast_landfall": {
+      "landfall_area": "West Bengal – Bangladesh coasts between Digha (West Bengal) and Hatiya Islands (Bangladesh)",
+      "landfall_lat": null,
+      "landfall_lon": null,
+      "forecast_landfall_time_str": "During the Afternoon / Evening of 20th May 2020",
+      "page": 1
+    },
+    "forecast_max_wind_at_landfall": {
+      "wind_description": "as a Very Severe Cyclonic Storm",
+      "max_wind_kmph": null,
+      "gust_kmph": null,
+      "page": 1
+    },
+    "storm_surge_forecast": {
+      "surge_height_description": "about 3-4 meters above Astronomical Tide is likely to inundate low lying areas of south & north 24 Parganas and 2-3 meters over the low lying areas of East Medinipur District",
+      "min_surge_height_m": 2.0,
+      "max_surge_height_m": 4.0,
+      "inundated_districts": [
+        "South 24 Parganas",
+        "North 24 Parganas",
+        "East Medinipur"
+      ],
+      "specific_blocks_mentioned": [],
+      "page": 3
+    },
+    "warned_areas": {
+      "west_bengal_districts": [
+        "East Medinipur",
+        "South 24 Parganas",
+        "North 24 Parganas",
+        "Howrah",
+        "Hoogli",
+        "Kolkata"
+      ],
+      "odisha_districts": [
+        "Jagatsinghpur",
+        "Kendrapara",
+        "Jajpur",
+        "Bhadrak",
+        "Balasore",
+        "Mayurbhanj",
+        "Puri",
+        "Khordha",
+        "Cuttack"
+      ],
+      "other_districts_or_blocks": [],
+      "page": 2
+    },
+    "extraction_notes": "For 'forecast_max_wind_at_landfall', only the storm classification at landfall is explicitly stated in the narrative text ('as a Very Severe Cyclonic Storm'). No specific wind speed range (kmph or gust) is provided for the exact landfall moment, only the storm category."
+  }
+}

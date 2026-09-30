@@ -1,0 +1,68 @@
+[
+  {
+    "id": "imd-bulletin-13",
+    "bulletin_number": "National Bulletin No. 13",
+    "target_stage": "T-72",
+    "nominal_timestep": "2020-05-17T12:00:00Z",
+    "hours_to_landfall": -72.0,
+    "source_url": "https://rsmcnewdelhi.imd.gov.in/uploads/archive/1/1_900001_13.National%20Bulletin%2020200517_1200UTC.pdf",
+    "filename": "national_bulletin_13_20200517_1200utc.pdf",
+    "file_size_bytes": 764313,
+    "sha256": "fc21f7f58b091615e7f9b39328136fcf6fd3f67d7fd1b5696bbe4966622768f7"
+  },
+  {
+    "id": "imd-bulletin-23",
+    "bulletin_number": "National Bulletin No. 23",
+    "target_stage": "T-42",
+    "nominal_timestep": "2020-05-18T18:00:00Z",
+    "hours_to_landfall": -42.0,
+    "source_url": "https://rsmcnewdelhi.imd.gov.in/uploads/archive/1/1_ec5c7e_23.National%20Bulletin%2020200518_1800UTC.pdf",
+    "filename": "national_bulletin_23_20200518_1800utc.pdf",
+    "file_size_bytes": 1036318,
+    "sha256": "0c22ddce166cb5b07667aa7a8ecd12f393bdb99c786ee7813b22adf6c58947bf"
+  },
+  {
+    "id": "imd-bulletin-28",
+    "bulletin_number": "National Bulletin No. 28",
+    "target_stage": "T-27",
+    "nominal_timestep": "2020-05-19T09:00:00Z",
+    "hours_to_landfall": -27.0,
+    "source_url": "https://rsmcnewdelhi.imd.gov.in/uploads/archive/1/1_fca4ad_28.National%20Bulletin%2020200519_0900UTC.pdf",
+    "filename": "national_bulletin_28_20200519_0900utc.pdf",
+    "file_size_bytes": 1221409,
+    "sha256": "8b734a90ba60690a82c5ee056b95b3de6ad70472a413f3ff9d588ba45135fea8"
+  },
+  {
+    "id": "imd-bulletin-33",
+    "bulletin_number": "National Bulletin No. 33",
+    "target_stage": "T-12",
+    "nominal_timestep": "2020-05-20T00:00:00Z",
+    "hours_to_landfall": -12.0,
+    "source_url": "https://rsmcnewdelhi.imd.gov.in/uploads/archive/1/1_bf7627_33.National%20Bulletin%2020200520_0000UTC.pdf",
+    "filename": "national_bulletin_33_20200520_0000utc.pdf",
+    "file_size_bytes": 1103628,
+    "sha256": "e320961cd8d03ea7b6d13450c926897e90f8a093b326a901eadfe737738a1779"
+  },
+  {
+    "id": "imd-bulletin-36",
+    "bulletin_number": "National Bulletin No. 36",
+    "target_stage": "T-3",
+    "nominal_timestep": "2020-05-20T09:00:00Z",
+    "hours_to_landfall": -3.0,
+    "source_url": "https://rsmcnewdelhi.imd.gov.in/uploads/archive/1/1_774f2d_36.National%20Bulletin%2020200520_0900UTC.pdf",
+    "filename": "national_bulletin_36_20200520_0900utc.pdf",
+    "file_size_bytes": 1144263,
+    "sha256": "0a1011ae7aae51b1cc66e33ff814e826f390af1fbc20684c511cee76ab2623d2"
+  },
+  {
+    "id": "imd-bulletin-37",
+    "bulletin_number": "National Bulletin No. 37",
+    "target_stage": "T-0",
+    "nominal_timestep": "2020-05-20T12:00:00Z",
+    "hours_to_landfall": 0.0,
+    "source_url": "https://rsmcnewdelhi.imd.gov.in/uploads/archive/1/1_c7b5c7_37.National%20Bulletin%2020200520_1200UTC.pdf",
+    "filename": "national_bulletin_37_20200520_1200utc.pdf",
+    "file_size_bytes": 1172214,
+    "sha256": "b2c11104d656901100db69238f797be1aebc3feb346c7526f3944bfe3338b188"
+  }
+]

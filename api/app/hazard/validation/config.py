@@ -110,7 +110,8 @@ class HazardComparisonConfig:
 
     surge_threshold_m: float = 0.50  # Minimum surge depth (m) indicating simulated inundation
     flood_susceptibility_threshold: float = 0.65  # Flood susceptibility severity ceiling
-    cell_flood_fraction_threshold: float = 0.10  # Fraction of flooded pixels to mark cell flooded (10%)
+    # Fraction of flooded pixels to mark cell flooded (10%)
+    cell_flood_fraction_threshold: float = 0.10
     landfall_timestep: str = "2020-05-20T12:00:00Z"
 
 

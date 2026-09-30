@@ -1,0 +1,113 @@
+{
+  "bulletin_id": "imd-bulletin-33",
+  "bulletin_number_meta": "National Bulletin No. 33",
+  "target_stage": "T-12",
+  "nominal_timestep": "2020-05-20T00:00:00Z",
+  "hours_to_landfall": -12.0,
+  "source_url": "https://rsmcnewdelhi.imd.gov.in/uploads/archive/1/1_bf7627_33.National%20Bulletin%2020200520_0000UTC.pdf",
+  "filename": "national_bulletin_33_20200520_0000utc.pdf",
+  "sha256": "e320961cd8d03ea7b6d13450c926897e90f8a093b326a901eadfe737738a1779",
+  "model": "gemini-2.5-flash",
+  "extracted_at": "2026-09-30T09:11:01.581792+00:00",
+  "system_prompt": "You are an expert meteorological archivist and data analyst. Your task is to accurately extract structured information from the provided official India Meteorological Department (IMD) cyclone bulletin.\nSTRICT INTEGRITY RULES:\n1. Do not invent, estimate, hallucinate, or extrapolate any value. Extract only what is explicitly printed in the bulletin.\n2. If any metric, district, block, or coordinate is not mentioned or available, leave it null (or an empty list).\n3. For every field or section, record the exact 1-indexed PDF page number where that information appears in the document.\n4. For landfall forecasts: record the exact descriptive landfall area (e.g. 'between Digha and Hatiya Islands close to Sundarbans'), and the expected landfall time window as stated.\n5. In the storm surge forecast: extract the predicted surge height and all specifically named districts and blocks / taluks/ mandals.\n6. In warned areas: extract districts mentioned under wind / rainfall warnings for West Bengal and Odisha.\n",
+  "user_prompt": "Carefully analyze this official IMD cyclone bulletin and extract all requested parameters according to the schema. Ensure page numbers are accurately populated for each section.",
+  "raw_response": {
+    "bulletin_number": "33",
+    "issue_date_time": {
+      "date_str": "20.05.2020",
+      "time_ist": "0830 HOURS IST",
+      "time_utc": null,
+      "page": 1
+    },
+    "current_storm_position": {
+      "latitude_deg_north": 19.1,
+      "longitude_deg_east": 87.5,
+      "location_description": "about 155 km south-southeast of Paradip (Odisha), 280 km south of Digha (West Bengal) and 425 km southwest of Khepupara (Bangladesh)",
+      "page": 1
+    },
+    "current_intensity": {
+      "classification": "Extremely Severe Cyclonic Storm",
+      "max_sustained_surface_wind_kmph": "170-180 gusting to 200 kmph",
+      "max_sustained_surface_wind_kts": null,
+      "estimated_central_pressure_hpa": null,
+      "page": 1
+    },
+    "forecast_landfall": {
+      "landfall_area": "between Digha (West Bengal) and Hatiya Islands (Bangladesh) close to Sundarbans",
+      "landfall_lat": 22.0,
+      "landfall_lon": 88.4,
+      "forecast_landfall_time_str": "Afternoon to Evening hours of today, the 20th May 2020",
+      "page": 1
+    },
+    "forecast_max_wind_at_landfall": {
+      "wind_description": "maximum sustained wind speed of 155-165 kmph gusting to 185 kmph",
+      "max_wind_kmph": 165.0,
+      "gust_kmph": 185.0,
+      "page": 1
+    },
+    "storm_surge_forecast": {
+      "surge_height_description": "Storm Surge of about 4-5 meters above Astronomical Tide is likely to inundate low lying areas of south & north 24 Parganas and about 3-4 meters over the low lying areas of East Medinipur District of West Bengal during the time of Landfall.",
+      "min_surge_height_m": 3.0,
+      "max_surge_height_m": 5.0,
+      "inundated_districts": [
+        "South 24 Parganas",
+        "North 24 Parganas",
+        "Howrah",
+        "Medinipur",
+        "Purba Medinipur",
+        "East Medinipur",
+        "Bhadrak",
+        "Kendrapara",
+        "Balasore"
+      ],
+      "specific_blocks_mentioned": [
+        "Bhangar-I",
+        "Basirhat",
+        "Diamond Harbour",
+        "Bagnan-II",
+        "Mahisadal",
+        "Nandigram-I",
+        "off Haldia",
+        "Sutahata-I",
+        "Sutahata-II",
+        "Digha",
+        "Tamluk",
+        "Mohanpur",
+        "Baligarh",
+        "Sahapur"
+      ],
+      "page": 7
+    },
+    "warned_areas": {
+      "west_bengal_districts": [
+        "East Medinipur",
+        "West Medinipur",
+        "South 24 Parganas",
+        "North 24 Parganas",
+        "Howrah",
+        "Hoogli",
+        "Kolkata",
+        "Malda",
+        "Dinajpur"
+      ],
+      "odisha_districts": [
+        "Balasore",
+        "Bhadrak",
+        "Mayurbhanj",
+        "Jajpur",
+        "Kendrapara",
+        "Keonjhargarh",
+        "Jagatsinghpur",
+        "Puri",
+        "Khordha",
+        "Cuttack"
+      ],
+      "other_districts_or_blocks": [
+        "western districts of Assam",
+        "western districts of Meghalaya"
+      ],
+      "page": 2
+    },
+    "extraction_notes": null
+  }
+}

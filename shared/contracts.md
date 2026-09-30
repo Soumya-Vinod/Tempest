@@ -419,7 +419,45 @@ subject starts `[EXERCISE]`, body en then bn, the CAP attached.
 `urgency` Immediate at ≤ 12 h to landfall, else Future (CAP's Expected means "within the next
 hour"); `certainty` Observed at landfall, else Likely.
 
+### 4.8 IMD Bulletins Multimodal Analysis (Dev A, not GeoJSON)
+*v1.4 change, pending Dev B*:
+Offline, cached multimodal analysis of real, downloaded India Meteorological Department (IMD)
+RSMC New Delhi cyclone bulletins for Cyclone Amphan spanning T-72 to T-0 (landfall).
+Every value traces strictly to a committed raw Gemini 2.5 Flash response and source reference document.
+Never typed in, estimated or invented.
+
+```ts
+interface ImdBulletinCollection {
+  event: string;                          // "amphan"
+  actual_landfall: ActualLandfallReference; // IBTrACS ground truth
+  bulletins: ImdBulletin[];
+}
+
+interface ImdBulletin {
+  id: string;                             // e.g. "imd-bulletin-36"
+  bulletin_number: string;                // e.g. "National Bulletin No. 36"
+  nominal_timestep: Timestep;             // replay timestep (contracts.md §2)
+  target_stage: string;                   // "T-72", "T-42", "T-27", "T-12", "T-3", "T-0"
+  hours_to_landfall: number;              // -42.0, -27.0, -12.0, -3.0, 0.0, etc.
+  source_url: string;                     // official RSMC New Delhi archive URL
+  source_filename: string;                // committed PDF filename under api/data/reference/imd/
+  sha256: string;                         // SHA-256 hash of the committed source document
+  issue_date_time: BulletinIssueDateTime;
+  current_storm_position: BulletinCurrentPosition;
+  current_intensity: BulletinCurrentIntensity;
+  forecast_landfall: BulletinForecastLandfall;
+  forecast_max_wind_at_landfall: BulletinForecastMaxWindAtLandfall;
+  storm_surge_forecast: BulletinStormSurgeForecast;
+  warned_areas: BulletinWarnedAreas;
+  landfall_comparison: BulletinLandfallComparison; // forecast vs actual IBTrACS landfall
+  extraction_notes?: string | null;
+}
+```
+Every extracted field is nullable and contains the 1-indexed `page` number where it was found in the official PDF.
+Served from static fixture `hazard__imd-bulletins.json` in DEMO_MODE. Never calls Gemini at runtime.
+
 ## 5. Routes
+
 
 All under `/api`. `timestep` is always a query param of type `TimestepParam`, required unless
 stated; `timestep=live` returns `501` in v1.1. FC = FeatureCollection.
@@ -427,7 +465,10 @@ stated; `timestep=live` returns `501` in v1.1. FC = FeatureCollection.
 | Owner | Method | Path | Params / body | Response |
 |---|---|---|---|---|
 | A | GET | `/api/hazard/timesteps` | — | `{ event: "amphan", landfall: Timestep, timesteps: Timestep[] }` |
+| A | GET | `/api/hazard/track` | — | CycloneTrack (internal, 25 replay fixes) |
 | A | GET | `/api/hazard/layers` | `hazard_type: HazardType`, `timestep` | FC&lt;HazardLayer&gt; |
+| A | GET | `/api/hazard/bulletins` | — | ImdBulletinCollection (cached from `hazard__imd-bulletins.json` fixture in DEMO_MODE, static, never calls Gemini at runtime). *v1.4 change, pending Dev B* |
+
 | A | GET | `/api/hazard/validation` | — | Validation overview: `{ execution_timestamp, event_name, aggregate_metrics, blocks[] }`. Each block includes `sar_water_km2` (pixel-area, no threshold) when GEE was online. Read-only; `503` if artifacts missing from `data/demo/validation/`. *v1.3 change, pending Dev B* |
 | A | GET | `/api/hazard/validation/{block}` | — | Detailed block validation (metrics, acquisition, artifact downloads). Prediction uses **max surge depth over all 25 timesteps**. `404` unknown block; `503` if not run. *v1.3 change, pending Dev B* |
 | A | GET | `/api/hazard/validation/{block}/metrics` | — | `{ block, metrics }` with IoU, Precision, Recall, F1, confusion matrix. Cell-level (~5.5 km), 10% flood-fraction threshold, surge-only prediction. `503` if not run. *v1.3 change, pending Dev B* |
@@ -504,6 +545,8 @@ the schema listed here, and fails on any route resource not in this table.
 | `GET /api/hazard/timesteps` | `timesteps` | no | ReplayTimeline |
 | `GET /api/hazard/track` (internal) | `track` | no | CycloneTrack *(added in v1.1)* |
 | `GET /api/hazard/layers` | `layers-<hazard_type>` | yes | FC&lt;HazardLayer&gt; |
+| `GET /api/hazard/bulletins` | `imd-bulletins` | no | ImdBulletinCollection *(v1.4 change, pending Dev B)* |
+
 | `GET /api/exposure/infra` | `infra-<infra_type>`, one per type. Unfiltered: no fixture of its own; composed from the per-type files *(added in v0.9)* | no | FC&lt;InfraFeature&gt; |
 | `GET /api/impact/results` | `results`, or `results-<filter>` with `[a-z0-9-]` filter values | yes | FC&lt;ImpactResult&gt; |
 | `GET /api/impact/countdown` | `countdown`, one file for the whole replay (see below) *(added in v1.3)* | no | ActionCountdown per timestep |

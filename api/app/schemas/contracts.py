@@ -674,3 +674,6 @@ class DispatchRequest(ContractModel):
     resend: bool = False
     dry_run: bool = False
     pin: str | None = None  # required for a live dispatch (DISPATCH_PIN); not for a dry run
+
+
+# --- 4.8 IMD Bulletins Multimodal Analysis (v1.4 change, pending Dev B) ---

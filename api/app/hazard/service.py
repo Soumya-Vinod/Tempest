@@ -25,6 +25,7 @@ from app.hazard.replay import (
 from app.hazard.replay import (
     get_replay_track as replay_get_track,
 )
+from app.schemas.bulletins import ImdBulletinCollection
 from app.schemas.common import LIVE
 
 logger = logging.getLogger(__name__)
@@ -122,3 +123,26 @@ def get_hazard_layer(hazard_type: HazardType, timestep: str) -> HazardLayerColle
         layer_col = generate_hazard_layer(hazard_type, clean_ts)
     _LAYER_CACHE[cache_key] = layer_col
     return layer_col
+
+
+def get_imd_bulletins() -> ImdBulletinCollection:
+    """Return the cached multimodal analysis of real IMD bulletins for Cyclone Amphan.
+
+    v1.4 change, pending Dev B.
+    Static in DEMO_MODE: loaded from hazard__imd-bulletins.json fixture;
+    never calls Gemini at runtime.
+    """
+    from app.core.config import API_DIR
+
+    data = load_fixture("hazard__imd-bulletins")
+
+    if data is not None:
+        return ImdBulletinCollection.model_validate(data)
+
+    fixture_path = API_DIR / "data" / "demo" / "hazard__imd-bulletins.json"
+    if fixture_path.is_file():
+        import json
+
+        with fixture_path.open(encoding="utf-8") as f:
+            return ImdBulletinCollection.model_validate(json.load(f))
+    raise FileNotFoundError("IMD bulletins fixture hazard__imd-bulletins.json not found")

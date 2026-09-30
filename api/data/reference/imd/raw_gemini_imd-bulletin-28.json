@@ -1,0 +1,93 @@
+{
+  "bulletin_id": "imd-bulletin-28",
+  "bulletin_number_meta": "National Bulletin No. 28",
+  "target_stage": "T-27",
+  "nominal_timestep": "2020-05-19T09:00:00Z",
+  "hours_to_landfall": -27.0,
+  "source_url": "https://rsmcnewdelhi.imd.gov.in/uploads/archive/1/1_fca4ad_28.National%20Bulletin%2020200519_0900UTC.pdf",
+  "filename": "national_bulletin_28_20200519_0900utc.pdf",
+  "sha256": "8b734a90ba60690a82c5ee056b95b3de6ad70472a413f3ff9d588ba45135fea8",
+  "model": "gemini-2.5-flash",
+  "extracted_at": "2026-09-30T09:09:57.055239+00:00",
+  "system_prompt": "You are an expert meteorological archivist and data analyst. Your task is to accurately extract structured information from the provided official India Meteorological Department (IMD) cyclone bulletin.\nSTRICT INTEGRITY RULES:\n1. Do not invent, estimate, hallucinate, or extrapolate any value. Extract only what is explicitly printed in the bulletin.\n2. If any metric, district, block, or coordinate is not mentioned or available, leave it null (or an empty list).\n3. For every field or section, record the exact 1-indexed PDF page number where that information appears in the document.\n4. For landfall forecasts: record the exact descriptive landfall area (e.g. 'between Digha and Hatiya Islands close to Sundarbans'), and the expected landfall time window as stated.\n5. In the storm surge forecast: extract the predicted surge height and all specifically named districts and blocks / taluks/ mandals.\n6. In warned areas: extract districts mentioned under wind / rainfall warnings for West Bengal and Odisha.\n",
+  "user_prompt": "Carefully analyze this official IMD cyclone bulletin and extract all requested parameters according to the schema. Ensure page numbers are accurately populated for each section.",
+  "raw_response": {
+    "bulletin_number": "28",
+    "issue_date_time": {
+      "date_str": "19.05.2020",
+      "time_ist": "1730 HOURS IST",
+      "time_utc": null,
+      "page": 1
+    },
+    "current_storm_position": {
+      "latitude_deg_north": 17.0,
+      "longitude_deg_east": 86.9,
+      "location_description": "about 360 km nearly south of Paradip (Odisha), 510 km south-southwest of Digha (West Bengal) and 650 km south-southwest of Khepupara (Bangladesh)",
+      "page": 1
+    },
+    "current_intensity": {
+      "classification": "Extremely Severe Cyclonic Storm",
+      "max_sustained_surface_wind_kmph": "200-210 gusting to 230 kmph",
+      "max_sustained_surface_wind_kts": null,
+      "estimated_central_pressure_hpa": null,
+      "page": 1
+    },
+    "forecast_landfall": {
+      "landfall_area": "West Bengal - Bangladesh coasts between Digha (West Bengal) and Hatiya Islands (Bangladesh) close to Sundarbans",
+      "landfall_lat": 20.9,
+      "landfall_lon": 88.2,
+      "forecast_landfall_time_str": "Afternoon to Evening hours of 20th May 2020",
+      "page": 1
+    },
+    "forecast_max_wind_at_landfall": {
+      "wind_description": "maximum sustained wind speed of 155-165 kmph gusting to 185 kmph",
+      "max_wind_kmph": 165.0,
+      "gust_kmph": 185.0,
+      "page": 1
+    },
+    "storm_surge_forecast": {
+      "surge_height_description": "Storm Surge of about 4-5 meters above Astronomical Tide is likely to inundate low lying areas of south & north 24 Parganas and about 3-4 meters over the low lying areas of East Medinipur District of West Bengal during the time of Landfall",
+      "min_surge_height_m": 3.0,
+      "max_surge_height_m": 5.0,
+      "inundated_districts": [
+        "South 24 Parganas",
+        "North 24 Parganas",
+        "East Medinipur"
+      ],
+      "specific_blocks_mentioned": [],
+      "page": 3
+    },
+    "warned_areas": {
+      "west_bengal_districts": [
+        "East Medinipur",
+        "South 24 Parganas",
+        "North 24 Parganas",
+        "Howrah",
+        "Hoogli",
+        "Kolkata",
+        "West Medinipur"
+      ],
+      "odisha_districts": [
+        "Jagatsinghpur",
+        "Kendrapara",
+        "Bhadrak",
+        "Jajpur",
+        "Balasore",
+        "Cuttack",
+        "Mayurbhanj",
+        "Khordha",
+        "Puri"
+      ],
+      "other_districts_or_blocks": [
+        "Malda",
+        "Dinajpur districts",
+        "Sub-Himalayan West Bengal",
+        "Sikkim",
+        "western districts of Assam",
+        "western districts of Meghalaya"
+      ],
+      "page": 2
+    },
+    "extraction_notes": null
+  }
+}

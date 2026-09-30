@@ -1,5 +1,19 @@
 """Contract schemas (shared/contracts.md). Changing anything here breaks the other dev: flag it."""
 
+from app.schemas.bulletins import (
+    ActualLandfallReference,
+    BulletinCurrentIntensity,
+    BulletinCurrentPosition,
+    BulletinForecastLandfall,
+    BulletinForecastMaxWindAtLandfall,
+    BulletinIssueDateTime,
+    BulletinLandfallComparison,
+    BulletinPageRef,
+    BulletinStormSurgeForecast,
+    BulletinWarnedAreas,
+    ImdBulletin,
+    ImdBulletinCollection,
+)
 from app.schemas.common import (
     LANDFALL_TIMESTEP,
     LIVE,
@@ -190,4 +204,17 @@ __all__ = [
     "TriggerEventCollection",
     "TriggerEventProperties",
     "TriggerMetric",
+    "ActualLandfallReference",
+    "BulletinCurrentIntensity",
+    "BulletinCurrentPosition",
+    "BulletinForecastLandfall",
+    "BulletinForecastMaxWindAtLandfall",
+    "BulletinIssueDateTime",
+    "BulletinLandfallComparison",
+    "BulletinPageRef",
+    "BulletinStormSurgeForecast",
+    "BulletinWarnedAreas",
+    "ImdBulletin",
+    "ImdBulletinCollection",
 ]
+

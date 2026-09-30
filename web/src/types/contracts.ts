@@ -504,3 +504,109 @@ export interface DispatchRequest {
   dry_run?: boolean;
   pin?: string | null; // required for a live dispatch
 }
+
+// ---------- §4.8 IMD Bulletins Multimodal Analysis (v1.4 change, pending Dev B) ----------
+
+export interface BulletinIssueDateTime {
+  date_str?: string | null;
+  time_ist?: string | null;
+  time_utc?: string | null;
+  page?: number | null;
+}
+
+export interface BulletinCurrentPosition {
+  latitude_deg_north?: number | null;
+  longitude_deg_east?: number | null;
+  location_description?: string | null;
+  page?: number | null;
+}
+
+export interface BulletinCurrentIntensity {
+  classification?: string | null;
+  max_sustained_surface_wind_kmph?: string | null;
+  max_sustained_surface_wind_kts?: number | null;
+  estimated_central_pressure_hpa?: number | null;
+  page?: number | null;
+}
+
+export interface BulletinForecastLandfall {
+  landfall_area?: string | null;
+  landfall_lat?: number | null;
+  landfall_lon?: number | null;
+  forecast_landfall_time_str?: string | null;
+  page?: number | null;
+}
+
+export interface BulletinForecastMaxWindAtLandfall {
+  wind_description?: string | null;
+  max_wind_kmph?: number | null;
+  gust_kmph?: number | null;
+  page?: number | null;
+}
+
+export interface BulletinStormSurgeForecast {
+  surge_height_description?: string | null;
+  min_surge_height_m?: number | null;
+  max_surge_height_m?: number | null;
+  inundated_districts: string[];
+  specific_blocks_mentioned: string[];
+  page?: number | null;
+}
+
+export interface BulletinWarnedAreas {
+  west_bengal_districts: string[];
+  odisha_districts: string[];
+  other_districts_or_blocks: string[];
+  page?: number | null;
+}
+
+export interface BulletinLandfallComparison {
+  actual_landfall_lat: number;
+  actual_landfall_lon: number;
+  actual_landfall_time: string;
+  forecast_landfall_lat?: number | null;
+  forecast_landfall_lon?: number | null;
+  forecast_landfall_time?: string | null;
+  distance_error_km?: number | null;
+  time_difference_hours?: number | null;
+  notes?: string | null;
+}
+
+export interface ImdBulletin {
+  id: string;
+  bulletin_number: string;
+  nominal_timestep: Timestep;
+  target_stage: string;
+  hours_to_landfall: number;
+  source_url: string;
+  source_filename: string;
+  sha256: string;
+  issue_date_time: BulletinIssueDateTime;
+  current_storm_position: BulletinCurrentPosition;
+  current_intensity: BulletinCurrentIntensity;
+  forecast_landfall: BulletinForecastLandfall;
+  forecast_max_wind_at_landfall: BulletinForecastMaxWindAtLandfall;
+  storm_surge_forecast: BulletinStormSurgeForecast;
+  warned_areas: BulletinWarnedAreas;
+  landfall_comparison: BulletinLandfallComparison;
+  extraction_notes?: string | null;
+}
+
+export interface ActualLandfallReference {
+  source: string;
+  crossing_location_name: string;
+  crossing_lat: number;
+  crossing_lon: number;
+  synoptic_hour_timestep: Timestep;
+  synoptic_hour_lat: number;
+  synoptic_hour_lon: number;
+  landfall_time_utc: string;
+  landfall_time_ist: string;
+}
+
+export interface ImdBulletinCollection {
+  event: string;
+  actual_landfall: ActualLandfallReference;
+  bulletins: ImdBulletin[];
+}
+
