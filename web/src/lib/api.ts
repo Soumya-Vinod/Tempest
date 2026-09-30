@@ -2,6 +2,7 @@
 // Contract types come from ../types/contracts; do not redefine them here.
 import type {
   ActionCountdown,
+  CriticalLinks,
   Departures,
   CycloneTrack,
   InsuranceSummary,
@@ -188,6 +189,12 @@ export const getCountdown = (timestep: TimestepParam) =>
 
 /** v1.3 change, pending Dev A. Precomputed: last safe departure per cut-off facility. */
 export const getDepartures = () => request<Departures>('GET', '/api/impact/departures')
+
+/** v1.4 change, pending Dev A. Precomputed: the links the most departure routes use. */
+export const getCriticalLinks = (timestep: TimestepParam, horizon: Horizon = 0) =>
+  request<CriticalLinks>('GET', '/api/impact/critical-links', {
+    query: { timestep, horizon: String(horizon) },
+  })
 
 export const getRiskScores = (timestep: TimestepParam, horizon: Horizon = 0) =>
   request<RiskScoreCollection>('GET', '/api/risk/scores', { query: { timestep, horizon: String(horizon) } })

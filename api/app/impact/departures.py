@@ -122,9 +122,12 @@ def compute(
     steps: list[Step],
     facilities: list[tuple[InfraFeature, str]],
     destinations: list[InfraFeature],
+    hops_out: dict[str, list[tuple[Any, Any, int]]] | None = None,
 ) -> dict:
     """The fixture: {"resolution_h": 3, "departures": [...]}. `facilities`: (facility, first
-    cut-off timestep); `destinations`: the safe destinations."""
+    cut-off timestep); `destinations`: the safe destinations. `hops_out`, if given, receives
+    each routed facility's (from node, to node, link) hops, facility to destination (the
+    critical links build uses them: app/impact/critical_links.py)."""
     xy = dict(zip(net.node_ids, map(tuple, net.node_xy), strict=True))
     names = {d.id: feature_label(d) for d in destinations}
     sources = {}
@@ -172,6 +175,8 @@ def compute(
         k = len(steps) - 1 if closed is None else closed - 1
         r, st = per_step[k], steps[k]
         hops = r.path(node)
+        if hops_out is not None:
+            hops_out[f.id] = hops
         links = [link for _, _, link in hops]
         entry.update(
             deadline=st.timestep,
@@ -202,9 +207,9 @@ def _isolated_h0() -> dict[str, set[str]]:
     }
 
 
-def build() -> dict:
-    """From the road graph (data/processed), the hazard layers and the committed impact and
-    exposure fixtures. The build script and the fresh-computation test use this."""
+def inputs() -> tuple[ImpactNetwork, list[Step], list[tuple[InfraFeature, str]], list]:
+    """compute()'s arguments: from the road graph (data/processed), the hazard layers and the
+    committed impact and exposure fixtures."""
     from app.impact import service as impact
 
     infra = countdown._infra_from_fixtures()
@@ -228,7 +233,12 @@ def build() -> dict:
     ]
     net = network_for(impact._graph(impact.GRAPH_PATH), impact.ANCHOR)
     steps = [Step(ts, *link_masks(impact.hazard_layers(ts), net)) for ts in REPLAY_TIMESTEPS]
-    return compute(net, steps, facilities, destinations)
+    return net, steps, facilities, destinations
+
+
+def build() -> dict:
+    """The build script and the fresh-computation test use this."""
+    return compute(*inputs())
 
 
 # --- Service ------------------------------------------------------------------------------------

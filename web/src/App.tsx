@@ -9,6 +9,13 @@ import WakingNotice from './components/WakingNotice'
 import { AboutPanel } from './features/about'
 import { AdvisoryDrawer, AdvisoryPanel, useAdvisories } from './features/advisory'
 import { CountdownPanel, useCountdown } from './features/countdown'
+import {
+  buildLinkLayers,
+  groupLinks,
+  KeepOpenPanel,
+  linksFor,
+  useCriticalLinks,
+} from './features/criticalLinks'
 import { buildRouteLayers, useDepartures } from './features/departures'
 import { InfraPanel, infraTooltip, useInfraLayers, useInfraMap } from './features/exposure'
 import { HazardPanel, type MapViewMode, StormEdge, useHazardMap } from './features/hazard'
@@ -41,6 +48,19 @@ export default function App() {
     ? (departures.get(impact.card.selectedId) ?? null)
     : null
   const routeLayers = useMemo(() => buildRouteLayers(departure), [departure])
+  // Keep these open (v1.4): links grouped for the panel (roads by name); the hovered entry or
+  // segment, else the clicked one, on the map.
+  const criticalLinks = useCriticalLinks(REPLAY_TIMESTEPS[timestepIndex], horizon)
+  const [hoveredLink, setHoveredLink] = useState<string | null>(null)
+  const [pinnedLink, setPinnedLink] = useState<string | null>(null)
+  const linkGroups = useMemo(
+    () => (criticalLinks.status === 'ok' ? groupLinks(criticalLinks.data.links) : null),
+    [criticalLinks],
+  )
+  const linkLayers = useMemo(
+    () => buildLinkLayers(linkGroups ? linksFor(linkGroups, hoveredLink ?? pinnedLink) : []),
+    [linkGroups, hoveredLink, pinnedLink],
+  )
   // Shelter stand-ins have no departure: the card only says since when they are cut off.
   const shelterCutOff =
     countdown.state.status === 'ok'
@@ -54,8 +74,8 @@ export default function App() {
 
   // Bottom to top: hazard fills or the risk choropleth (one view at a time: both are area
   // fills; in Risk view, gold outlines on blocks with an insurance payout released), muted
-  // exposure, impact, the storm track, the selected facility's departure route (v1.3), then the
-  // selection highlights.
+  // exposure, impact, the storm track, the selected facility's departure route (v1.3), the
+  // highlighted critical link (v1.4), then the selection highlights.
   const layers = useMemo(
     () => [
       ...hazard.fillLayers,
@@ -65,6 +85,7 @@ export default function App() {
       ...impact.layers,
       ...hazard.trackLayers,
       ...routeLayers,
+      ...linkLayers,
       ...risk.highlightLayers,
       ...impact.highlightLayers,
     ],
@@ -76,6 +97,7 @@ export default function App() {
       impact.layers,
       hazard.trackLayers,
       routeLayers,
+      linkLayers,
       risk.highlightLayers,
       impact.highlightLayers,
     ],
@@ -127,6 +149,14 @@ export default function App() {
           state={countdown.state}
           departures={departures}
           timestepIndex={timestepIndex}
+        />
+        <KeepOpenPanel
+          state={criticalLinks}
+          groups={linkGroups}
+          horizon={horizon}
+          pinned={pinnedLink}
+          onHover={setHoveredLink}
+          onPin={setPinnedLink}
         />
         <InfraPanel
           state={infra.state}

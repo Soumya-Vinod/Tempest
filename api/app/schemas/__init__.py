@@ -44,6 +44,9 @@ from app.schemas.contracts import (
     ChannelResult,
     Citation,
     CountdownFacility,
+    CriticalLink,
+    CriticalLinkFacility,
+    CriticalLinks,
     Departure,
     DepartureLeg,
     Departures,
@@ -96,6 +99,9 @@ from app.schemas.geojson import (
 )
 
 __all__ = [
+    "CriticalLink",
+    "CriticalLinkFacility",
+    "CriticalLinks",
     "Departure",
     "DepartureLeg",
     "Departures",
