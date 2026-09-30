@@ -134,7 +134,8 @@ Deployment: [deploy.md](deploy.md).
 - **Models:** Gemini 3.7 Flash (google-genai), Groq `openai/gpt-oss-120b` as fallback;
   Google Earth Engine for the elevation sampling.
 - **Frontend:** React 19, TypeScript, Vite, Tailwind CSS v4, MapLibre GL, deck.gl, d3-contour.
-- **Dispatch:** Telegram Bot API, Gmail SMTP, CAP 1.2 (validated with xmlschema).
+- **Dispatch:** Telegram Bot API, e-mail via Gmail SMTP or Brevo's HTTPS API (set by
+  `EMAIL_PROVIDER`), CAP 1.2 (validated with xmlschema).
 - **Deployment:** Docker on Render (API), Vercel (web app).
 
 ## About the data

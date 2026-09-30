@@ -1,6 +1,8 @@
-"""Dispatch: CAP 1.2 (validated against the OASIS XSD), Telegram and Gmail SMTP (both mocked: no
-real sends), the approved-only / PIN / resend / rate-limit rules, dry runs and the audit log."""
+"""Dispatch: CAP 1.2 (validated against the OASIS XSD), Telegram, Gmail SMTP and Brevo (all
+mocked: no real sends), the approved-only / PIN / resend / rate-limit rules, dry runs and the
+audit log."""
 
+import base64
 import email
 import json
 import uuid
@@ -21,6 +23,7 @@ client = TestClient(app)
 NS = {"cap": cap.CAP_NS}
 TOKEN = "123456:SECRET-bot-token"
 APP_PASSWORD = "abcd efgh ijkl mnop"
+BREVO_KEY = "xkeysib-SECRET-brevo-key"
 PIN = "4321"
 SAGAR, TS = "02438", "2020-05-20T09:00:00Z"
 LABEL = {
@@ -36,6 +39,7 @@ def settings(**overrides) -> Settings:
         "TELEGRAM_CHAT_ID": "-1009876543210",
         "GMAIL_ADDRESS": "tempest.drill@gmail.com",
         "GMAIL_APP_PASSWORD": APP_PASSWORD,
+        "BREVO_API_KEY": BREVO_KEY,
         "DISPATCH_EMAIL_TO": "officer.one@example.org, bdo@example.org",
         "DISPATCH_PIN": PIN,
         **overrides,
@@ -103,6 +107,20 @@ class FakeTelegram:
         )
 
 
+class FakeBrevo:
+    """httpx handler for Brevo's send endpoint: records requests; `response` overrides the reply."""
+
+    def __init__(self):
+        self.requests: list[httpx.Request] = []
+        self.response: httpx.Response | None = None
+
+    def handler(self, request: httpx.Request) -> httpx.Response:
+        self.requests.append(request)
+        if self.response is not None:
+            return self.response
+        return httpx.Response(201, json={"messageId": "<202609291200.1234@smtp-relay.brevo.com>"})
+
+
 class FakeSMTP:
     sent: list = []
     fail: Exception | None = None
@@ -135,11 +153,15 @@ def env(tmp_path, monkeypatch):
     monkeypatch.setattr(store, "DB_PATH", tmp_path / "state" / "tempest.db")
     s = settings()
     monkeypatch.setattr(service, "get_settings", lambda: s)
-    telegram = FakeTelegram()
+    telegram, brevo = FakeTelegram(), FakeBrevo()
+
+    def route(request: httpx.Request) -> httpx.Response:
+        if request.url.host == "api.brevo.com":
+            return brevo.handler(request)
+        return telegram.handler(request)
+
     monkeypatch.setattr(
-        channels,
-        "http_client",
-        lambda: httpx.Client(transport=httpx.MockTransport(telegram.handler)),
+        channels, "http_client", lambda: httpx.Client(transport=httpx.MockTransport(route))
     )
     FakeSMTP.sent, FakeSMTP.fail, FakeSMTP.calls = [], None, []
     monkeypatch.setattr(channels, "SMTP", FakeSMTP)
@@ -148,7 +170,11 @@ def env(tmp_path, monkeypatch):
         s2 = settings(**overrides)
         monkeypatch.setattr(service, "get_settings", lambda: s2)
 
-    return type("Env", (), {"telegram": telegram, "smtp": FakeSMTP, "use": staticmethod(use)})
+    return type(
+        "Env",
+        (),
+        {"telegram": telegram, "brevo": brevo, "smtp": FakeSMTP, "use": staticmethod(use)},
+    )
 
 
 def post(advisory_id: str, **body):
@@ -325,6 +351,7 @@ def test_live_dispatch_sends_both_channels_and_marks_sent(env):
         ("starttls",),
         ("login", "tempest.drill@gmail.com", APP_PASSWORD),
     ]
+    assert env.brevo.requests == []  # EMAIL_PROVIDER defaults to smtp
     [msg] = env.smtp.sent
     msg = email.message_from_bytes(msg.as_bytes())
     assert msg["Subject"].startswith("[EXERCISE]")
@@ -403,6 +430,86 @@ def test_unconfigured_channel_fails_on_its_own(env):
     assert "not configured" in by_channel["email"]["error"]
     assert by_channel["telegram"]["status"] == "sent"
     assert env.smtp.calls == []
+
+
+def test_brevo_sends_the_same_email_over_https(env):
+    env.use(EMAIL_PROVIDER="brevo", GMAIL_APP_PASSWORD=None)  # no SMTP credential needed
+    a = make_advisory()
+    receipt = post(a.id, pin=PIN, channels=["email"]).json()
+    [result] = receipt["channels"]
+    assert result["status"] == "sent", result
+    assert result["provider_message_id"] == "<202609291200.1234@smtp-relay.brevo.com>"
+    assert env.smtp.calls == [] and env.telegram.urls == []
+
+    [req] = env.brevo.requests
+    assert req.method == "POST" and str(req.url) == "https://api.brevo.com/v3/smtp/email"
+    assert req.headers["api-key"] == BREVO_KEY
+    payload = json.loads(req.content)
+    assert payload["sender"] == {"email": "tempest.drill@gmail.com"}
+    assert payload["to"] == [{"email": "officer.one@example.org"}, {"email": "bdo@example.org"}]
+    # Same subject and body as the SMTP message.
+    smtp_msg = channels.email_message(settings(), a, "<alert/>")
+    assert payload["subject"] == smtp_msg["Subject"]
+    assert payload["subject"].startswith("[EXERCISE]")
+    assert payload["textContent"] == smtp_msg.get_body(("plain",)).get_content()
+    assert payload["textContent"].startswith(f"{LABEL['en']}\n\n{texts('en')['headline']}\n\n")
+    # The CAP, base64 as cap.xml: valid, and the one served for this advisory.
+    [attachment] = payload["attachment"]
+    assert attachment["name"] == "cap.xml"
+    xml = base64.b64decode(attachment["content"]).decode("utf-8")
+    assert cap.errors(xml) == []
+    assert client.get(f"/api/dispatch/{a.id}/cap.xml").text == xml
+    assert status_of(a.id) == "sent"
+
+
+def test_brevo_errors_never_leak_the_api_key(env, monkeypatch):
+    env.use(EMAIL_PROVIDER="brevo")
+    env.brevo.response = httpx.Response(
+        401, json={"code": "unauthorized", "message": f"Key not found: {BREVO_KEY}"}
+    )
+    a = make_advisory()
+    [result] = post(a.id, pin=PIN, channels=["email"]).json()["channels"]
+    assert result["status"] == "failed"
+    assert "HTTP 401" in result["error"] and "Key not found: ***" in result["error"]
+    assert BREVO_KEY not in result["error"]
+
+    def boom(request):
+        raise httpx.ConnectError(f"cannot reach Brevo with {request.headers['api-key']}")
+
+    monkeypatch.setattr(
+        channels, "http_client", lambda: httpx.Client(transport=httpx.MockTransport(boom))
+    )
+    b = make_advisory()
+    [result] = post(b.id, pin=PIN, channels=["email"]).json()["channels"]
+    assert result["status"] == "failed" and "ConnectError" in result["error"]
+    assert BREVO_KEY not in result["error"] and "***" in result["error"]
+    assert BREVO_KEY not in "".join(e.details or "" for e in store.events())
+    assert status_of(a.id) == status_of(b.id) == "approved"
+
+
+def test_brevo_non_json_error_reports_the_status(env):
+    env.use(EMAIL_PROVIDER="brevo")
+    env.brevo.response = httpx.Response(502, text="Bad Gateway")
+    a = make_advisory()
+    [result] = post(a.id, pin=PIN, channels=["email"]).json()["channels"]
+    assert result["status"] == "failed" and "HTTP 502: Bad Gateway" in result["error"]
+
+
+def test_brevo_without_its_key_is_not_configured(env):
+    env.use(EMAIL_PROVIDER="brevo", BREVO_API_KEY=None)  # the Gmail password doesn't count
+    a = make_advisory()
+    [result] = post(a.id, pin=PIN, channels=["email"]).json()["channels"]
+    assert result["status"] == "failed"
+    assert "not configured" in result["error"] and "BREVO_API_KEY" in result["error"]
+    assert env.brevo.requests == [] and env.smtp.calls == []
+    assert client.get("/api/dispatch/recipients").json()["email"]["configured"] is False
+
+
+def test_each_provider_needs_its_own_credential():
+    assert channels.email_configured(settings()) is True
+    assert channels.email_configured(settings(GMAIL_APP_PASSWORD=None)) is False
+    assert channels.email_configured(settings(EMAIL_PROVIDER="brevo", GMAIL_APP_PASSWORD=None))
+    assert not channels.email_configured(settings(EMAIL_PROVIDER="brevo", BREVO_API_KEY=None))
 
 
 def test_dry_run_builds_and_validates_without_sending(env):

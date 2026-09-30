@@ -1,5 +1,6 @@
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -16,6 +17,7 @@ PLACEHOLDERS: dict[str, str] = {
     "GMAIL_ADDRESS": "you@gmail.com",
     "GMAIL_APP_PASSWORD": "your-16-char-app-password",
     "DISPATCH_EMAIL_TO": "officer@example.org",
+    "BREVO_API_KEY": "your-brevo-api-key",
     "DISPATCH_PIN": "change-me",
 }
 
@@ -36,9 +38,14 @@ class Settings(BaseSettings):
     GEE_KEY_PATH: str | None = None
     TELEGRAM_BOT_TOKEN: str | None = None
     TELEGRAM_CHAT_ID: str | None = None
-    # Dispatch e-mail: Gmail SMTP with an app password; DISPATCH_EMAIL_TO is comma-separated.
+    # Dispatch e-mail, from GMAIL_ADDRESS to DISPATCH_EMAIL_TO (comma-separated). EMAIL_PROVIDER
+    # "smtp": Gmail SMTP with GMAIL_APP_PASSWORD. "brevo": Brevo's HTTPS API with BREVO_API_KEY
+    # (for hosts that block outbound SMTP, e.g. Render's free tier); GMAIL_ADDRESS must then be a
+    # verified Brevo sender.
+    EMAIL_PROVIDER: Literal["smtp", "brevo"] = "smtp"
     GMAIL_ADDRESS: str | None = None
     GMAIL_APP_PASSWORD: str | None = None
+    BREVO_API_KEY: str | None = None
     DISPATCH_EMAIL_TO: str | None = None
     # Required in the request for every live (non-dry-run) dispatch.
     DISPATCH_PIN: str | None = None

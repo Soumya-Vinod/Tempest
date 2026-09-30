@@ -13,12 +13,14 @@ ENV_VARS = (
     "TELEGRAM_CHAT_ID",
     "GMAIL_ADDRESS",
     "GMAIL_APP_PASSWORD",
+    "BREVO_API_KEY",
     "DISPATCH_EMAIL_TO",
     "DISPATCH_PIN",
     "DEMO_MODE",
 )
 FLAGS = {v.lower() for v in ENV_VARS if v != "DEMO_MODE"}
-OTHER_VARS = ("GROQ_MODEL",)  # settings, not keys: reported by value, not as a flag
+# Settings, not keys: reported by value, not as a flag.
+OTHER_VARS = ("GROQ_MODEL", "EMAIL_PROVIDER")
 
 
 @pytest.fixture
@@ -37,6 +39,7 @@ def test_health_defaults(client):
     assert body["status"] == "ok"
     assert body["demo_mode"] is True
     assert body["groq_model"] == "openai/gpt-oss-120b"
+    assert body["email_provider"] == "smtp"
     assert set(body["configured"]) == FLAGS
     assert not any(body["configured"].values())
 
@@ -51,6 +54,15 @@ def test_health_reports_flags_not_values(client, monkeypatch, tmp_path):
     assert str(key_file) not in resp.text
     assert resp.json()["configured"]["gemini_api_key"] is True
     assert resp.json()["configured"]["gee_key_path"] is True
+
+
+def test_health_reports_the_brevo_key_as_a_flag(client, monkeypatch):
+    monkeypatch.setenv("EMAIL_PROVIDER", "brevo")
+    monkeypatch.setenv("BREVO_API_KEY", "xkeysib-super-secret")
+    resp = client.get("/health")
+    assert "xkeysib-super-secret" not in resp.text
+    assert resp.json()["email_provider"] == "brevo"
+    assert resp.json()["configured"]["brevo_api_key"] is True
 
 
 def test_gee_key_path_false_when_file_missing(client, monkeypatch, tmp_path):
