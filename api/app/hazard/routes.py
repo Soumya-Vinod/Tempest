@@ -12,6 +12,7 @@ from app.hazard.models import (
     TimestepParam,
 )
 from app.hazard.validation import service as val_service
+from app.schemas.bulletins import ImdBulletinCollection
 from app.schemas.common import LIVE
 
 router = APIRouter(prefix="/hazard", tags=["hazard"])
@@ -48,7 +49,26 @@ def get_layers(hazard_type: HazardType, timestep: TimestepParam) -> HazardLayerC
 
 
 # ---------------------------------------------------------------------------
+# IMD Bulletins Multimodal Analysis Endpoint (v1.4 change, pending Dev B)
+# Read-only: route serves pre-computed fixture; never calls Gemini at runtime.
+# ---------------------------------------------------------------------------
+@router.get("/bulletins", response_model=ImdBulletinCollection)
+def get_bulletins() -> ImdBulletinCollection:
+    """Return offline, cached multimodal analysis of real IMD bulletins for Cyclone Amphan.
+
+    v1.4 change, pending Dev B.
+    Static in DEMO_MODE, read-only, never calls Gemini at runtime.
+    """
+    try:
+        return service.get_imd_bulletins()
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=503, detail=str(e)) from e
+
+
+# ---------------------------------------------------------------------------
 # Sentinel-1 Observational Validation Endpoints (Phase 10)
+
+
 # Read-only: routes serve pre-computed artifacts; never execute the pipeline.
 # ---------------------------------------------------------------------------
 @router.get("/validation")

@@ -26,6 +26,7 @@ from app.schemas import (
     Departures,
     HazardLayerCollection,
     HazardType,
+    ImdBulletinCollection,
     ImpactResultCollection,
     InfraFeatureCollection,
     InfraType,
@@ -53,7 +54,9 @@ ROUTE_SCHEMAS = {
         (r"timesteps", ReplayTimeline, False, None),
         (r"track", CycloneTrack, False, None),
         (rf"layers-({_alternatives(HazardType)})", HazardLayerCollection, True, None),
+        (r"imd-bulletins", ImdBulletinCollection, False, None),  # v1.4 change, pending Dev B
     ],
+
     # Per type only: the unfiltered route is composed from these (contracts.md §7).
     "exposure": [(rf"infra-({_alternatives(InfraType)})", InfraFeatureCollection, False, None)],
     # v1.3 change, pending Dev A: deduplicated horizon-24 results (a content hash per distinct
