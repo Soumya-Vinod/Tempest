@@ -35,26 +35,24 @@
       },
       "current_intensity": {
         "classification": "Very Severe Cyclonic Storm",
-        "max_sustained_surface_wind_kmph": "125-135 gusting to 150 kmph",
+        "max_sustained_surface_wind_kmph": "125-135 gusting to 150",
         "max_sustained_surface_wind_kts": null,
         "estimated_central_pressure_hpa": null,
         "page": 1
       },
       "forecast_landfall": {
-        "landfall_area": "West Bengal – Bangladesh coasts between Digha (West Bengal) and Hatiya Islands (Bangladesh)",
-        "landfall_lat": null,
-        "landfall_lon": null,
-        "forecast_landfall_time_str": "During the Afternoon / Evening of 20th May 2020",
+        "landfall_area": "between Digha (West Bengal) and Hatiya Islands (Bangladesh)",
+        "forecast_landfall_time_str": "Afternoon / Evening of 20th May 2020",
         "page": 1
       },
       "forecast_max_wind_at_landfall": {
-        "wind_description": "as a Very Severe Cyclonic Storm",
-        "max_wind_kmph": null,
-        "gust_kmph": null,
+        "wind_description": "145-155 gusting to 170 kmph",
+        "max_wind_kmph": 155.0,
+        "gust_kmph": 170.0,
         "page": 1
       },
       "storm_surge_forecast": {
-        "surge_height_description": "about 3-4 meters above Astronomical Tide is likely to inundate low lying areas of south & north 24 Parganas and 2-3 meters over the low lying areas of East Medinipur District",
+        "surge_height_description": "Storm Surge of about 3-4 meters above Astronomical Tide is likely to inundate low lying areas of south & north 24 Parganas and 2-3 meters over the low lying areas of East Medinipur District of West Bengal around the time of Landfall.",
         "min_surge_height_m": 2.0,
         "max_surge_height_m": 4.0,
         "inundated_districts": [
@@ -62,7 +60,6 @@
           "North 24 Parganas",
           "East Medinipur"
         ],
-        "specific_blocks_mentioned": [],
         "page": 3
       },
       "warned_areas": {
@@ -70,6 +67,7 @@
           "East Medinipur",
           "South 24 Parganas",
           "North 24 Parganas",
+          "West Medinipur",
           "Howrah",
           "Hoogli",
           "Kolkata"
@@ -92,14 +90,10 @@
         "actual_landfall_lat": 22.05,
         "actual_landfall_lon": 88.35,
         "actual_landfall_time": "2020-05-20T12:00:00Z",
-        "forecast_landfall_lat": 21.65,
-        "forecast_landfall_lon": 88.3,
-        "forecast_landfall_time": "2020-05-20T11:00:00Z",
-        "distance_error_km": 44.8,
-        "time_difference_hours": -1.0,
-        "notes": "Forecast text specifies corridor 'West Bengal – Bangladesh coasts between Digha (West Bengal) and Hatiya Islands (Bangladesh)'. Centroid of coastal crossing corridor evaluated at Sundarbans (21.65°N, 88.3°E). Great-circle distance error: 44.8 km to IBTrACS 12:00Z fix (22.05°N, 88.35°E); 0.0 km to coastal crossing fix (21.65°N, 88.3°E). Forecast time window 'afternoon/evening 20 May' evaluated at 11:00 UTC (16:30 IST); difference: -1.0 h vs 12:00 UTC synoptic fix."
+        "corridor_contains_actual_crossing": true,
+        "notes": "Forecast corridor 'between Digha (West Bengal) and Hatiya Islands (Bangladesh)' covers the coastal stretch from Digha (~87.5°E) to Hatiya (~91.1°E), which encompasses the actual Sundarbans crossing location (~88.3°E). Forecast timing window: 'Afternoon / Evening of 20th May 2020'."
       },
-      "extraction_notes": "For 'forecast_max_wind_at_landfall', only the storm classification at landfall is explicitly stated in the narrative text ('as a Very Severe Cyclonic Storm'). No specific wind speed range (kmph or gust) is provided for the exact landfall moment, only the storm category."
+      "extraction_notes": null
     },
     {
       "id": "imd-bulletin-23",
@@ -131,58 +125,54 @@
       },
       "forecast_landfall": {
         "landfall_area": "between Digha (West Bengal) and Hatiya Islands (Bangladesh) close to Sundarbans",
-        "landfall_lat": null,
-        "landfall_lon": null,
         "forecast_landfall_time_str": "Afternoon / Evening of 20th May 2020",
         "page": 1
       },
       "forecast_max_wind_at_landfall": {
-        "wind_description": "maximum sustained wind speed of 165-175 kmph gusting to 195 kmph",
-        "max_wind_kmph": 175.0,
+        "wind_description": "165-175 kmph gusting to 195 kmph",
+        "max_wind_kmph": 165.0,
         "gust_kmph": 195.0,
         "page": 1
       },
       "storm_surge_forecast": {
-        "surge_height_description": "Storm Surge of about 4-6 meters above Astronomical Tide is likely to inundate low lying areas of south & north 24 Parganas and about 3-4 meters over the low lying areas of East Medinipur District of West Bengal during the time of Landfall.",
+        "surge_height_description": "about 4-6 meters above Astronomical Tide is likely to inundate low lying areas of south & north 24 Parganas and about 3-4 meters over the low lying areas of East Medinipur District of West Bengal during the time of Landfall.",
         "min_surge_height_m": 3.0,
         "max_surge_height_m": 6.0,
         "inundated_districts": [
-          "East Medinipur District",
+          "South 24 Parganas",
           "North 24 Parganas",
-          "South 24 Parganas"
+          "East Medinipur"
         ],
-        "specific_blocks_mentioned": [],
         "page": 3
       },
       "warned_areas": {
         "west_bengal_districts": [
           "East Medinipur",
-          "Hoogli",
-          "Howrah",
-          "Kolkata",
-          "North 24 Parganas",
           "South 24 Parganas",
-          "West Medinipur"
+          "North 24 Parganas",
+          "West Medinipur",
+          "Howrah",
+          "Hoogli",
+          "Kolkata",
+          "Malda",
+          "Dinajpur"
         ],
         "odisha_districts": [
-          "Balasore",
-          "Bhadrak",
-          "Cuttack",
           "Gajapati",
           "Ganjam",
+          "Puri",
           "Jagatsinghpur",
-          "Jajpur",
           "Kendrapara",
-          "Keonjhar",
-          "Khordha",
+          "Jajpur",
+          "Balasore",
+          "Bhadrak",
           "Mayurbhanj",
-          "Puri"
+          "Khordha",
+          "Keonjhar",
+          "Cuttack"
         ],
         "other_districts_or_blocks": [
-          "Dinajpur",
-          "Malda",
-          "western districts of Assam",
-          "western districts of Meghalaya"
+          "western districts of Assam & Meghalaya"
         ],
         "page": 2
       },
@@ -190,12 +180,8 @@
         "actual_landfall_lat": 22.05,
         "actual_landfall_lon": 88.35,
         "actual_landfall_time": "2020-05-20T12:00:00Z",
-        "forecast_landfall_lat": 21.65,
-        "forecast_landfall_lon": 88.3,
-        "forecast_landfall_time": "2020-05-20T11:00:00Z",
-        "distance_error_km": 44.8,
-        "time_difference_hours": -1.0,
-        "notes": "Forecast text specifies corridor 'between Digha (West Bengal) and Hatiya Islands (Bangladesh) close to Sundarbans'. Centroid of coastal crossing corridor evaluated at Sundarbans (21.65°N, 88.3°E). Great-circle distance error: 44.8 km to IBTrACS 12:00Z fix (22.05°N, 88.35°E); 0.0 km to coastal crossing fix (21.65°N, 88.3°E). Forecast time window 'afternoon/evening 20 May' evaluated at 11:00 UTC (16:30 IST); difference: -1.0 h vs 12:00 UTC synoptic fix."
+        "corridor_contains_actual_crossing": true,
+        "notes": "Forecast corridor 'between Digha (West Bengal) and Hatiya Islands (Bangladesh) close to Sundarbans' covers the coastal stretch from Digha (~87.5°E) to Hatiya (~91.1°E), which encompasses the actual Sundarbans crossing location (~88.3°E). Forecast timing window: 'Afternoon / Evening of 20th May 2020'."
       },
       "extraction_notes": null
     },
@@ -217,39 +203,36 @@
       "current_storm_position": {
         "latitude_deg_north": 17.0,
         "longitude_deg_east": 86.9,
-        "location_description": "about 360 km nearly south of Paradip (Odisha), 510 km south-southwest of Digha (West Bengal) and 650 km south-southwest of Khepupara (Bangladesh)",
+        "location_description": "over Westcentral Bay of Bengal about 360 km nearly south of Paradip (Odisha), 510 km south-southwest of Digha (West Bengal) and 650 km south-southwest of Khepupara (Bangladesh)",
         "page": 1
       },
       "current_intensity": {
         "classification": "Extremely Severe Cyclonic Storm",
-        "max_sustained_surface_wind_kmph": "200-210 gusting to 230 kmph",
+        "max_sustained_surface_wind_kmph": "200-210 gusting to 230",
         "max_sustained_surface_wind_kts": null,
         "estimated_central_pressure_hpa": null,
         "page": 1
       },
       "forecast_landfall": {
         "landfall_area": "West Bengal - Bangladesh coasts between Digha (West Bengal) and Hatiya Islands (Bangladesh) close to Sundarbans",
-        "landfall_lat": 20.9,
-        "landfall_lon": 88.2,
         "forecast_landfall_time_str": "Afternoon to Evening hours of 20th May 2020",
         "page": 1
       },
       "forecast_max_wind_at_landfall": {
-        "wind_description": "maximum sustained wind speed of 155-165 kmph gusting to 185 kmph",
+        "wind_description": "155-165 kmph gusting to 185 kmph",
         "max_wind_kmph": 165.0,
         "gust_kmph": 185.0,
         "page": 1
       },
       "storm_surge_forecast": {
-        "surge_height_description": "Storm Surge of about 4-5 meters above Astronomical Tide is likely to inundate low lying areas of south & north 24 Parganas and about 3-4 meters over the low lying areas of East Medinipur District of West Bengal during the time of Landfall",
+        "surge_height_description": "Storm Surge of about 4-5 meters above Astronomical Tide is likely to inundate low lying areas of south & north 24 Parganas and about 3-4 meters over the low lying areas of East Medinipur District of West Bengal during the time of Landfall.",
         "min_surge_height_m": 3.0,
         "max_surge_height_m": 5.0,
         "inundated_districts": [
           "South 24 Parganas",
           "North 24 Parganas",
-          "East Medinipur"
+          "East Medinipur District"
         ],
-        "specific_blocks_mentioned": [],
         "page": 3
       },
       "warned_areas": {
@@ -260,6 +243,8 @@
           "Howrah",
           "Hoogli",
           "Kolkata",
+          "Malda",
+          "Dinajpur",
           "West Medinipur"
         ],
         "odisha_districts": [
@@ -271,15 +256,14 @@
           "Cuttack",
           "Mayurbhanj",
           "Khordha",
-          "Puri"
+          "Puri",
+          "Keonjhargarh"
         ],
         "other_districts_or_blocks": [
-          "Malda",
-          "Dinajpur districts",
           "Sub-Himalayan West Bengal",
           "Sikkim",
-          "western districts of Assam",
-          "western districts of Meghalaya"
+          "Western districts of Assam",
+          "Meghalaya"
         ],
         "page": 2
       },
@@ -287,14 +271,10 @@
         "actual_landfall_lat": 22.05,
         "actual_landfall_lon": 88.35,
         "actual_landfall_time": "2020-05-20T12:00:00Z",
-        "forecast_landfall_lat": 20.9,
-        "forecast_landfall_lon": 88.2,
-        "forecast_landfall_time": "2020-05-20T11:00:00Z",
-        "distance_error_km": 128.8,
-        "time_difference_hours": -1.0,
-        "notes": "Coordinates (20.9°N, 88.2°E) extracted from bulletin forecast track table. Great-circle distance error: 128.8 km to IBTrACS 12:00Z fix (22.05°N, 88.35°E); 84.0 km to coastal crossing fix (21.65°N, 88.3°E). Forecast time window 'afternoon/evening 20 May' evaluated at 11:00 UTC (16:30 IST); difference: -1.0 h vs 12:00 UTC synoptic fix."
+        "corridor_contains_actual_crossing": true,
+        "notes": "Forecast corridor 'West Bengal - Bangladesh coasts between Digha (West Bengal) and Hatiya Islands (Bangladesh) close to Sundarbans' covers the coastal stretch from Digha (~87.5°E) to Hatiya (~91.1°E), which encompasses the actual Sundarbans crossing location (~88.3°E). Forecast timing window: 'Afternoon to Evening hours of 20th May 2020'."
       },
-      "extraction_notes": null
+      "extraction_notes": "The bulletin provides current intensity winds in kmph from a table on page 1 which aligns with the general text's storm classification for the same time. Landfall wind description has a range; the maximum value of the sustained wind and gust are taken. Storm surge height description covers two distinct height ranges for different districts; the overall minimum and maximum of these ranges are used."
     },
     {
       "id": "imd-bulletin-33",
@@ -326,13 +306,11 @@
       },
       "forecast_landfall": {
         "landfall_area": "between Digha (West Bengal) and Hatiya Islands (Bangladesh) close to Sundarbans",
-        "landfall_lat": 22.0,
-        "landfall_lon": 88.4,
-        "forecast_landfall_time_str": "Afternoon to Evening hours of today, the 20th May 2020",
+        "forecast_landfall_time_str": "during Afternoon to Evening hours of today, the 20th May 2020",
         "page": 1
       },
       "forecast_max_wind_at_landfall": {
-        "wind_description": "maximum sustained wind speed of 155-165 kmph gusting to 185 kmph",
+        "wind_description": "155-165 kmph gusting to 185 kmph",
         "max_wind_kmph": 165.0,
         "gust_kmph": 185.0,
         "page": 1
@@ -344,31 +322,9 @@
         "inundated_districts": [
           "South 24 Parganas",
           "North 24 Parganas",
-          "Howrah",
-          "Medinipur",
-          "Purba Medinipur",
-          "East Medinipur",
-          "Bhadrak",
-          "Kendrapara",
-          "Balasore"
+          "East Medinipur"
         ],
-        "specific_blocks_mentioned": [
-          "Bhangar-I",
-          "Basirhat",
-          "Diamond Harbour",
-          "Bagnan-II",
-          "Mahisadal",
-          "Nandigram-I",
-          "off Haldia",
-          "Sutahata-I",
-          "Sutahata-II",
-          "Digha",
-          "Tamluk",
-          "Mohanpur",
-          "Baligarh",
-          "Sahapur"
-        ],
-        "page": 7
+        "page": 3
       },
       "warned_areas": {
         "west_bengal_districts": [
@@ -378,9 +334,7 @@
           "North 24 Parganas",
           "Howrah",
           "Hoogli",
-          "Kolkata",
-          "Malda",
-          "Dinajpur"
+          "Kolkata"
         ],
         "odisha_districts": [
           "Balasore",
@@ -395,8 +349,10 @@
           "Cuttack"
         ],
         "other_districts_or_blocks": [
-          "western districts of Assam",
-          "western districts of Meghalaya"
+          "Malda",
+          "Dinajpur",
+          "Assam",
+          "Meghalaya"
         ],
         "page": 2
       },
@@ -404,12 +360,8 @@
         "actual_landfall_lat": 22.05,
         "actual_landfall_lon": 88.35,
         "actual_landfall_time": "2020-05-20T12:00:00Z",
-        "forecast_landfall_lat": 22.0,
-        "forecast_landfall_lon": 88.4,
-        "forecast_landfall_time": "2020-05-20T11:00:00Z",
-        "distance_error_km": 7.6,
-        "time_difference_hours": -1.0,
-        "notes": "Coordinates (22.0°N, 88.4°E) extracted from bulletin forecast track table. Great-circle distance error: 7.6 km to IBTrACS 12:00Z fix (22.05°N, 88.35°E); 40.3 km to coastal crossing fix (21.65°N, 88.3°E). Forecast time window 'afternoon/evening 20 May' evaluated at 11:00 UTC (16:30 IST); difference: -1.0 h vs 12:00 UTC synoptic fix."
+        "corridor_contains_actual_crossing": true,
+        "notes": "Forecast corridor 'between Digha (West Bengal) and Hatiya Islands (Bangladesh) close to Sundarbans' covers the coastal stretch from Digha (~87.5°E) to Hatiya (~91.1°E), which encompasses the actual Sundarbans crossing location (~88.3°E). Forecast timing window: 'during Afternoon to Evening hours of today, the 20th May 2020'."
       },
       "extraction_notes": null
     },
@@ -443,8 +395,6 @@
       },
       "forecast_landfall": {
         "landfall_area": "West Bengal - Bangladesh coasts between Digha (West Bengal) and Hatiya Islands (Bangladesh) close Sundarbans",
-        "landfall_lat": null,
-        "landfall_lon": null,
         "forecast_landfall_time_str": "During next 2-3 hours",
         "page": 1
       },
@@ -459,19 +409,18 @@
         "min_surge_height_m": 3.0,
         "max_surge_height_m": 5.0,
         "inundated_districts": [
-          "South 24 Parganas",
-          "North 24 Parganas",
+          "south 24 Parganas",
+          "north 24 Parganas",
           "East Medinipur"
         ],
-        "specific_blocks_mentioned": [],
         "page": 2
       },
       "warned_areas": {
         "west_bengal_districts": [
-          "East Medinipur",
-          "West Medinipur",
-          "South 24 Parganas",
-          "North 24 Parganas",
+          "east Medinipur",
+          "west Medinipur",
+          "south 24 Parganas",
+          "north 24 Parganas",
           "Howrah",
           "Hoogli",
           "Kolkata",
@@ -487,25 +436,17 @@
           "Keonjhargarh",
           "Jagatsinghpur"
         ],
-        "other_districts_or_blocks": [
-          "Meghalaya",
-          "Assam",
-          "Sikkim"
-        ],
+        "other_districts_or_blocks": [],
         "page": 2
       },
       "landfall_comparison": {
         "actual_landfall_lat": 22.05,
         "actual_landfall_lon": 88.35,
         "actual_landfall_time": "2020-05-20T12:00:00Z",
-        "forecast_landfall_lat": 21.65,
-        "forecast_landfall_lon": 88.3,
-        "forecast_landfall_time": "2020-05-20T12:00:00Z",
-        "distance_error_km": 44.8,
-        "time_difference_hours": 0.0,
-        "notes": "Forecast text specifies corridor 'West Bengal - Bangladesh coasts between Digha (West Bengal) and Hatiya Islands (Bangladesh) close Sundarbans'. Centroid of coastal crossing corridor evaluated at Sundarbans (21.65°N, 88.3°E). Great-circle distance error: 44.8 km to IBTrACS 12:00Z fix (22.05°N, 88.35°E); 0.0 km to coastal crossing fix (21.65°N, 88.3°E). Forecast 'during next 2-3 hours' at T-3 aligns with actual crossing completion at 12:00 UTC; difference: 0.0 h."
+        "corridor_contains_actual_crossing": true,
+        "notes": "Forecast corridor 'West Bengal - Bangladesh coasts between Digha (West Bengal) and Hatiya Islands (Bangladesh) close Sundarbans' covers the coastal stretch from Digha (~87.5°E) to Hatiya (~91.1°E), which encompasses the actual Sundarbans crossing location (~88.3°E). Forecast timing window: 'During next 2-3 hours'."
       },
-      "extraction_notes": null
+      "extraction_notes": "The bulletin states that 'Landfall process has commenced and the forward sector of the wall cloud region is entering into land in West Bengal. During next 2-3 hours it is very likely cross West Bengal - Bangladesh coasts between Digha (West Bengal) and Hatiya Islands (Bangladesh) close Sundarbans'. This is taken as the forecast landfall time and area. The wind forecast for landfall area is explicitly given."
     },
     {
       "id": "imd-bulletin-37",
@@ -525,62 +466,37 @@
       "current_storm_position": {
         "latitude_deg_north": 21.9,
         "longitude_deg_east": 88.4,
-        "location_description": "over West Bengal coast near latitude 21.9°N and longitude 88.4°E, about 70 km nearly to the south of Kolkata (West Bengal), 95 km east-northeast of Digha (West Bengal), 35 km northeast of Sagar Islands and 185 km south-southwest of Khepupara (Bangladesh)",
+        "location_description": "over West Bengal coast near latitude 21.9°N and longitude 88.4°E, about 70 km nearly to the south of Kolkata (West Bengal), 95 km east-northeast of Digha (West Bengal), 35 km northeast of Sagar Islands and 185 km south-southwest of Khepupara (Bangladesh).",
         "page": 1
       },
       "current_intensity": {
-        "classification": "Very Severe Cyclonic Storm",
-        "max_sustained_surface_wind_kmph": "140-150 gusting to 165 kmph",
+        "classification": "Super Cyclonic Storm 'AMPHAN'",
+        "max_sustained_surface_wind_kmph": "140-150 gusting to 165",
         "max_sustained_surface_wind_kts": null,
         "estimated_central_pressure_hpa": null,
         "page": 1
       },
       "forecast_landfall": {
         "landfall_area": "West Bengal - Bangladesh coasts across Sundarbans",
-        "landfall_lat": 21.65,
-        "landfall_lon": 88.3,
-        "forecast_landfall_time_str": "at 1730 hrs IST of today, the 20th May, 2020",
+        "forecast_landfall_time_str": "crossed West Bengal - Bangladesh coasts during past 06 hours",
         "page": 1
       },
       "forecast_max_wind_at_landfall": {
-        "wind_description": "155-165 kmph gusting to 185 kmph",
+        "wind_description": "speed of 155-165 kmph gusting to 185 kmph across Sundarbans",
         "max_wind_kmph": 165.0,
         "gust_kmph": 185.0,
         "page": 1
       },
       "storm_surge_forecast": {
-        "surge_height_description": "Storm Surge of about 4-5 meters above Astronomical Tide is likely to inundate low lying areas of south & north 24 Parganas and about 3-4 meters over the low lying areas of East Medinipur District of West Bengal",
+        "surge_height_description": "Storm Surge of about 4-5 meters above Astronomical Tide is likely to inundate low lying areas of south & north 24 Parganas and about 3-4 meters over the low lying areas of East Medinipur District of West Bengal during the time of Landfall.",
         "min_surge_height_m": 3.0,
         "max_surge_height_m": 5.0,
         "inundated_districts": [
           "South 24 Parganas",
           "North 24 Parganas",
-          "East Medinipur",
-          "Haora",
-          "Medhinipur",
-          "Purba Medhinipur",
-          "East Midnapore",
-          "Bhadrak",
-          "Kendraparha",
-          "Baleshwar"
+          "East Medinipur"
         ],
-        "specific_blocks_mentioned": [
-          "Bhangar-I",
-          "Basirhat",
-          "Diamond Harbour",
-          "Bagnan-II",
-          "Mahisadal",
-          "Nandigram-I",
-          "off Haldia",
-          "Sutahata-I",
-          "Sutahata-II",
-          "Digha",
-          "Tamluk",
-          "Bhadrak",
-          "Kendrapara",
-          "Baleshwar"
-        ],
-        "page": 2
+        "page": 6
       },
       "warned_areas": {
         "west_bengal_districts": [
@@ -591,13 +507,11 @@
           "Howrah",
           "Hoogli",
           "Kolkata",
-          "interior districts",
-          "Malda",
-          "Dinajpur",
-          "Sub-Himalayan West Bengal",
           "Bardhman",
           "Murshidabad",
-          "Nadia"
+          "Nadia",
+          "Malda",
+          "Dinajpur"
         ],
         "odisha_districts": [
           "Balasore",
@@ -605,9 +519,9 @@
           "Jagatsinghpur"
         ],
         "other_districts_or_blocks": [
-          "Sikkim",
           "Meghalaya",
-          "western districts of Assam"
+          "Assam",
+          "Sikkim"
         ],
         "page": 2
       },
@@ -615,14 +529,10 @@
         "actual_landfall_lat": 22.05,
         "actual_landfall_lon": 88.35,
         "actual_landfall_time": "2020-05-20T12:00:00Z",
-        "forecast_landfall_lat": 21.65,
-        "forecast_landfall_lon": 88.3,
-        "forecast_landfall_time": "2020-05-20T12:00:00Z",
-        "distance_error_km": 44.8,
-        "time_difference_hours": 0.0,
-        "notes": "Coordinates (21.65°N, 88.3°E) extracted from bulletin forecast track table. Great-circle distance error: 44.8 km to IBTrACS 12:00Z fix (22.05°N, 88.35°E); 0.0 km to coastal crossing fix (21.65°N, 88.3°E). Bulletin issued at landfall (T-0) confirms landfall crossing in progress."
+        "corridor_contains_actual_crossing": true,
+        "notes": "Bulletin issued at landfall (T-0) is an observation reporting the cyclone crossing across Sundarbans at 17:30 IST; actual crossing confirmed."
       },
-      "extraction_notes": "The bulletin reports the storm 'crossed' at 1730 IST, meaning landfall is a past event by the bulletin's issue time of 1930 IST. Landfall details are extracted from this reported crossing event."
+      "extraction_notes": "The bulletin reports that the cyclone has already crossed the coast prior to issue time, but provides ongoing warnings for wind, rainfall, and storm surge."
     }
   ]
 }

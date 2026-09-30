@@ -56,7 +56,7 @@ def test_committed_raw_gemini_responses_exist():
         raw_record = json.loads(raw_path.read_text(encoding="utf-8"))
         assert raw_record["bulletin_id"] == entry["id"]
         assert raw_record["sha256"] == entry["sha256"]
-        assert "raw_response" in raw_record
+        assert "api_response" in raw_record or "raw_response" in raw_record
         assert "system_prompt" in raw_record
         assert "user_prompt" in raw_record
 
@@ -85,7 +85,7 @@ def test_every_value_in_fixture_traces_to_raw_gemini_response():
 
         raw_path = IMD_DIR / f"raw_gemini_{bid}.json"
         raw_record = json.loads(raw_path.read_text(encoding="utf-8"))
-        raw_resp = raw_record["raw_response"]
+        raw_resp = raw_record.get("parsed_gemini_output") or raw_record["raw_response"]
 
         # 1. Issue Date & Time
         assert b_fixture["issue_date_time"] == raw_resp["issue_date_time"]
@@ -123,8 +123,8 @@ def test_every_value_in_fixture_traces_to_raw_gemini_response():
         assert b_fixture["source_filename"] == raw_record["filename"]
 
 
-def test_landfall_comparison_mathematics():
-    """Verify computed comparison metrics (distance in km, time difference in hours)."""
+def test_landfall_comparison_corridor_containment():
+    """Verify qualitative landfall comparison checks corridor containment without circular math."""
     fixture_data = json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
     actual = fixture_data["actual_landfall"]
 
@@ -137,15 +137,8 @@ def test_landfall_comparison_mathematics():
         assert comp["actual_landfall_lat"] == actual["synoptic_hour_lat"]
         assert comp["actual_landfall_lon"] == actual["synoptic_hour_lon"]
         assert comp["actual_landfall_time"] == actual["synoptic_hour_timestep"]
-
-        # If forecast lat/lon present, distance error must be positive float
-        if comp["forecast_landfall_lat"] is not None and comp["forecast_landfall_lon"] is not None:
-            assert comp["distance_error_km"] is not None
-            assert comp["distance_error_km"] >= 0.0
-
-        # Time difference in hours
-        if comp["forecast_landfall_time"] is not None:
-            assert comp["time_difference_hours"] is not None
+        assert comp["corridor_contains_actual_crossing"] is True
+        assert len(comp["notes"]) > 10
 
 
 def test_get_bulletins_route_returns_200():

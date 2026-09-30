@@ -531,8 +531,6 @@ export interface BulletinCurrentIntensity {
 
 export interface BulletinForecastLandfall {
   landfall_area?: string | null;
-  landfall_lat?: number | null;
-  landfall_lon?: number | null;
   forecast_landfall_time_str?: string | null;
   page?: number | null;
 }
@@ -549,7 +547,6 @@ export interface BulletinStormSurgeForecast {
   min_surge_height_m?: number | null;
   max_surge_height_m?: number | null;
   inundated_districts: string[];
-  specific_blocks_mentioned: string[];
   page?: number | null;
 }
 
@@ -564,12 +561,8 @@ export interface BulletinLandfallComparison {
   actual_landfall_lat: number;
   actual_landfall_lon: number;
   actual_landfall_time: string;
-  forecast_landfall_lat?: number | null;
-  forecast_landfall_lon?: number | null;
-  forecast_landfall_time?: string | null;
-  distance_error_km?: number | null;
-  time_difference_hours?: number | null;
-  notes?: string | null;
+  corridor_contains_actual_crossing: boolean;
+  notes: string;
 }
 
 export interface ImdBulletin {

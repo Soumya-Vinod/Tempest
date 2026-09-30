@@ -58,12 +58,6 @@ class BulletinCurrentIntensity(ContractModel):
 
 class BulletinForecastLandfall(ContractModel):
     landfall_area: str | None = Field(default=None, description="Forecast coastal landfall area")
-    landfall_lat: float | None = Field(
-        default=None, description="Forecast latitude at landfall if given in forecast track table"
-    )
-    landfall_lon: float | None = Field(
-        default=None, description="Forecast longitude at landfall if given in forecast track table"
-    )
     forecast_landfall_time_str: str | None = Field(
         default=None, description="Forecast landfall time description"
     )
@@ -94,9 +88,6 @@ class BulletinStormSurgeForecast(ContractModel):
     inundated_districts: list[str] = Field(
         default_factory=list, description="Districts warned of storm surge inundation"
     )
-    specific_blocks_mentioned: list[str] = Field(
-        default_factory=list, description="Specific administrative blocks/mandals warned"
-    )
     page: int | None = Field(
         default=None, description="Page number where storm surge warning was found"
     )
@@ -116,33 +107,20 @@ class BulletinWarnedAreas(ContractModel):
 
 
 class BulletinLandfallComparison(ContractModel):
-    """Comparison of bulletin forecast landfall against actual IBTrACS landfall."""
+    """Comparison of bulletin forecast landfall corridor against actual IBTrACS crossing."""
 
-    actual_landfall_lat: float = Field(description="Actual IBTrACS landfall latitude (deg N)")
-    actual_landfall_lon: float = Field(description="Actual IBTrACS landfall longitude (deg E)")
+    actual_landfall_lat: float = Field(
+        description="Actual IBTrACS synoptic landfall latitude (deg N)"
+    )
+    actual_landfall_lon: float = Field(
+        description="Actual IBTrACS synoptic landfall longitude (deg E)"
+    )
     actual_landfall_time: str = Field(description="Actual landfall time in ISO 8601 UTC")
-    forecast_landfall_lat: float | None = Field(
-        default=None, description="Forecast landfall latitude (deg N) or centroid"
+    corridor_contains_actual_crossing: bool = Field(
+        description="Whether the forecast landfall corridor contains the actual crossing location"
     )
-    forecast_landfall_lon: float | None = Field(
-        default=None, description="Forecast landfall longitude (deg E) or centroid"
-    )
-    forecast_landfall_time: str | None = Field(
-        default=None, description="Forecast landfall time in ISO 8601 UTC"
-    )
-    distance_error_km: float | None = Field(
-        default=None, description="Great-circle distance error in km against actual landfall"
-    )
-    time_difference_hours: float | None = Field(
-        default=None,
-        description=(
-            "Time error in hours (forecast - actual; positive = forecast late, "
-            "negative = forecast early)"
-        ),
-    )
-    notes: str | None = Field(
-
-        default=None, description="Explanation of coordinates and comparison basis"
+    notes: str = Field(
+        description="Qualitative assessment of forecast landfall area and timing vs actual crossing"
     )
 
 

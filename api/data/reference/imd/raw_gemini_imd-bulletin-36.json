@@ -8,11 +8,143 @@
   "filename": "national_bulletin_36_20200520_0900utc.pdf",
   "sha256": "0a1011ae7aae51b1cc66e33ff814e826f390af1fbc20684c511cee76ab2623d2",
   "model": "gemini-2.5-flash",
-  "extracted_at": "2026-09-30T09:11:32.164691+00:00",
-  "system_prompt": "You are an expert meteorological archivist and data analyst. Your task is to accurately extract structured information from the provided official India Meteorological Department (IMD) cyclone bulletin.\nSTRICT INTEGRITY RULES:\n1. Do not invent, estimate, hallucinate, or extrapolate any value. Extract only what is explicitly printed in the bulletin.\n2. If any metric, district, block, or coordinate is not mentioned or available, leave it null (or an empty list).\n3. For every field or section, record the exact 1-indexed PDF page number where that information appears in the document.\n4. For landfall forecasts: record the exact descriptive landfall area (e.g. 'between Digha and Hatiya Islands close to Sundarbans'), and the expected landfall time window as stated.\n5. In the storm surge forecast: extract the predicted surge height and all specifically named districts and blocks / taluks/ mandals.\n6. In warned areas: extract districts mentioned under wind / rainfall warnings for West Bengal and Odisha.\n",
+  "extracted_at": "2026-09-30T13:47:26.607682+00:00",
+  "system_prompt": "You are an expert meteorological archivist and data analyst. Your task is to accurately extract structured information from the provided official India Meteorological Department (IMD) cyclone bulletin.\nSTRICT INTEGRITY RULES:\n1. Do not invent, estimate, hallucinate, or extrapolate any value. Extract only what is explicitly printed in the bulletin.\n2. If any metric, district, block, or coordinate is not mentioned or available, leave it null (or an empty list).\n3. For every field or section, record the exact 1-indexed PDF page number where that information appears in the document.\n4. For landfall forecasts: record the exact descriptive landfall area (e.g. 'between Digha and Hatiya Islands close to Sundarbans'), and the expected landfall time window as stated.\n5. In the storm surge forecast: extract the predicted surge height and specifically named districts warned of storm surge inundation.\n6. In warned areas: extract districts mentioned under wind / rainfall warnings for West Bengal and Odisha.\n",
   "user_prompt": "Carefully analyze this official IMD cyclone bulletin and extract all requested parameters according to the schema. Ensure page numbers are accurately populated for each section.",
-  "raw_response": {
-    "bulletin_number": "36",
+  "api_response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Wed, 30 Sep 2026 13:47:32 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=12338",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "{\n  \"bulletin_number\": \"36 (BAY OF BENGAL 01/2020)\",\n  \"issue_date_time\": {\n    \"date_str\": \"20.05.2020\",\n    \"time_ist\": \"1640 HOURS IST\",\n    \"time_utc\": null,\n    \"page\": 1\n  },\n  \"current_storm_position\": {\n    \"latitude_deg_north\": 21.4,\n    \"longitude_deg_east\": 88.1,\n    \"location_description\": \"about 190 km east-northeast of Paradip (Odisha), 65 km east-southeast of Digha (West Bengal), 35 km nearly south of Sagar Islands and 225 km south-southwest of Khepupara (Bangladesh)\",\n    \"page\": 1\n  },\n  \"current_intensity\": {\n    \"classification\": \"Extremely Severe Cyclonic Storm\",\n    \"max_sustained_surface_wind_kmph\": \"160-170 gusting to 190\",\n    \"max_sustained_surface_wind_kts\": null,\n    \"estimated_central_pressure_hpa\": null,\n    \"page\": 1\n  },\n  \"forecast_landfall\": {\n    \"landfall_area\": \"West Bengal - Bangladesh coasts between Digha (West Bengal) and Hatiya Islands (Bangladesh) close Sundarbans\",\n    \"forecast_landfall_time_str\": \"During next 2-3 hours\",\n    \"page\": 1\n  },\n  \"forecast_max_wind_at_landfall\": {\n    \"wind_description\": \"maximum sustained wind speed of 155-165 kmph gusting to 185 kmph\",\n    \"max_wind_kmph\": 165,\n    \"gust_kmph\": 185,\n    \"page\": 1\n  },\n  \"storm_surge_forecast\": {\n    \"surge_height_description\": \"Storm Surge of about 4-5 meters above Astronomical Tide is likely to inundate low lying areas of south & north 24 Parganas and about 3-4 meters over the low lying areas of East Medinipur District of West Bengal during the time of Landfall.\",\n    \"min_surge_height_m\": 3,\n    \"max_surge_height_m\": 5,\n    \"inundated_districts\": [\n      \"south 24 Parganas\",\n      \"north 24 Parganas\",\n      \"East Medinipur\"\n    ],\n    \"page\": 2\n  },\n  \"warned_areas\": {\n    \"west_bengal_districts\": [\n      \"east Medinipur\",\n      \"west Medinipur\",\n      \"south 24 Parganas\",\n      \"north 24 Parganas\",\n      \"Howrah\",\n      \"Hoogli\",\n      \"Kolkata\",\n      \"Malda\",\n      \"Dinajpur\"\n    ],\n    \"odisha_districts\": [\n      \"Balasore\",\n      \"Bhadrak\",\n      \"Mayurbhanj\",\n      \"Jajpur\",\n      \"Kendrapara\",\n      \"Keonjhargarh\",\n      \"Jagatsinghpur\"\n    ],\n    \"other_districts_or_blocks\": [],\n    \"page\": 2\n  },\n  \"extraction_notes\": \"The bulletin states that 'Landfall process has commenced and the forward sector of the wall cloud region is entering into land in West Bengal. During next 2-3 hours it is very likely cross West Bengal - Bangladesh coasts between Digha (West Bengal) and Hatiya Islands (Bangladesh) close Sundarbans'. This is taken as the forecast landfall time and area. The wind forecast for landfall area is explicitly given.\"\n}"
+            }
+          ],
+          "role": "model"
+        },
+        "citation_metadata": {
+          "citations": [
+            {
+              "end_index": 1489,
+              "license": "",
+              "start_index": 1255,
+              "uri": "https://pib.gov.in/Pressreleaseshare.aspx?PRID=1625271"
+            },
+            {
+              "end_index": 2472,
+              "license": "",
+              "start_index": 2201,
+              "uri": "https://rsmcnewdelhi.imd.gov.in/uploads/report/34/34_609421_namphan.pdf"
+            }
+          ]
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "6RK9aqHcC8_Cg8UPg5H1-Ao",
+    "usage_metadata": {
+      "candidates_token_count": 898,
+      "prompt_token_count": 2306,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 242
+        },
+        {
+          "modality": "DOCUMENT",
+          "token_count": 2064
+        }
+      ],
+      "thoughts_token_count": 344,
+      "total_token_count": 3548
+    },
+    "parsed": {
+      "bulletin_number": "36 (BAY OF BENGAL 01/2020)",
+      "issue_date_time": {
+        "date_str": "20.05.2020",
+        "time_ist": "1640 HOURS IST",
+        "page": 1
+      },
+      "current_storm_position": {
+        "latitude_deg_north": 21.4,
+        "longitude_deg_east": 88.1,
+        "location_description": "about 190 km east-northeast of Paradip (Odisha), 65 km east-southeast of Digha (West Bengal), 35 km nearly south of Sagar Islands and 225 km south-southwest of Khepupara (Bangladesh)",
+        "page": 1
+      },
+      "current_intensity": {
+        "classification": "Extremely Severe Cyclonic Storm",
+        "max_sustained_surface_wind_kmph": "160-170 gusting to 190",
+        "page": 1
+      },
+      "forecast_landfall": {
+        "landfall_area": "West Bengal - Bangladesh coasts between Digha (West Bengal) and Hatiya Islands (Bangladesh) close Sundarbans",
+        "forecast_landfall_time_str": "During next 2-3 hours",
+        "page": 1
+      },
+      "forecast_max_wind_at_landfall": {
+        "wind_description": "maximum sustained wind speed of 155-165 kmph gusting to 185 kmph",
+        "max_wind_kmph": 165.0,
+        "gust_kmph": 185.0,
+        "page": 1
+      },
+      "storm_surge_forecast": {
+        "surge_height_description": "Storm Surge of about 4-5 meters above Astronomical Tide is likely to inundate low lying areas of south & north 24 Parganas and about 3-4 meters over the low lying areas of East Medinipur District of West Bengal during the time of Landfall.",
+        "min_surge_height_m": 3.0,
+        "max_surge_height_m": 5.0,
+        "inundated_districts": [
+          "south 24 Parganas",
+          "north 24 Parganas",
+          "East Medinipur"
+        ],
+        "page": 2
+      },
+      "warned_areas": {
+        "west_bengal_districts": [
+          "east Medinipur",
+          "west Medinipur",
+          "south 24 Parganas",
+          "north 24 Parganas",
+          "Howrah",
+          "Hoogli",
+          "Kolkata",
+          "Malda",
+          "Dinajpur"
+        ],
+        "odisha_districts": [
+          "Balasore",
+          "Bhadrak",
+          "Mayurbhanj",
+          "Jajpur",
+          "Kendrapara",
+          "Keonjhargarh",
+          "Jagatsinghpur"
+        ],
+        "other_districts_or_blocks": [],
+        "page": 2
+      },
+      "extraction_notes": "The bulletin states that 'Landfall process has commenced and the forward sector of the wall cloud region is entering into land in West Bengal. During next 2-3 hours it is very likely cross West Bengal - Bangladesh coasts between Digha (West Bengal) and Hatiya Islands (Bangladesh) close Sundarbans'. This is taken as the forecast landfall time and area. The wind forecast for landfall area is explicitly given."
+    }
+  },
+  "parsed_gemini_output": {
+    "bulletin_number": "36 (BAY OF BENGAL 01/2020)",
     "issue_date_time": {
       "date_str": "20.05.2020",
       "time_ist": "1640 HOURS IST",
@@ -34,8 +166,6 @@
     },
     "forecast_landfall": {
       "landfall_area": "West Bengal - Bangladesh coasts between Digha (West Bengal) and Hatiya Islands (Bangladesh) close Sundarbans",
-      "landfall_lat": null,
-      "landfall_lon": null,
       "forecast_landfall_time_str": "During next 2-3 hours",
       "page": 1
     },
@@ -50,19 +180,18 @@
       "min_surge_height_m": 3.0,
       "max_surge_height_m": 5.0,
       "inundated_districts": [
-        "South 24 Parganas",
-        "North 24 Parganas",
+        "south 24 Parganas",
+        "north 24 Parganas",
         "East Medinipur"
       ],
-      "specific_blocks_mentioned": [],
       "page": 2
     },
     "warned_areas": {
       "west_bengal_districts": [
-        "East Medinipur",
-        "West Medinipur",
-        "South 24 Parganas",
-        "North 24 Parganas",
+        "east Medinipur",
+        "west Medinipur",
+        "south 24 Parganas",
+        "north 24 Parganas",
         "Howrah",
         "Hoogli",
         "Kolkata",
@@ -78,13 +207,78 @@
         "Keonjhargarh",
         "Jagatsinghpur"
       ],
-      "other_districts_or_blocks": [
-        "Meghalaya",
-        "Assam",
-        "Sikkim"
+      "other_districts_or_blocks": [],
+      "page": 2
+    },
+    "extraction_notes": "The bulletin states that 'Landfall process has commenced and the forward sector of the wall cloud region is entering into land in West Bengal. During next 2-3 hours it is very likely cross West Bengal - Bangladesh coasts between Digha (West Bengal) and Hatiya Islands (Bangladesh) close Sundarbans'. This is taken as the forecast landfall time and area. The wind forecast for landfall area is explicitly given."
+  },
+  "raw_response": {
+    "bulletin_number": "36 (BAY OF BENGAL 01/2020)",
+    "issue_date_time": {
+      "date_str": "20.05.2020",
+      "time_ist": "1640 HOURS IST",
+      "time_utc": null,
+      "page": 1
+    },
+    "current_storm_position": {
+      "latitude_deg_north": 21.4,
+      "longitude_deg_east": 88.1,
+      "location_description": "about 190 km east-northeast of Paradip (Odisha), 65 km east-southeast of Digha (West Bengal), 35 km nearly south of Sagar Islands and 225 km south-southwest of Khepupara (Bangladesh)",
+      "page": 1
+    },
+    "current_intensity": {
+      "classification": "Extremely Severe Cyclonic Storm",
+      "max_sustained_surface_wind_kmph": "160-170 gusting to 190",
+      "max_sustained_surface_wind_kts": null,
+      "estimated_central_pressure_hpa": null,
+      "page": 1
+    },
+    "forecast_landfall": {
+      "landfall_area": "West Bengal - Bangladesh coasts between Digha (West Bengal) and Hatiya Islands (Bangladesh) close Sundarbans",
+      "forecast_landfall_time_str": "During next 2-3 hours",
+      "page": 1
+    },
+    "forecast_max_wind_at_landfall": {
+      "wind_description": "maximum sustained wind speed of 155-165 kmph gusting to 185 kmph",
+      "max_wind_kmph": 165.0,
+      "gust_kmph": 185.0,
+      "page": 1
+    },
+    "storm_surge_forecast": {
+      "surge_height_description": "Storm Surge of about 4-5 meters above Astronomical Tide is likely to inundate low lying areas of south & north 24 Parganas and about 3-4 meters over the low lying areas of East Medinipur District of West Bengal during the time of Landfall.",
+      "min_surge_height_m": 3.0,
+      "max_surge_height_m": 5.0,
+      "inundated_districts": [
+        "south 24 Parganas",
+        "north 24 Parganas",
+        "East Medinipur"
       ],
       "page": 2
     },
-    "extraction_notes": null
+    "warned_areas": {
+      "west_bengal_districts": [
+        "east Medinipur",
+        "west Medinipur",
+        "south 24 Parganas",
+        "north 24 Parganas",
+        "Howrah",
+        "Hoogli",
+        "Kolkata",
+        "Malda",
+        "Dinajpur"
+      ],
+      "odisha_districts": [
+        "Balasore",
+        "Bhadrak",
+        "Mayurbhanj",
+        "Jajpur",
+        "Kendrapara",
+        "Keonjhargarh",
+        "Jagatsinghpur"
+      ],
+      "other_districts_or_blocks": [],
+      "page": 2
+    },
+    "extraction_notes": "The bulletin states that 'Landfall process has commenced and the forward sector of the wall cloud region is entering into land in West Bengal. During next 2-3 hours it is very likely cross West Bengal - Bangladesh coasts between Digha (West Bengal) and Hatiya Islands (Bangladesh) close Sundarbans'. This is taken as the forecast landfall time and area. The wind forecast for landfall area is explicitly given."
   }
 }

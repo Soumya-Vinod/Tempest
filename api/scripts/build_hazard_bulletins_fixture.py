@@ -15,7 +15,6 @@ from __future__ import annotations
 import argparse
 import json
 import logging
-import math
 import sys
 from pathlib import Path
 
@@ -60,121 +59,48 @@ ACTUAL_LANDFALL = ActualLandfallReference(
     landfall_time_ist="2020-05-20 16:30 IST",
 )
 
-# Reference coordinates for named geographical areas in IMD bulletins
-DIGHA_COORDS = (21.63, 87.51)
-HATIYA_COORDS = (22.37, 91.12)
-SUNDARBANS_CROSSING_COORDS = (21.65, 88.30)
-
-
-def haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-    """Calculate great-circle distance between two points in km."""
-    phi1, phi2 = math.radians(lat1), math.radians(lat2)
-    dphi = math.radians(lat2 - lat1)
-    dlambda = math.radians(lon2 - lon1)
-    a = math.sin(dphi / 2.0) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2.0) ** 2
-    return round((2.0 * EARTH_RADIUS_M * math.asin(math.sqrt(a))) / 1000.0, 1)
-
-
 def compute_comparison(raw_data: dict, hours_to_landfall: float) -> BulletinLandfallComparison:
-    """Compute mathematical comparison between forecast landfall and actual IBTrACS landfall."""
+    """Evaluate whether forecast corridor contains actual crossing and provide qualitative notes."""
     forecast = raw_data.get("forecast_landfall", {})
-    f_lat = forecast.get("landfall_lat")
-    f_lon = forecast.get("landfall_lon")
-    landfall_area = forecast.get("landfall_area") or ""
-    time_str = forecast.get("forecast_landfall_time_str") or ""
+    landfall_area = (forecast.get("landfall_area") or "").strip()
+    time_str = (forecast.get("forecast_landfall_time_str") or "").strip()
 
-    # Actual landfall reference (synoptic 12:00 UTC position)
+    # Actual landfall reference (IBTrACS synoptic 12:00 UTC fix and Sundarbans crossing)
     actual_lat = ACTUAL_LANDFALL.synoptic_hour_lat
     actual_lon = ACTUAL_LANDFALL.synoptic_hour_lon
     actual_time = ACTUAL_LANDFALL.synoptic_hour_timestep
 
-    # Determine effective forecast landfall coordinates
+    # Check whether the forecast corridor contains the actual coastal crossing (Sundarbans, ~88.3°E)
+    # IMD bulletins 13, 23, 28, 33, 36 all forecast landfall between Digha (West Bengal, 87.5°E)
+    # and Hatiya Islands (Bangladesh, 91.1°E) close to / across Sundarbans.
+    # Bulletin 37 is issued at T-0 and confirms the crossing across Sundarbans.
+    corridor_lower = landfall_area.lower()
+    contains_crossing = False
+    if "sundarban" in corridor_lower or ("digha" in corridor_lower and "hatiya" in corridor_lower):
+        contains_crossing = True
+    elif hours_to_landfall == 0.0 or "crossed" in time_str.lower():
+        contains_crossing = True
+
     notes_parts: list[str] = []
-    effective_lat: float | None = None
-    effective_lon: float | None = None
-
-    if f_lat is not None and f_lon is not None:
-        effective_lat = f_lat
-        effective_lon = f_lon
+    if hours_to_landfall == 0.0 or "crossed" in time_str.lower():
         notes_parts.append(
-            f"Coordinates ({f_lat}°N, {f_lon}°E) extracted from bulletin forecast track table."
-        )
-    elif "digha" in landfall_area.lower() and (
-        "sundarban" in landfall_area.lower() or "hatiya" in landfall_area.lower()
-    ):
-        # IMD's standard Amphan corridor: Digha to Hatiya close to Sundarbans
-        # The geographical centroid / Sundarbans coastal crossing focus is 21.65°N, 88.30°E
-        effective_lat = SUNDARBANS_CROSSING_COORDS[0]
-        effective_lon = SUNDARBANS_CROSSING_COORDS[1]
-        notes_parts.append(
-            f"Forecast text specifies corridor '{landfall_area}'. Centroid of coastal "
-            f"crossing corridor evaluated at Sundarbans ({effective_lat}°N, {effective_lon}°E)."
-        )
-    elif f_lat is not None or f_lon is not None:
-        effective_lat = f_lat
-        effective_lon = f_lon
-        notes_parts.append("Partial coordinates provided in bulletin.")
-
-    # Compute distance error in km
-    dist_km: float | None = None
-    if effective_lat is not None and effective_lon is not None:
-        dist_km = haversine_km(actual_lat, actual_lon, effective_lat, effective_lon)
-        dist_crossing_km = haversine_km(
-            ACTUAL_LANDFALL.crossing_lat,
-            ACTUAL_LANDFALL.crossing_lon,
-            effective_lat,
-            effective_lon,
-        )
-        notes_parts.append(
-            f"Great-circle distance error: {dist_km} km to IBTrACS 12:00Z fix "
-            f"({actual_lat}°N, {actual_lon}°E); {dist_crossing_km} km to coastal crossing fix "
-            f"({ACTUAL_LANDFALL.crossing_lat}°N, {ACTUAL_LANDFALL.crossing_lon}°E)."
-        )
-
-    # Determine forecast landfall time and difference
-    # Landfall took place 20 May afternoon/evening (10:00 - 12:00 UTC, synoptic hour 12:00 UTC)
-    forecast_iso_time: str | None = None
-    time_diff_hours: float | None = None
-
-    if "20th may" in time_str.lower() and (
-        "afternoon" in time_str.lower() or "evening" in time_str.lower()
-    ):
-        # Midpoint of afternoon/evening 20 May IST is ~16:30 IST = 11:00 UTC
-        forecast_iso_time = "2020-05-20T11:00:00Z"
-        # Relative to actual synoptic hour 12:00Z: 11:00Z - 12:00Z = -1.0 h
-        time_diff_hours = -1.0
-        notes_parts.append(
-            "Forecast time window 'afternoon/evening 20 May' evaluated at 11:00 UTC "
-            "(16:30 IST); difference: -1.0 h vs 12:00 UTC synoptic fix."
-        )
-    elif "next 2-3 hours" in time_str.lower():
-        # At T-3 (issued ~16:40 IST = 11:10 UTC), "next 2-3 hours" means 16:30-18:30 IST
-        # (11:00-13:00 UTC)
-        forecast_iso_time = "2020-05-20T12:00:00Z"
-        time_diff_hours = 0.0
-        notes_parts.append(
-            "Forecast 'during next 2-3 hours' at T-3 aligns with actual crossing completion "
-            "at 12:00 UTC; difference: 0.0 h."
-        )
-    elif "crossed" in time_str.lower() or hours_to_landfall == 0.0:
-        forecast_iso_time = "2020-05-20T12:00:00Z"
-
-        time_diff_hours = 0.0
-        notes_parts.append(
-            "Bulletin issued at landfall (T-0) confirms landfall crossing in progress."
+            "Bulletin issued at landfall (T-0) is an observation reporting the cyclone crossing "
+            "across Sundarbans at 17:30 IST; actual crossing confirmed."
         )
     else:
-        notes_parts.append(f"Landfall timing text: '{time_str}'.")
+        notes_parts.append(
+            f"Forecast corridor '{landfall_area}' covers the coastal stretch from Digha (~87.5°E) "
+            "to Hatiya (~91.1°E), which encompasses the actual Sundarbans crossing location "
+            "(~88.3°E)."
+        )
+        if time_str:
+            notes_parts.append(f"Forecast timing window: '{time_str}'.")
 
     return BulletinLandfallComparison(
         actual_landfall_lat=actual_lat,
         actual_landfall_lon=actual_lon,
         actual_landfall_time=actual_time,
-        forecast_landfall_lat=effective_lat,
-        forecast_landfall_lon=effective_lon,
-        forecast_landfall_time=forecast_iso_time,
-        distance_error_km=dist_km,
-        time_difference_hours=time_diff_hours,
+        corridor_contains_actual_crossing=contains_crossing,
         notes=" ".join(notes_parts),
     )
 
@@ -195,7 +121,7 @@ def build_fixture() -> ImdBulletinCollection:
             raise FileNotFoundError(f"Raw Gemini extraction missing for {bid}: {raw_file}")
 
         raw_record = json.loads(raw_file.read_text(encoding="utf-8"))
-        raw = raw_record["raw_response"]
+        raw = raw_record.get("parsed_gemini_output") or raw_record["raw_response"]
 
         # Ensure PDF existence and hash match
         pdf_path = IMD_DIR / item["filename"]

@@ -5,7 +5,7 @@ STRICT INTEGRITY RULES:
 2. If any metric, district, block, or coordinate is not mentioned or available, leave it null (or an empty list).
 3. For every field or section, record the exact 1-indexed PDF page number where that information appears in the document.
 4. For landfall forecasts: record the exact descriptive landfall area (e.g. 'between Digha and Hatiya Islands close to Sundarbans'), and the expected landfall time window as stated.
-5. In the storm surge forecast: extract the predicted surge height and all specifically named districts and blocks / taluks/ mandals.
+5. In the storm surge forecast: extract the predicted surge height and specifically named districts warned of storm surge inundation.
 6. In warned areas: extract districts mentioned under wind / rainfall warnings for West Bengal and Odisha.
 
 

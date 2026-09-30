@@ -423,7 +423,8 @@ hour"); `certainty` Observed at landfall, else Likely.
 *v1.4 change, pending Dev B*:
 Offline, cached multimodal analysis of real, downloaded India Meteorological Department (IMD)
 RSMC New Delhi cyclone bulletins for Cyclone Amphan spanning T-72 to T-0 (landfall).
-Every value traces strictly to a committed raw Gemini 2.5 Flash response and source reference document.
+Extracted using Gemini 2.5 Flash (noted honestly due to Gemini 3.7 Flash high demand spikes).
+Every value traces strictly to a committed raw Gemini response and source reference document.
 Never typed in, estimated or invented.
 
 ```ts
@@ -438,7 +439,7 @@ interface ImdBulletin {
   bulletin_number: string;                // e.g. "National Bulletin No. 36"
   nominal_timestep: Timestep;             // replay timestep (contracts.md §2)
   target_stage: string;                   // "T-72", "T-42", "T-27", "T-12", "T-3", "T-0"
-  hours_to_landfall: number;              // -42.0, -27.0, -12.0, -3.0, 0.0, etc.
+  hours_to_landfall: number;              // -72.0, -42.0, -27.0, -12.0, -3.0, 0.0
   source_url: string;                     // official RSMC New Delhi archive URL
   source_filename: string;                // committed PDF filename under api/data/reference/imd/
   sha256: string;                         // SHA-256 hash of the committed source document
@@ -449,11 +450,12 @@ interface ImdBulletin {
   forecast_max_wind_at_landfall: BulletinForecastMaxWindAtLandfall;
   storm_surge_forecast: BulletinStormSurgeForecast;
   warned_areas: BulletinWarnedAreas;
-  landfall_comparison: BulletinLandfallComparison; // forecast vs actual IBTrACS landfall
+  landfall_comparison: BulletinLandfallComparison; // corridor containment vs actual crossing
   extraction_notes?: string | null;
 }
 ```
 Every extracted field is nullable and contains the 1-indexed `page` number where it was found in the official PDF.
+Landfall comparison checks whether the forecast corridor contains the actual crossing location (`corridor_contains_actual_crossing: boolean`), avoiding circular numeric coordinate comparisons.
 Served from static fixture `hazard__imd-bulletins.json` in DEMO_MODE. Never calls Gemini at runtime.
 
 ## 5. Routes

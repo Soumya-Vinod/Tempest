@@ -50,8 +50,8 @@ SYSTEM_PROMPT = (
     "information appears in the document.\n"
     "4. For landfall forecasts: record the exact descriptive landfall area (e.g. 'between Digha "
     "and Hatiya Islands close to Sundarbans'), and the expected landfall time window as stated.\n"
-    "5. In the storm surge forecast: extract the predicted surge height and all specifically named "
-    "districts and blocks / taluks/ mandals.\n"
+    "5. In the storm surge forecast: extract the predicted surge height and specifically named "
+    "districts warned of storm surge inundation.\n"
     "6. In warned areas: extract districts mentioned under wind / rainfall warnings for West "
     "Bengal and Odisha.\n"
 )
@@ -105,12 +105,6 @@ class ForecastLandfallExtraction(BaseModel):
     landfall_area: str | None = Field(
         default=None, description="Forecast coastal landfall area description"
     )
-    landfall_lat: float | None = Field(
-        default=None, description="Forecast latitude at landfall if given in forecast track table"
-    )
-    landfall_lon: float | None = Field(
-        default=None, description="Forecast longitude at landfall if given in forecast track table"
-    )
     forecast_landfall_time_str: str | None = Field(
         default=None, description="Forecast landfall timing description as printed"
     )
@@ -138,9 +132,6 @@ class StormSurgeExtraction(BaseModel):
     )
     inundated_districts: list[str] = Field(
         default_factory=list, description="Districts warned of storm surge inundation"
-    )
-    specific_blocks_mentioned: list[str] = Field(
-        default_factory=list, description="Specific administrative blocks/mandals warned"
     )
     page: int | None = Field(default=None, description="1-indexed page number")
 
@@ -234,6 +225,8 @@ def extract_bulletin(
                 "extracted_at": datetime.datetime.now(datetime.UTC).isoformat(),
                 "system_prompt": SYSTEM_PROMPT,
                 "user_prompt": USER_PROMPT,
+                "api_response": response.to_json_dict(),
+                "parsed_gemini_output": validated.model_dump(mode="json"),
                 "raw_response": validated.model_dump(mode="json"),
             }
             return record
@@ -241,7 +234,7 @@ def extract_bulletin(
             logger.warning("Attempt %d failed for %s: %s", attempt, bulletin_meta["id"], exc)
             if attempt == max_retries:
                 raise
-            time.sleep(10.0 * attempt)
+            time.sleep(35.0 * attempt)
 
 
 def main() -> None:
