@@ -3,7 +3,7 @@
 Keep in sync with web/src/types/contracts.ts.
 """
 
-from typing import Any, Literal, Self
+from typing import Annotated, Any, Literal, Self
 
 from pydantic import AwareDatetime, Field, model_validator
 
@@ -35,6 +35,7 @@ from app.schemas.geojson import (
     FeatureCollection,
     InfraGeometry,
     LineString,
+    MultiLineString,
 )
 
 HAZARD_UNITS: dict[str, str] = {"wind": "m/s", "surge": "m", "flood": "index"}
@@ -247,6 +248,40 @@ class Departure(ContractModel):
 class Departures(ContractModel):
     resolution_h: int = 3
     departures: list[Departure]  # by deadline, then name; no deadline last
+
+
+class CriticalLinkFacility(ContractModel):
+    """v1.4 change, pending Dev A: a facility whose departure route uses a critical link."""
+
+    infra_id: str
+    name: str
+    deadline: Timestep  # its last safe departure
+
+
+class CriticalLink(ContractModel):
+    """v1.4 change, pending Dev A: a road or ferry crossing on the departure routes of
+    facilities that can still leave by road. One or more OSM ways that follow each other on a
+    route, share a name (or are both unnamed) and serve exactly the same facilities."""
+
+    way_ids: list[int] = Field(min_length=1)  # OSM way ids, in the direction of travel
+    infra_ids: list[str] = Field(min_length=1)  # the exposure road features, road-way-<id>
+    label: str  # name or "Unnamed road" / "Unnamed ferry route", then the CD block(s)
+    name: str | None  # the OSM name, if any
+    link_type: Literal["road", "ferry"]
+    blocks: list[str]  # CD blocks it runs through, in the direction of travel
+    facility_count: int = Field(ge=1)
+    facilities: list[CriticalLinkFacility]  # by deadline, then name
+    earliest_deadline: Timestep
+    geometry: Annotated[LineString | MultiLineString, Field(discriminator="type")]
+
+
+class CriticalLinks(ContractModel):
+    """v1.4 change, pending Dev A: the links most departure routes depend on, at a timestep."""
+
+    timestep: Timestep
+    horizon_h: Horizon = 0  # 0: deadline not passed; 24: deadline within the next 24 h
+    note: str
+    links: list[CriticalLink]  # most facilities first, then earliest deadline, then label
 
 
 class ActionCountdown(ContractModel):

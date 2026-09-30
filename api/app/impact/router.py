@@ -1,9 +1,10 @@
 from fastapi import APIRouter, HTTPException
 
 from app.exposure.service import InfraDataMissing
-from app.impact import countdown, departures, service
+from app.impact import countdown, critical_links, departures, service
 from app.schemas import (
     ActionCountdown,
+    CriticalLinks,
     Departures,
     HazardType,
     HorizonParam,
@@ -60,6 +61,21 @@ def get_departures() -> Departures:
     try:
         return departures.get_departures()
     except departures.DeparturesMissing as e:
+        raise HTTPException(status_code=501, detail=str(e)) from e
+    except (InfraDataMissing, service.GraphMissing) as e:
+        raise HTTPException(status_code=503, detail=str(e)) from e
+
+
+@router.get("/critical-links")
+def get_critical_links(timestep: TimestepParam, horizon: HorizonParam = 0) -> CriticalLinks:
+    """Critical links (v1.4 change, pending Dev A): the roads and ferries the most last safe
+    departure routes use, for facilities whose deadline has not passed (horizon 0) or falls
+    within the next 24 h (horizon 24). Precomputed (app/impact/critical_links.py)."""
+    try:
+        return critical_links.get_critical_links(timestep, horizon)
+    except NotImplementedError as e:
+        raise HTTPException(status_code=501, detail=str(e)) from e
+    except (critical_links.CriticalLinksMissing, departures.DeparturesMissing) as e:
         raise HTTPException(status_code=501, detail=str(e)) from e
     except (InfraDataMissing, service.GraphMissing) as e:
         raise HTTPException(status_code=503, detail=str(e)) from e

@@ -29,6 +29,7 @@ SAMPLE = [
     ("/api/exposure/infra", {"infra_type": "hospital"}),
     ("/api/impact/countdown", {"timestep": T0}),
     ("/api/impact/departures", {}),
+    ("/api/impact/critical-links", {"timestep": REPLAY_TIMESTEPS[21], "horizon": "24"}),
     ("/api/insurance/triggers", {"timestep": T0}),
     ("/api/risk/unscored-areas", {}),
     ("/api/hazard/track", {}),

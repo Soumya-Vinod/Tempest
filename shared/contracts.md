@@ -231,6 +231,27 @@ usual_destination_id: string | null, usual_destination_name: string | null, note
   `expected_<n>_leave_by_hours` (h), `expected_<n>_destination` and `expected_<n>_route_mode`
   (`road` | `ferry`).
 
+**Critical links** (*v1.4 change, pending Dev A*): per timestep × horizon, derived from the
+last safe departure routes above (no other data).
+`CriticalLinks = { timestep, horizon_h: Horizon, note: string, links: CriticalLink[] }`,
+`note` = "Based on normal-condition routes to the nearest safe hospital."
+`CriticalLink = { way_ids: int[], infra_ids: string[], label: string, name: string | null,
+link_type: "road" | "ferry", blocks: string[], facility_count: int ≥ 1,
+facilities: { infra_id, name, deadline: Timestep }[], earliest_deadline: Timestep,
+geometry: LineString | MultiLineString }`.
+- Counted routes: horizon 0, departures whose `deadline` has not passed (`deadline` ≥
+  `timestep`); horizon 24, of those, the ones whose `deadline` is within the next 24 h
+  (`route_stays_open` ones left out).
+- Each OSM way counts the counted routes that use it. Ways that follow each other on a route,
+  share a name (or are both unnamed, of the same type) and serve exactly the same facilities
+  are one link: `way_ids` in the direction of travel, `infra_ids` the exposure road features
+  (`road-way-<id>`), `geometry` theirs.
+- `label`: `name`, else "Unnamed road" / "Unnamed ferry route", then the CD blocks it runs
+  through in brackets, in the direction of travel of the facility with the earliest deadline:
+  "Unnamed road (Sagar → Namkhana)".
+- `links`: by `facility_count` (most first), then `earliest_deadline`, then `label`;
+  `facilities` by `deadline`, then name. Empty once every deadline has passed.
+
 ### 4.4 RiskScore (Dev B)
 One feature per block per timestep. A block is a Census 2011 CD block or, if block boundaries
 aren't available, an H3 resolution-7 cell. Geometry: block `Polygon | MultiPolygon`.
@@ -416,6 +437,7 @@ stated; `timestep=live` returns `501` in v1.1. FC = FeatureCollection.
 | B | GET | `/api/impact/results` | `timestep`, `hazard_type?`, `status?: ImpactStatus`, `horizon?: 0 \| 24` (*added in v1.3*; other values `422`) | FC&lt;ImpactResult&gt; |
 | B | GET | `/api/impact/countdown` | `timestep` | ActionCountdown (§4.3). *added in v1.3* |
 | B | GET | `/api/impact/departures` | — | Departures (§4.3). *added in v1.3* |
+| B | GET | `/api/impact/critical-links` | `timestep`, `horizon?: 0 \| 24` (other values `422`) | CriticalLinks (§4.3). *v1.4 change, pending Dev A* |
 | B | GET | `/api/risk/scores` | `timestep`, `horizon?: 0 \| 24` (*added in v1.3*) | FC&lt;RiskScore&gt; |
 | B | GET | `/api/risk/breakdown` | `timestep`, `horizon?: 0 \| 24` (*added in v1.3*) | RiskBreakdown. *added in v1.1.* |
 | B | GET | `/api/risk/unscored-areas` | — | FC&lt;UnscoredArea&gt; (static; live from reference data, DEMO_MODE from the `unscored-areas` fixture). *added in v1.1.* |
@@ -486,6 +508,7 @@ the schema listed here, and fails on any route resource not in this table.
 | `GET /api/impact/results` | `results`, or `results-<filter>` with `[a-z0-9-]` filter values | yes | FC&lt;ImpactResult&gt; |
 | `GET /api/impact/countdown` | `countdown`, one file for the whole replay (see below) *(added in v1.3)* | no | ActionCountdown per timestep |
 | `GET /api/impact/departures` | `departures` *(added in v1.3)* | no | Departures |
+| `GET /api/impact/critical-links` | `critical-links`, one file: each departure's route as ways and each way's label, type, blocks and geometry; ranked per timestep × horizon on request *(v1.4 change, pending Dev A)* | no | CriticalLinks per timestep × horizon |
 | `GET /api/risk/scores` | `scores` | yes | FC&lt;RiskScore&gt; |
 | `GET /api/risk/breakdown` | `breakdown` *(added in v1.1)* | yes | RiskBreakdown |
 | `GET /api/risk/unscored-areas` | `unscored-areas` *(added in v1.1)* | no | FC&lt;UnscoredArea&gt; |
@@ -506,6 +529,7 @@ exposure__overpass-substations.json
 impact__results__20200519T0000Z.json
 impact__countdown.json *(added in v1.3)*
 impact__departures.json *(added in v1.3)*
+impact__critical-links.json *(v1.4 change, pending Dev A)*
 risk__scores__20200520T1200Z.json
 advisory__gemini-<census_code>__20200520T1200Z.json *(added in v1.2)*
 insurance__triggers__20200520T1200Z.json

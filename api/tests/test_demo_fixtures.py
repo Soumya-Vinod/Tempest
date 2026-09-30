@@ -12,6 +12,7 @@ from app.core.config import Settings
 from app.core.demo import DEMO_DIR
 from app.exposure import service as exposure
 from app.hazard.models import CycloneTrack
+from app.impact import critical_links
 from app.impact import service as impact
 from app.insurance import engine as insurance_engine
 from app.main import app
@@ -21,6 +22,7 @@ from app.risk.blocks import load_blocks
 from app.schemas import (
     REPLAY_TIMESTEPS,
     ActionCountdown,
+    CriticalLinks,
     Departures,
     HazardLayerCollection,
     HazardType,
@@ -62,6 +64,8 @@ ROUTE_SCHEMAS = {
         # v1.3 change, pending Dev A: every timestep's ActionCountdown in one file (§7).
         (r"countdown", ActionCountdown, False, None),
         (r"departures", Departures, False, None),  # v1.3 change, pending Dev A
+        # v1.4 change, pending Dev A: routes and ways; ranked per timestep × horizon on request.
+        (r"critical-links", CriticalLinks, False, None),
         (r"results(-[a-z0-9-]+)?", ImpactResultCollection, True, None),
     ],
     "risk": [
@@ -122,6 +126,13 @@ def test_fixture_matches_contract(path):
             ActionCountdown.model_validate(
                 {"timestep": t, **entry, "key_moments": data["key_moments"]}
             )
+        return
+    if (module, resource) == ("impact", "critical-links"):  # every timestep × horizon (v1.4)
+        data = json.loads(raw)
+        deps = json.loads((DEMO_DIR / "impact__departures.json").read_text("utf-8"))
+        for t in REPLAY_TIMESTEPS:
+            for h in (0, 24):
+                CriticalLinks.model_validate(critical_links.rank(data, deps, t, h))
         return
     if (module, resource) == ("risk", "scores"):  # compact: polygons added on load (§7)
         data = json.loads(raw)

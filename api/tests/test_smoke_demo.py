@@ -20,7 +20,7 @@ from app.core import config
 from app.dispatch import cap
 from app.exposure import ingest
 from app.exposure import service as exposure
-from app.impact import countdown, departures
+from app.impact import countdown, critical_links, departures
 from app.impact import service as impact
 from app.insurance import service as insurance
 from app.main import app
@@ -81,7 +81,7 @@ def _watched(reader):
 def _clear_caches() -> None:
     config.get_settings.cache_clear()
     cap._schema.cache_clear()
-    for module in (exposure, impact, risk, insurance, countdown, departures):
+    for module in (exposure, impact, risk, insurance, countdown, departures, critical_links):
         module.clear_cache()
 
 
@@ -176,7 +176,12 @@ def test_every_route_in_demo_mode_without_raw_or_processed_data(container, tmp_p
         ):
             get(path, timestep=ts)
         # Both forecast horizons (v1.3): now and expected within 24 h.
-        for path in ("/api/impact/results", "/api/risk/scores", "/api/risk/breakdown"):
+        for path in (
+            "/api/impact/results",
+            "/api/risk/scores",
+            "/api/risk/breakdown",
+            "/api/impact/critical-links",  # v1.4 change, pending Dev A
+        ):
             for horizon in ("0", "24"):
                 get(path, timestep=ts, horizon=horizon)
 

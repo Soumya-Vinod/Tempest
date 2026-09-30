@@ -9,8 +9,8 @@ build (api/Dockerfile) and, when wanted, locally:
 
 The web app's requests (web/src/features/*): hazard layers (wind and surge per timestep, flood
 at the first), the track and timeline; infra per type; impact results per timestep × horizon ×
-non-ok status; risk scores and breakdown per timestep × horizon; countdown, triggers, departures,
-insurance summary, unscored areas; and the Sentinel-1 validation reports.
+non-ok status; risk scores, breakdown and critical links per timestep × horizon; countdown,
+triggers, departures, insurance summary, unscored areas; and the Sentinel-1 validation reports.
 """
 
 import argparse
@@ -62,7 +62,7 @@ def web_requests() -> list[tuple[str, dict[str, str]]]:
             for status in NON_OK:
                 q = {"timestep": ts, "status": status, "horizon": str(h)}
                 reqs.append(("/api/impact/results", q))
-            for route in ("/api/risk/scores", "/api/risk/breakdown"):
+            for route in ("/api/risk/scores", "/api/risk/breakdown", "/api/impact/critical-links"):
                 reqs.append((route, {"timestep": ts, "horizon": str(h)}))
     return reqs
 

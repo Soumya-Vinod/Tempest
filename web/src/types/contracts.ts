@@ -200,6 +200,34 @@ export interface Departures {
   departures: Departure[];
 }
 
+// Critical links (v1.4 change pending Dev A): the roads and ferry crossings the most last safe
+// departure routes use, per timestep × horizon.
+export interface CriticalLinkFacility {
+  infra_id: string;
+  name: string;
+  deadline: Timestep; // its last safe departure
+}
+
+export interface CriticalLink {
+  way_ids: number[]; // OSM way ids, in the direction of travel
+  infra_ids: string[]; // the exposure road features, road-way-<id>
+  label: string; // name or "Unnamed road" / "Unnamed ferry route", then the CD block(s)
+  name: string | null;
+  link_type: "road" | "ferry";
+  blocks: string[]; // in the direction of travel
+  facility_count: number;
+  facilities: CriticalLinkFacility[]; // by deadline, then name
+  earliest_deadline: Timestep;
+  geometry: LineString | MultiLineString;
+}
+
+export interface CriticalLinks {
+  timestep: Timestep;
+  horizon_h: Horizon; // 0: deadline not passed; 24: deadline within the next 24 h
+  note: string;
+  links: CriticalLink[]; // most facilities first, then earliest deadline, then label
+}
+
 export interface KeyMoment {
   kind: KeyMomentKind;
   timestep: Timestep | null; // null: it never happens in the replay
