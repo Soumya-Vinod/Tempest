@@ -20,7 +20,7 @@ yarn-error.log*
 pnpm-debug.log*
 .vite/
 
-# --- Environment files (keep .env.example) ---
+# --- Environment files  ---
 .env
 .env.*
 **/.env
