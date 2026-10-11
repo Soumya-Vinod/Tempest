@@ -5,7 +5,7 @@ import maplibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&ur
 import { useEffect, useRef, type CSSProperties } from 'react'
 
 import { AOI_BBOX, BASEMAP_STYLE_URL } from '../lib/constants'
-import { ABOVE_TIMELINE } from '../lib/layout'
+import { ABOVE_TIMELINE, PANEL_WIDTH, UI_GAP } from '../lib/layout'
 import { mapAlive } from '../lib/mapAlive'
 import { fitAoi } from '../lib/mapFit'
 
@@ -55,8 +55,9 @@ export default function MapView({ layers = [], getTooltip, onClick, onMapLoad, o
       attributionControl: false,
     })
     map.addControl(new NavigationControl(), 'top-left')
-    // Bottom-left, lifted above the timeline bar via .maplibregl-ctrl-bottom-left in index.css.
-    map.addControl(new AttributionControl({ compact: true }), 'bottom-left')
+    // Bottom-right of the map area (the legend has the bottom-left), lifted above the timeline
+    // and left of the side panel via .maplibregl-ctrl-bottom-right in index.css.
+    map.addControl(new AttributionControl({ compact: true }), 'bottom-right')
 
     // Fit once the container has its real size, and keep re-fitting on resize until the
     // user first pans/zooms. User-initiated moves carry an originalEvent; fitAoi's don't.
@@ -109,7 +110,12 @@ export default function MapView({ layers = [], getTooltip, onClick, onMapLoad, o
   return (
     <div
       className="absolute inset-0 isolate"
-      style={{ '--map-ctrl-bottom': `${ABOVE_TIMELINE}px` } as CSSProperties}
+      style={
+        {
+          '--map-ctrl-bottom': `${ABOVE_TIMELINE}px`,
+          '--map-ctrl-right': `${PANEL_WIDTH + 2 * UI_GAP}px`,
+        } as CSSProperties
+      }
     >
       <div ref={containerRef} className="h-full w-full" />
     </div>

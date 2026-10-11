@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState } from 'react'
 
 import HealthPanel from './components/HealthPanel'
 import MapErrorBoundary from './components/MapErrorBoundary'
+import MapLegend from './components/MapLegend'
 import MapView from './components/MapView'
 import PanelTabs from './components/PanelTabs'
 import TimelineScrubber from './components/TimelineScrubber'
@@ -209,6 +210,11 @@ export default function App() {
       </MapErrorBoundary>
       <StormEdge {...hazard.edge} />
       <KpiStrip {...kpis} />
+      <MapLegend
+        view={risk.view}
+        horizon={horizon}
+        cardOpen={impact.card.selectedId !== null || risk.card.selected !== null}
+      />
       <HealthPanel>
         <PanelTabs
           automatic={toAct > 0 ? 'act' : 'situation'}

@@ -39,6 +39,9 @@ export function riskColor(score: number, alpha = 255): Color {
 export const cssColor = ([r, g, b, a = 255]: Color) => `rgb(${r} ${g} ${b} / ${a / 255})`
 
 /** CSS gradient for the legend, from the same ramp. */
+/** The unscored-area hatching as a CSS background, for swatches. */
+export const HATCH_CSS = `repeating-linear-gradient(-45deg, ${HATCH.line} 0 1.5px, transparent 1.5px 5px)`
+
 export const RAMP_CSS = `linear-gradient(to right, ${RISK_RAMP.map(
   ([x, c]) => `${cssColor([...c])} ${x * 100}%`,
 ).join(', ')})`

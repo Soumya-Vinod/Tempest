@@ -1,5 +1,5 @@
 import type { RiskState } from './useRisk'
-import { HATCH, RAMP_CSS } from './style'
+import { HATCH_CSS, RAMP_CSS } from './style'
 
 interface Props {
   /** The Risk map view is on (the Hazard / Risk switch lives in the hazard panel). */
@@ -7,7 +7,6 @@ interface Props {
   state: RiskState
 }
 
-const HATCH_CSS = `repeating-linear-gradient(-45deg, ${HATCH.line} 0 1.5px, transparent 1.5px 5px)`
 
 /** "Risk by block" side-panel section, in the Risk view: fixed-scale legend, status. */
 export default function RiskPanel({ visible, state }: Props) {
