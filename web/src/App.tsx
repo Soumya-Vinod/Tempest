@@ -5,6 +5,7 @@ import { useCallback, useMemo, useState } from 'react'
 import HealthPanel from './components/HealthPanel'
 import MapErrorBoundary from './components/MapErrorBoundary'
 import MapView from './components/MapView'
+import PanelTabs from './components/PanelTabs'
 import TimelineScrubber from './components/TimelineScrubber'
 import WakingNotice from './components/WakingNotice'
 import { AboutPanel } from './features/about'
@@ -153,6 +154,12 @@ export default function App() {
     [countdown.state, timeline, timestepIndex],
   )
   const advisory = useAdvisories(timestepIndex, risk.blocks, selectBlock, cutOff)
+  // Facilities to act on now: expected to be cut off, or already cut off. Any: the Act tab opens
+  // by default (until the user picks a tab) and shows the count.
+  const toAct =
+    countdown.state.status === 'ok'
+      ? countdown.state.data.expected.length + countdown.state.data.cut_off.length
+      : 0
   const getTooltip = useCallback(
     (info: PickingInfo) =>
       impactTooltip(info) ?? riskTooltip(info) ?? hazardTooltip(info) ?? infraTooltip(info),
@@ -194,34 +201,64 @@ export default function App() {
       </MapErrorBoundary>
       <StormEdge {...hazard.edge} />
       <HealthPanel>
-        <HazardPanel {...hazard.panel} />
-        <SurgeHeadline {...risk.surge} />
-        <CountdownPanel
-          state={countdown.state}
-          departures={departures}
-          timestepIndex={timestepIndex}
+        <PanelTabs
+          automatic={toAct > 0 ? 'act' : 'situation'}
+          tabs={[
+            {
+              id: 'act',
+              label: 'Act',
+              badge: toAct,
+              content: (
+                <>
+                  <CountdownPanel
+                    state={countdown.state}
+                    departures={departures}
+                    timestepIndex={timestepIndex}
+                  />
+                  <KeepOpenPanel
+                    state={criticalLinks}
+                    groups={linkGroups}
+                    horizon={horizon}
+                    pinned={pinnedLink}
+                    onHover={setHoveredLink}
+                    onPin={setPinnedLink}
+                  />
+                  <AdvisoryPanel {...advisory.panel} />
+                </>
+              ),
+            },
+            {
+              id: 'situation',
+              label: 'Situation',
+              content: (
+                <>
+                  <HazardPanel {...hazard.panel} />
+                  <SurgeHeadline {...risk.surge} />
+                  <RiskPanel {...risk.panel} />
+                  <ImpactPanel {...impact.panel} />
+                </>
+              ),
+            },
+            { id: 'finance', label: 'Finance', content: <InsurancePanel {...insurance.panel} /> },
+            {
+              id: 'layers',
+              label: 'Layers',
+              content: (
+                <>
+                  <InfraPanel
+                    state={infra.state}
+                    visible={infra.visible}
+                    onToggle={infra.toggle}
+                    muted={impact.active}
+                    showAllFacilities={infra.showAllFacilities}
+                    onToggleShowAll={infra.toggleShowAllFacilities}
+                  />
+                  <AboutPanel />
+                </>
+              ),
+            },
+          ]}
         />
-        <KeepOpenPanel
-          state={criticalLinks}
-          groups={linkGroups}
-          horizon={horizon}
-          pinned={pinnedLink}
-          onHover={setHoveredLink}
-          onPin={setPinnedLink}
-        />
-        <InfraPanel
-          state={infra.state}
-          visible={infra.visible}
-          onToggle={infra.toggle}
-          muted={impact.active}
-          showAllFacilities={infra.showAllFacilities}
-          onToggleShowAll={infra.toggleShowAllFacilities}
-        />
-        <RiskPanel {...risk.panel} />
-        <ImpactPanel {...impact.panel} />
-        <InsurancePanel {...insurance.panel} />
-        <AdvisoryPanel {...advisory.panel} />
-        <AboutPanel />
       </HealthPanel>
       <PathwayCard
         {...impact.card}
