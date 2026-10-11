@@ -17,7 +17,13 @@ import {
   useCriticalLinks,
 } from './features/criticalLinks'
 import { buildRouteLayers, useDepartures } from './features/departures'
-import { InfraPanel, infraTooltip, useInfraLayers, useInfraMap } from './features/exposure'
+import {
+  InfraPanel,
+  makeInfraTooltip,
+  useBlockOf,
+  useInfraLayers,
+  useInfraMap,
+} from './features/exposure'
 import { HazardPanel, type MapViewMode, StormEdge, useHazardMap } from './features/hazard'
 import { ImpactPanel, PathwayCard, useImpactMap } from './features/impact'
 import { InsurancePanel, useInsuranceMap } from './features/insurance'
@@ -41,8 +47,11 @@ export default function App() {
   const horizon: Horizon = chosenHorizon ?? (timestepIndex < timeline.landfallIndex ? 24 : 0)
 
   const infra = useInfraMap()
-  const impact = useImpactMap(timestepIndex, infra.state, horizon)
   const risk = useRiskMap(timestepIndex, chosenView, horizon)
+  // Unnamed features are labelled by block ("Road segment · Kultali"), looked up on hover.
+  const blockOf = useBlockOf(risk.areas)
+  const infraTooltip = useMemo(() => makeInfraTooltip(blockOf), [blockOf])
+  const impact = useImpactMap(timestepIndex, infra.state, horizon, blockOf)
   const hazard = useHazardMap(timestepIndex, risk.view, setChosenView, map, horizon, setChosenHorizon)
   const insurance = useInsuranceMap(timestepIndex, risk.view === 'risk')
   const countdown = useCountdown(timeline.timesteps[timestepIndex])
@@ -122,7 +131,7 @@ export default function App() {
   const getTooltip = useCallback(
     (info: PickingInfo) =>
       impactTooltip(info) ?? riskTooltip(info) ?? hazardTooltip(info) ?? infraTooltip(info),
-    [impactTooltip, riskTooltip, hazardTooltip],
+    [impactTooltip, riskTooltip, hazardTooltip, infraTooltip],
   )
   // One card at a time in the bottom-left slot: an impact feature wins (it's drawn on top),
   // otherwise a block; an empty click closes both.

@@ -1,6 +1,6 @@
 // Plain-word helpers shared by the impact tooltip and panel.
 import type { InfraFeature } from '../../types/contracts'
-import type { InfraByType } from '../exposure'
+import { type BlockOf, displayName, type InfraByType } from '../exposure'
 
 export type InfraLookup = Map<string, InfraFeature>
 
@@ -13,14 +13,10 @@ export function infraLookup(state: InfraByType): InfraLookup {
   return out
 }
 
-export function featureName(id: string, lookup: InfraLookup): string {
+/** The feature's name; unnamed ones as "Road segment · Kultali" (exposure's displayName). */
+export function featureName(id: string, lookup: InfraLookup, blockOf: BlockOf | null): string {
   const f = lookup.get(id)
-  if (!f) return id
-  if (f.properties.name) return f.properties.name
-  const a = f.properties.attributes
-  if (a.ferry === true) return 'Unnamed ferry route'
-  if (a.facility_level === 'health_centre') return 'Unnamed health centre'
-  return `Unnamed ${f.properties.infra_type.replace('_', ' ')}`
+  return f ? displayName(f, blockOf) : id
 }
 
 /** 3900 -> "1 h 05 min", 420 -> "7 min". */

@@ -4,7 +4,7 @@ import { useCallback, useMemo, useState } from 'react'
 
 import { useTimeline } from '../../lib/timeline'
 import type { Horizon, ImpactStatus } from '../../types/contracts'
-import type { InfraByType } from '../exposure'
+import type { BlockOf, InfraByType } from '../exposure'
 import type { default as ImpactPanelComponent } from './ImpactPanel'
 import type { PathwayCardProps } from './PathwayCard'
 import { aggregate, buildImpactLayers, layerData, pickedAffected } from './layers'
@@ -50,6 +50,7 @@ export function useImpactMap(
   timestepIndex: number,
   infra: InfraByType,
   horizon: Horizon = 0,
+  blockOf: BlockOf | null = null,
 ): ImpactMap {
   const timestep = useTimeline().timesteps[timestepIndex]
   const { state, shown } = useImpacts(timestep, horizon)
@@ -102,7 +103,7 @@ export function useImpactMap(
       if (!a) return null
       const expected = isolatedNow !== null && a.worst === 'isolated' && !isolatedNow.has(a.id)
       const lines = [
-        featureName(a.id, lookup),
+        featureName(a.id, lookup, blockOf),
         ...(expected ? ['Expected to be cut off within 24 h (not yet)'] : []),
         ...a.rows.map(
           (r) => `${HAZARD_LABEL[r.hazard_type]}: ${STATUS_LABEL[r.status].toLowerCase()}`,
@@ -111,7 +112,7 @@ export function useImpactMap(
       ]
       return { text: lines.join('\n'), style: TOOLTIP_STYLE }
     },
-    [lookup, isolatedNow],
+    [lookup, isolatedNow, blockOf],
   )
 
   const clear = useCallback(() => {
@@ -138,6 +139,7 @@ export function useImpactMap(
       selectedId,
       selected: selectedId ? (affected.get(selectedId) ?? null) : null,
       lookup,
+      blockOf,
       highlightId,
       onHighlight: setHighlightId,
       onClose: clear,

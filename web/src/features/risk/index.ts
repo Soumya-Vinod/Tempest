@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { RISK_VIEW_MIN_SCORE } from '../../lib/constants'
 import { useTimeline } from '../../lib/timeline'
 import type { Horizon } from '../../types/contracts'
+import type { BlockArea } from '../exposure'
 import type { MapViewMode } from '../hazard'
 import { syncUnscored } from './hatch'
 import { buildRiskLayers, pickedBlock, pickedUnscored } from './layers'
@@ -44,6 +45,8 @@ export interface RiskMap {
   clear: () => void
   /** Selects a block by id (e.g. from the advisory queue); the caller switches to the Risk view. */
   select: (blockId: string) => void
+  /** Every scored block's polygon, for labelling unnamed features by block. */
+  areas: BlockArea[] | null
   /** Every scored block, for pickers. */
   blocks: { block_id: string; block_name: string }[]
   onMapLoad: (map: MapLibreMap) => void
@@ -110,6 +113,14 @@ export function useRiskMap(
       })) ?? [],
     [shown],
   )
+  const areas = useMemo(
+    () =>
+      shown?.scores.features.map((f) => ({
+        name: f.properties.block_name,
+        geometry: f.geometry,
+      })) ?? null,
+    [shown],
+  )
   const onClick = useCallback((info: PickingInfo) => {
     const block = pickedBlock(info)
     setSelectedId(block?.properties.block_id ?? null)
@@ -135,6 +146,7 @@ export function useRiskMap(
     clear,
     select,
     blocks,
+    areas,
     onMapLoad: setMap,
     panel: { visible, state },
     card: { timestepIndex, selected, breakdown, horizon, onClose: clear },

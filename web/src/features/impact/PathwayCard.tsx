@@ -6,6 +6,7 @@ import type {
 } from '../../types/contracts'
 import { DepartureLine } from '../departures'
 import type { Affected } from './layers'
+import type { BlockOf } from '../exposure'
 import { featureName, hospitalAccess, type InfraLookup } from './labels'
 import StatusSwatch from './StatusSwatch'
 import { HAZARD_LABEL, STATUS_LABEL } from './style'
@@ -14,6 +15,8 @@ export interface PathwayCardProps {
   selectedId: string | null
   selected: Affected | null
   lookup: InfraLookup
+  /** Block lookup for naming unnamed features. */
+  blockOf: BlockOf | null
   highlightId: string | null
   onHighlight: (id: string) => void
   onClose: () => void
@@ -106,7 +109,7 @@ function Pathway({
 
 /** Floating card with the selected feature's pathway (one chain per affected hazard). */
 export default function PathwayCard(props: PathwayCardProps) {
-  const { selectedId, selected, lookup } = props
+  const { selectedId, selected, lookup, blockOf } = props
   if (!selectedId) return null
   const access = hospitalAccess(selectedId, lookup)
   return (
@@ -121,7 +124,7 @@ export default function PathwayCard(props: PathwayCardProps) {
       aria-label="Impact pathway"
     >
       <div className="flex items-start gap-2">
-        <p className="font-medium">{featureName(selectedId, lookup)}</p>
+        <p className="font-medium">{featureName(selectedId, lookup, blockOf)}</p>
         <button
           type="button"
           onClick={props.onClose}

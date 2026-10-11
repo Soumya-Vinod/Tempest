@@ -2,6 +2,7 @@
 import type { DeckProps, PickingInfo } from '@deck.gl/core'
 
 import type { InfraFeature } from '../../types/contracts'
+import type { BlockOf } from './blocks'
 import { HIGHWAY_LABEL, STAND_IN } from './style'
 
 type Attrs = Record<string, unknown>
@@ -57,10 +58,29 @@ function details(infraType: InfraFeature['properties']['infra_type'], a: Attrs):
   return lines
 }
 
-export function tooltipLines(f: InfraFeature): string[] {
-  const { infra_type, name, attributes } = f.properties
+/**
+ * A name for a feature OSM leaves unnamed, with its CD block when known: "Road segment ·
+ * Kultali", "Ferry route segment", "Unnamed health centre · Gosaba".
+ */
+export function unnamedLabel(f: InfraFeature, block: string | null): string {
+  const { infra_type, attributes } = f.properties
+  let base: string
+  if (infra_type === 'power_line') base = 'Power line segment'
+  else if (infra_type === 'road')
+    base = attributes.ferry === true ? 'Ferry route segment' : 'Road segment'
+  else base = `Unnamed ${kindLabel(infra_type, attributes).toLowerCase()}`
+  return block ? `${base} · ${block}` : base
+}
+
+/** The feature's name, or unnamedLabel (its block looked up lazily, for this feature only). */
+export function displayName(f: InfraFeature, blockOf: BlockOf | null): string {
+  return f.properties.name ?? unnamedLabel(f, blockOf?.(f.id, f.geometry) ?? null)
+}
+
+export function tooltipLines(f: InfraFeature, blockOf: BlockOf | null = null): string[] {
+  const { infra_type, attributes } = f.properties
   const kind = kindLabel(infra_type, attributes)
-  return [name ?? `Unnamed ${kind.toLowerCase()}`, kind, ...details(infra_type, attributes)]
+  return [displayName(f, blockOf), kind, ...details(infra_type, attributes)]
 }
 
 const STYLE: Partial<CSSStyleDeclaration> = {
@@ -75,7 +95,9 @@ const STYLE: Partial<CSSStyleDeclaration> = {
 }
 
 /** deck.gl getTooltip for the infra-* layers; plain text, so OSM names can't inject HTML. */
-export function infraTooltip(info: PickingInfo): TooltipContent {
-  if (!info.object || !info.layer?.id.startsWith('infra-')) return null
-  return { text: tooltipLines(info.object as InfraFeature).join('\n'), style: STYLE }
+export function makeInfraTooltip(blockOf: BlockOf | null) {
+  return (info: PickingInfo): TooltipContent => {
+    if (!info.object || !info.layer?.id.startsWith('infra-')) return null
+    return { text: tooltipLines(info.object as InfraFeature, blockOf).join('\n'), style: STYLE }
+  }
 }
