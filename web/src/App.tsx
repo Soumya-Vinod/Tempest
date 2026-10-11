@@ -33,6 +33,7 @@ import { ImpactPanel, PathwayCard, useImpactMap } from './features/impact'
 import { InsurancePanel, useInsuranceMap } from './features/insurance'
 import { KpiStrip, useKpis } from './features/kpi'
 import { RiskCard, RiskPanel, useRiskMap } from './features/risk'
+import { usePrefetchAround } from './lib/prefetch'
 import { useTimeline } from './lib/timeline'
 import type { Horizon } from './types/contracts'
 
@@ -59,6 +60,8 @@ export default function App() {
   const impact = useImpactMap(timestepIndex, infra.state, horizon, blockOf, map)
   const hazard = useHazardMap(timestepIndex, risk.view, setChosenView, map, horizon, setChosenHorizon)
   const insurance = useInsuranceMap(timestepIndex, risk.view === 'risk')
+  // Warm the steps around this one (low priority: never delays the current step or Play).
+  usePrefetchAround(timestepIndex, timeline.timesteps, horizon, risk.view === 'hazard')
   const countdown = useCountdown(timeline.timesteps[timestepIndex])
   const departures = useDepartures()
   const departure = impact.card.selectedId
