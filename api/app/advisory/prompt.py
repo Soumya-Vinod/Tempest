@@ -50,10 +50,14 @@ WHAT TO SAY:
   things at risk may be described as threatened.
 - Time to landfall: {{hours_to_landfall}} is only the time until the cyclone makes landfall.
   Never use it as the time until something is cut off; for that, use the facility's own
-  {{expected_<n>_hours}}.
-- Road times: the "Normal road time to next hospital" figures are road travel times in normal
-  conditions, before the storm. Never describe them as current travel times, and never as boat
-  times.
+  {{expected_<n>_hours}}. When the list has no {{hours_to_landfall}}, the cyclone is making
+  landfall now: say so in words ("landfall is under way"), and never write a time to landfall.
+- Road times: the "normal road time" figures ({{hospital_median_min}} and the
+  {{isolated_<n>_next_hospital_min}} figures) are road travel times in normal conditions, before
+  the storm. Never describe them as current travel times or as boat times, never call them
+  "travel conditions", and never write that access "remains open" or is "open": the storm may
+  have cut these roads. Write them as normal times, e.g. "normally {{hospital_median_min}} by
+  road".
 - Expected: a facility listed as expected_<n> is NOT cut off yet; it is expected to be cut off
   within the next 24 h (a forecast). Describe it as expected to be cut off within
   {{expected_<n>_hours}}, with its cause ({{expected_<n>_cause}}), and write preparatory actions
@@ -83,6 +87,17 @@ NO_SHELTERS = (
 )
 
 
+LANDFALL_NOW = (
+    "The cyclone is making landfall now: there is no time to landfall in the list. Say that "
+    "landfall is under way, in words; never write a time to landfall.\n"
+)
+
+
+def _landfall_line(facts: Facts) -> str:
+    hours = next((c for c in facts.citations if c.key == "hours_to_landfall"), None)
+    return LANDFALL_NOW if hours is not None and hours.value == 0 else ""
+
+
 def _shelter_line(facts: Facts) -> str:
     standins = next((c for c in facts.citations if c.key == "standin_count"), None)
     return NO_SHELTERS if standins is not None and standins.value == 0 else ""
@@ -97,6 +112,7 @@ def user_message(facts: Facts) -> str:
     return (
         f"Block: {{{{block_name}}}} (census code {facts.block_id}).\n"
         f"Count placeholders (use these to say how many): {counts or 'none'}.\n"
+        f"{_landfall_line(facts)}"
         f"{_shelter_line(facts)}"
         "FACTS (JSON):\n"
         f"{json.dumps(rows, ensure_ascii=False, indent=1)}\n"
