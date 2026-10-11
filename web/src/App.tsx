@@ -127,7 +127,21 @@ export default function App() {
     },
     [impactClear, riskSelect],
   )
-  const advisory = useAdvisories(timestepIndex, risk.blocks, selectBlock)
+  // Facilities already cut off now, so suggestions don't call them "expected to be cut off".
+  const cutOff = useMemo(
+    () =>
+      new Map(
+        countdown.state.status === 'ok'
+          ? countdown.state.data.cut_off.map((f) => {
+              const since = timeline.indexOf(f.since)
+              const when = since >= 0 && since < timestepIndex ? `since ${timeline.label(since)}` : 'now'
+              return [f.infra_id, { name: f.name, when }]
+            })
+          : [],
+      ),
+    [countdown.state, timeline, timestepIndex],
+  )
+  const advisory = useAdvisories(timestepIndex, risk.blocks, selectBlock, cutOff)
   const getTooltip = useCallback(
     (info: PickingInfo) =>
       impactTooltip(info) ?? riskTooltip(info) ?? hazardTooltip(info) ?? infraTooltip(info),

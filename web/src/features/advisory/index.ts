@@ -25,6 +25,7 @@ export function useAdvisories(
   timestepIndex: number,
   blocks: { block_id: BlockId; block_name: string }[],
   selectBlock: (blockId: BlockId) => void,
+  cutOff: AdvisoryPanelProps['cutOff'] = new Map(),
 ): AdvisoryUi {
   const timeline = useTimeline()
   const timestep = timeline.timesteps[timestepIndex]
@@ -80,6 +81,7 @@ export function useAdvisories(
   return {
     panel: {
       timestepLabel: timeline.label(timestepIndex),
+      cutOff,
       suggestions,
       blocks,
       generating,

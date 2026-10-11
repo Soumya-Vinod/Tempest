@@ -5,6 +5,12 @@ import type { Loadable } from './useAdvisories'
 
 export interface AdvisoryPanelProps {
   timestepLabel: string
+  /**
+   * Facilities already cut off at this timestep (from the action countdown), by infra_id: their
+   * name and since when ("since T-18", or "now"). A suggestion reason for one of these says
+   * "cut off since T-18", not "expected to be cut off".
+   */
+  cutOff: Map<string, { name: string; when: string }>
   suggestions: Loadable<AdvisorySuggestions>
   /** Every scored block, for adding one that isn't suggested. */
   blocks: { block_id: BlockId; block_name: string }[]
@@ -18,10 +24,18 @@ export interface AdvisoryPanelProps {
 
 const NAMED = 2 // facilities named per suggestion, then "and N more"
 
-/** "risk 0.28 · Frasergunj PHC expected to be cut off", at most NAMED facilities by name. */
-function why(s: AdvisorySuggestion): string {
+/**
+ * "risk 0.28 · Frasergunj PHC cut off since T-18 · Raidighi BPHC expected to be cut off", at most
+ * NAMED facilities by name. A facility the countdown lists as already cut off is said so.
+ */
+function why(s: AdvisorySuggestion, cutOff: AdvisoryPanelProps['cutOff']): string {
   const risk = s.reasons.filter((r) => r.kind === 'risk').map((r) => r.label)
-  const cut = s.reasons.filter((r) => r.kind === 'expected_cut_off').map((r) => r.label)
+  const cut = s.reasons
+    .filter((r) => r.kind === 'expected_cut_off')
+    .map((r) => {
+      const now = r.infra_id ? cutOff.get(r.infra_id) : undefined
+      return now ? `${now.name} cut off ${now.when}` : r.label
+    })
   const named = cut.length > NAMED ? [...cut.slice(0, NAMED), `and ${cut.length - NAMED} more`] : cut
   return [...risk, ...named].join(' · ')
 }
@@ -61,7 +75,7 @@ export default function AdvisoryPanel(props: AdvisoryPanelProps) {
         <>
           <p className="text-[11px] text-slate-500">
             Suggested at {props.timestepLabel}: risk ≥ {suggestions.data.threshold.toFixed(2)}{' '}
-            within 24 h, or a facility expected to be cut off within 24 h
+            within 24 h, or a facility cut off or expected to be cut off within 24 h
           </p>
           {suggested.length === 0 && (
             <p className="mt-1 text-xs text-slate-500">No block suggested.</p>
@@ -71,7 +85,7 @@ export default function AdvisoryPanel(props: AdvisoryPanelProps) {
               <li key={b.block_id} className="flex items-center gap-2 text-xs">
                 <div className="min-w-0">
                   <span>{b.block_name}</span>
-                  <p className="text-[11px] text-slate-500">{why(b)}</p>
+                  <p className="text-[11px] text-slate-500">{why(b, props.cutOff)}</p>
                 </div>
                 <GenerateButton
                   busy={generating === b.block_id}
