@@ -101,7 +101,11 @@ export const FLOOD_RAMP_CSS = `linear-gradient(to right, ${FLOOD_STOPS.map(
 // --- Storm track ---------------------------------------------------------------------------------
 
 export const TRACK_COLOR: Color = [30, 41, 59, 220]
-export const TRACK_FUTURE_COLOR: Color = [30, 41, 59, 150]
+export const TRACK_FUTURE_COLOR: Color = [30, 41, 59, 110]
+/** The next 24 h of track: where the storm will be while today's decisions play out. */
+export const TRACK_NEXT_COLOR: Color = [217, 119, 6, 235] // amber-600
+export const TRACK_NEXT_H = 24
+export const STORM_HALO: Color = [220, 38, 38, 60]
 export const STORM_FILL: Color = [220, 38, 38, 235]
 export const STORM_OUTLINE: Color = [255, 255, 255, 255]
 

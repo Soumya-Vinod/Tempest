@@ -109,7 +109,8 @@ export default function MapLegend({
           </Group>
           <Group title="Storm">
             <Row symbol={<Line color="rgb(30 41 59)" width={3} />}>Track so far</Row>
-            <Row symbol={<Line color="rgb(30 41 59 / 0.6)" dash="3 2.5" />}>Track ahead</Row>
+            <Row symbol={<Line color="rgb(217 119 6)" width={4} />}>Track, next 24 h</Row>
+            <Row symbol={<Line color="rgb(30 41 59 / 0.45)" dash="3 2.5" />}>Track, later</Row>
             <Row symbol={<Dot fill="rgb(220 38 38)" r={5} />}>Storm now</Row>
           </Group>
           {view === 'hazard' ? (
