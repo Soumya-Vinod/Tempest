@@ -30,7 +30,8 @@ import {
 import { HazardPanel, type MapViewMode, StormEdge, useHazardMap } from './features/hazard'
 import { ImpactPanel, PathwayCard, useImpactMap } from './features/impact'
 import { InsurancePanel, useInsuranceMap } from './features/insurance'
-import { RiskCard, RiskPanel, SurgeHeadline, useRiskMap } from './features/risk'
+import { KpiStrip, useKpis } from './features/kpi'
+import { RiskCard, RiskPanel, useRiskMap } from './features/risk'
 import { useTimeline } from './lib/timeline'
 import type { Horizon } from './types/contracts'
 
@@ -160,6 +161,13 @@ export default function App() {
     countdown.state.status === 'ok'
       ? countdown.state.data.expected.length + countdown.state.data.cut_off.length
       : 0
+  const kpis = useKpis({
+    timestepIndex,
+    horizon,
+    countdown: countdown.state,
+    insurance: insurance.panel.summary,
+    advisories: { drafts: advisory.panel.drafts, approved: advisory.panel.approved },
+  })
   const getTooltip = useCallback(
     (info: PickingInfo) =>
       impactTooltip(info) ?? riskTooltip(info) ?? hazardTooltip(info) ?? infraTooltip(info),
@@ -200,6 +208,7 @@ export default function App() {
         />
       </MapErrorBoundary>
       <StormEdge {...hazard.edge} />
+      <KpiStrip {...kpis} />
       <HealthPanel>
         <PanelTabs
           automatic={toAct > 0 ? 'act' : 'situation'}
@@ -233,7 +242,6 @@ export default function App() {
               content: (
                 <>
                   <HazardPanel {...hazard.panel} />
-                  <SurgeHeadline {...risk.surge} />
                   <RiskPanel {...risk.panel} />
                   <ImpactPanel {...impact.panel} />
                 </>

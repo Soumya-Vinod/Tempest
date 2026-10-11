@@ -101,3 +101,23 @@ export function useUnscoredAreas(): UnscoredAreaCollection | null {
   }, [])
   return data
 }
+
+/**
+ * The district people-in-surge total (v1.3) for a timestep and horizon, from the same cache as
+ * useRisk (the KPI strip's current and previous values). null while loading or unavailable.
+ */
+export function useSurgeTotal(timestep: Timestep, horizon: Horizon): number | null {
+  const key = `${horizon}|${timestep}`
+  const [result, setResult] = useState<{ key: string; total: number | null } | null>(null)
+  useEffect(() => {
+    let cancelled = false
+    load(timestep, horizon).then(
+      (data) => !cancelled && setResult({ key, total: data.breakdown?.surge_population_total ?? null }),
+      () => !cancelled && setResult({ key, total: null }),
+    )
+    return () => {
+      cancelled = true
+    }
+  }, [key, timestep, horizon])
+  return result?.key === key ? result.total : null
+}

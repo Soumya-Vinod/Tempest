@@ -3,7 +3,7 @@
 import type { LngLatBoundsLike, Map as MapLibreMap, PaddingOptions } from 'maplibre-gl'
 
 import { AOI_BBOX } from './constants'
-import { ABOVE_TIMELINE, PANEL_WIDTH, UI_GAP } from './layout'
+import { ABOVE_TIMELINE, BELOW_KPI, PANEL_WIDTH, UI_GAP } from './layout'
 
 const [MIN_LON, MIN_LAT, MAX_LON, MAX_LAT] = AOI_BBOX
 export const AOI_BOUNDS: LngLatBoundsLike = [
@@ -11,9 +11,9 @@ export const AOI_BOUNDS: LngLatBoundsLike = [
   [MAX_LON, MAX_LAT],
 ]
 
-/** The map area not covered by the panel and the timeline. */
+/** The map area not covered by the KPI strip, the panel and the timeline. */
 export const FIT_PADDING: Required<PaddingOptions> = {
-  top: 2 * UI_GAP,
+  top: BELOW_KPI + UI_GAP,
   left: 2 * UI_GAP,
   right: PANEL_WIDTH + 3 * UI_GAP,
   bottom: ABOVE_TIMELINE + UI_GAP,
