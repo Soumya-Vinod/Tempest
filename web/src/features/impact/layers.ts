@@ -146,56 +146,63 @@ export function buildImpactLayers(
       getLineColor: IMPACT_COLOR.outline,
       getLineWidth: 1,
     }),
-    new IconLayer<Affected>({
-      id: 'impact-expected',
-      data: data.expected,
-      pickable: true,
-      getPosition: position,
-      getIcon: () => DASHED_RING,
-      sizeUnits: 'pixels',
-      getSize: 2 * (RADIUS.isolatedRing + WIDTH.isolatedRing),
-    }),
-    // Pulsing halo: only its target radius changes (every PULSE_MS); deck.gl animates the
-    // transition on the GPU, so there's no per-frame React work.
-    new ScatterplotLayer<Affected>({
-      id: 'impact-isolated-halo',
-      data: data.isolated,
-      pickable: false,
-      getPosition: position,
-      radiusUnits: 'pixels',
-      // An accessor (not a constant) so the radius is a buffer that transitions can interpolate.
-      getRadius: pulse ? haloMax : haloMin,
-      updateTriggers: { getRadius: pulse },
-      filled: true,
-      stroked: false,
-      getFillColor: IMPACT_COLOR.isolatedHalo,
-      transitions: { getRadius: { duration: PULSE_MS } },
-    }),
-    // The ring (filled white inside, so the whole target is clickable), then its core.
-    new ScatterplotLayer<Affected>({
-      id: 'impact-isolated',
-      data: data.isolated,
-      pickable: true,
-      getPosition: position,
-      radiusUnits: 'pixels',
-      getRadius: RADIUS.isolatedRing,
-      stroked: true,
-      filled: true,
-      getFillColor: IMPACT_COLOR.isolatedGap,
-      getLineColor: IMPACT_COLOR.isolated,
-      lineWidthUnits: 'pixels',
-      getLineWidth: WIDTH.isolatedRing,
-    }),
-    new ScatterplotLayer<Affected>({
-      id: 'impact-isolated-core',
-      data: data.isolated,
-      pickable: false,
-      getPosition: position,
-      radiusUnits: 'pixels',
-      getRadius: RADIUS.isolatedCore,
-      getFillColor: IMPACT_COLOR.isolated,
-    }),
   ]
+  // Rings only when there is something to ring: empty layers still cost a model each on load.
+  if (data.expected.length > 0)
+    layers.push(
+      new IconLayer<Affected>({
+        id: 'impact-expected',
+        data: data.expected,
+        pickable: true,
+        getPosition: position,
+        getIcon: () => DASHED_RING,
+        sizeUnits: 'pixels',
+        getSize: 2 * (RADIUS.isolatedRing + WIDTH.isolatedRing),
+      }),
+    )
+  if (data.isolated.length > 0)
+    layers.push(
+      // Pulsing halo: only its target radius changes (every PULSE_MS); deck.gl animates the
+      // transition on the GPU, so there's no per-frame React work.
+      new ScatterplotLayer<Affected>({
+        id: 'impact-isolated-halo',
+        data: data.isolated,
+        pickable: false,
+        getPosition: position,
+        radiusUnits: 'pixels',
+        // An accessor (not a constant) so the radius is a buffer that transitions can interpolate.
+        getRadius: pulse ? haloMax : haloMin,
+        updateTriggers: { getRadius: pulse },
+        filled: true,
+        stroked: false,
+        getFillColor: IMPACT_COLOR.isolatedHalo,
+        transitions: { getRadius: { duration: PULSE_MS } },
+      }),
+      // The ring (filled white inside, so the whole target is clickable), then its core.
+      new ScatterplotLayer<Affected>({
+        id: 'impact-isolated',
+        data: data.isolated,
+        pickable: true,
+        getPosition: position,
+        radiusUnits: 'pixels',
+        getRadius: RADIUS.isolatedRing,
+        stroked: true,
+        filled: true,
+        getFillColor: IMPACT_COLOR.isolatedGap,
+        getLineColor: IMPACT_COLOR.isolated,
+        lineWidthUnits: 'pixels',
+        getLineWidth: WIDTH.isolatedRing,
+      }),
+      new ScatterplotLayer<Affected>({
+        id: 'impact-isolated-core',
+        data: data.isolated,
+        pickable: false,
+        getPosition: position,
+        radiusUnits: 'pixels',
+        getRadius: RADIUS.isolatedCore,
+        getFillColor: IMPACT_COLOR.isolated,
+      }),
+    )
   const highlightLayers: Layer[] = []
   if (highlight) {
     highlightLayers.push(

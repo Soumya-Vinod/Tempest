@@ -70,14 +70,23 @@ function useMoreBelow() {
   useEffect(() => {
     const el = ref.current
     if (!el) return
-    const check = () => setMore(el.scrollTop + el.clientHeight < el.scrollHeight - 4)
+    // At most one layout read per frame, however many mutations land in it.
+    let frame = 0
+    const check = () => {
+      if (frame) return
+      frame = requestAnimationFrame(() => {
+        frame = 0
+        setMore(el.scrollTop + el.clientHeight < el.scrollHeight - 4)
+      })
+    }
     check()
     el.addEventListener('scroll', check, { passive: true })
     const resize = new ResizeObserver(check)
     resize.observe(el)
     const mutations = new MutationObserver(check)
-    mutations.observe(el, { childList: true, subtree: true, characterData: true })
+    mutations.observe(el, { childList: true, subtree: true })
     return () => {
+      cancelAnimationFrame(frame)
       el.removeEventListener('scroll', check)
       resize.disconnect()
       mutations.disconnect()
