@@ -1,10 +1,10 @@
 // Risk feature (Dev B): the "Risk by block" choropleth, unscored areas, block card and panel.
 import type { DeckProps, Layer, PickingInfo } from '@deck.gl/core'
 import type { Map as MapLibreMap } from 'maplibre-gl'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { RISK_VIEW_MIN_SCORE } from '../../lib/constants'
-import { useMapAlive } from '../../lib/mapAlive'
+import { mapAlive, useMapAlive } from '../../lib/mapAlive'
 import { useTimeline } from '../../lib/timeline'
 import type { Horizon } from '../../types/contracts'
 import type { BlockArea } from '../exposure'
@@ -101,21 +101,29 @@ export function useRiskMap(
   )
 
   // Hatched unscored areas live in MapLibre (fill-pattern); keep them in sync with the toggle.
-  // Not while the map's WebGL context is lost (its style is gone); after a restore, once the
-  // restored style has loaded. A failure here must not take the panels down with it.
+  // isStyleLoaded() is false while any tile is loading (and style.load fires only once), so an
+  // update then waits for the map's next `idle`. At most one wait is pending: a new toggle or
+  // unmount removes the previous one. The deferred update reads the latest view and data, and is
+  // skipped while the WebGL context is lost. A failure here must not take the panels down.
   const alive = useMapAlive(map)
+  const latest = useRef({ unscored, visible })
+  useEffect(() => {
+    latest.current = { unscored, visible }
+  })
   useEffect(() => {
     if (!map || !unscored || !alive) return
-    const sync = () => {
+    const apply = () => {
+      const { unscored: data, visible: show } = latest.current
+      if (!data || !mapAlive(map)) return
       try {
-        syncUnscored(map, unscored, visible)
+        syncUnscored(map, data, show)
       } catch (err) {
         console.warn('Could not sync the unscored-area hatching.', err)
       }
     }
-    if (map.isStyleLoaded()) return sync()
-    map.once('style.load', sync)
-    return () => void map.off('style.load', sync)
+    if (map.isStyleLoaded()) return apply()
+    map.once('idle', apply)
+    return () => void map.off('idle', apply)
   }, [map, unscored, visible, alive])
 
   const clear = useCallback(() => setSelectedId(null), [])
