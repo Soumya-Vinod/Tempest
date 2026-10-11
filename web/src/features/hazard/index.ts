@@ -5,8 +5,8 @@ import type { Layer } from '@deck.gl/core'
 import type { LngLatBoundsLike, Map as MapLibreMap } from 'maplibre-gl'
 import { useCallback, useMemo, useState } from 'react'
 
-import { LANDFALL_INDEX, REPLAY_TIMESTEPS } from '../../lib/constants'
 import { fitAoi, fitPadded } from '../../lib/mapFit'
+import { useTimeline } from '../../lib/timeline'
 import type { CycloneTrackPoint, Horizon } from '../../types/contracts'
 import type { HazardPanelProps } from './HazardPanel'
 import { buildHazardFills, buildTrackLayers, hazardTooltip } from './layers'
@@ -39,7 +39,8 @@ export function useHazardMap(
   horizon: Horizon = 0,
   onHorizon: (horizon: Horizon) => void = () => {},
 ): HazardMap {
-  const timestep = REPLAY_TIMESTEPS[timestepIndex]
+  const timeline = useTimeline()
+  const timestep = timeline.timesteps[timestepIndex]
   const hazardView = view === 'hazard'
   const [windOn, setWindOn] = useState(false)
   const [floodOn, setFloodOn] = useState(false)
@@ -114,7 +115,7 @@ export function useHazardMap(
       storm: {
         state: track,
         point,
-        hoursToLandfall: (LANDFALL_INDEX - timestepIndex) * 3,
+        hoursToLandfall: timeline.hoursToLandfall(timestepIndex),
         fullTrack,
         onFullTrack,
         onBackToAoi,

@@ -1,4 +1,4 @@
-import { LANDFALL_INDEX, relativeLabel } from '../../lib/constants'
+import { useTimeline } from '../../lib/timeline'
 import type { InsuranceSummary, TriggerEvent } from '../../types/contracts'
 import { crore, hoursLabel, METRIC_LABEL, readingLabel, TIER_PERCENT } from './format'
 import type { Loadable } from './useInsurance'
@@ -25,6 +25,7 @@ function Status({ state }: { state: Loadable<unknown> }) {
  * go up), each paying block's current reading and what it has released, and first triggers.
  */
 export default function InsurancePanel(props: InsurancePanelProps) {
+  const timeline = useTimeline()
   const paying = props.shown
     .filter((f) => f.properties.released_tier > 0)
     .sort((a, b) => b.properties.released_payout_inr - a.properties.released_payout_inr)
@@ -41,7 +42,7 @@ export default function InsurancePanel(props: InsurancePanelProps) {
       (z) =>
         z.first_trigger_timestep !== null &&
         z.hours_before_landfall !== null &&
-        z.hours_before_landfall >= (LANDFALL_INDEX - props.timestepIndex) * 3,
+        z.hours_before_landfall >= timeline.hoursToLandfall(props.timestepIndex),
     )
     .sort((a, b) => (b.hours_before_landfall ?? 0) - (a.hours_before_landfall ?? 0))
 
@@ -51,7 +52,7 @@ export default function InsurancePanel(props: InsurancePanelProps) {
       <p className="mt-1 text-xs text-amber-800">Illustrative: not an actual policy.</p>
 
       <p className="mt-2 text-xs text-slate-500">
-        Pre-positioned at {relativeLabel(props.timestepIndex)} (released so far)
+        Pre-positioned at {timeline.label(props.timestepIndex)} (released so far)
       </p>
       <p className="text-lg font-semibold text-slate-800 tabular-nums">{crore(released)}</p>
       <p className="text-[11px] text-slate-500">

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 
 import { ApiError, getHazardLayer, getHazardTrack } from '../../lib/api'
-import { REPLAY_TIMESTEPS } from '../../lib/constants'
+import { useTimeline } from '../../lib/timeline'
 import type { CycloneTrack, HazardLayer, HazardType, Timestep } from '../../types/contracts'
 
 /** Hazard: surge (+ wind / flood) cells. Risk: the block choropleth. Never both (both are fills). */
@@ -18,10 +18,11 @@ export type HazardState<T> =
 const CACHE_SIZE = 8 * 3
 const cache = new Map<string, Promise<HazardLayer[]>>()
 
-/** Flood susceptibility is static (the same at every timestep): one request serves them all. */
-const FLOOD_TIMESTEP = REPLAY_TIMESTEPS[0]
-
-function load(type: HazardType, timestep: Timestep): Promise<HazardLayer[]> {
+/**
+ * `timestep` is the replay timestep; flood susceptibility is static (the same at every timestep),
+ * so it is always requested at `floodTimestep` (the first) and one request serves them all.
+ */
+function load(type: HazardType, timestep: Timestep, floodTimestep: Timestep): Promise<HazardLayer[]> {
   const key = type === 'flood' ? 'flood' : `${type}|${timestep}`
   const hit = cache.get(key)
   if (hit) {
@@ -29,7 +30,7 @@ function load(type: HazardType, timestep: Timestep): Promise<HazardLayer[]> {
     cache.set(key, hit)
     return hit
   }
-  const promise = getHazardLayer(type, type === 'flood' ? FLOOD_TIMESTEP : timestep).then(
+  const promise = getHazardLayer(type, type === 'flood' ? floodTimestep : timestep).then(
     (fc) => fc.features,
   )
   promise.catch(() => cache.delete(key))
@@ -59,6 +60,7 @@ export function useHazardLayer(
   timestep: Timestep,
   enabled: boolean,
 ): { state: HazardState<HazardLayer[]>; shown: HazardLayer[] } {
+  const floodTimestep = useTimeline().timesteps[0]
   const key = `${type}|${type === 'flood' ? 'static' : timestep}`
   const [settled, setSettled] = useState<Settled | null>(null)
   const [lastOk, setLastOk] = useState<HazardLayer[]>([])
@@ -66,7 +68,7 @@ export function useHazardLayer(
   useEffect(() => {
     if (!enabled) return
     let cancelled = false
-    load(type, timestep).then(
+    load(type, timestep, floodTimestep).then(
       (data) => {
         if (cancelled) return
         setSettled({ key, state: { status: 'ok', data } })
@@ -81,7 +83,7 @@ export function useHazardLayer(
     return () => {
       cancelled = true
     }
-  }, [enabled, key, type, timestep])
+  }, [enabled, key, type, timestep, floodTimestep])
 
   if (!enabled) return { state: { status: 'off' }, shown: [] }
   const state: HazardState<HazardLayer[]> =
@@ -124,12 +126,16 @@ const cellKey = (f: HazardLayer) => f.properties.id.split('__')[1] ?? f.properti
  * timestep's own cells. Cached per (type, timestep), so images and contours built from it are
  * reused while scrubbing.
  */
-function loadExpected(type: HazardType, timestepIndex: number): Promise<HazardLayer[]> {
-  const key = `${type}|${REPLAY_TIMESTEPS[timestepIndex]}`
+function loadExpected(
+  type: HazardType,
+  timesteps: readonly Timestep[],
+  timestepIndex: number,
+): Promise<HazardLayer[]> {
+  const key = `${type}|${timesteps[timestepIndex]}`
   const hit = expectedCache.get(key)
   if (hit) return hit
-  const window = REPLAY_TIMESTEPS.slice(timestepIndex, timestepIndex + FORECAST_STEPS + 1)
-  const promise = Promise.all(window.map((ts) => load(type, ts))).then((layers) => {
+  const window = timesteps.slice(timestepIndex, timestepIndex + FORECAST_STEPS + 1)
+  const promise = Promise.all(window.map((ts) => load(type, ts, timesteps[0]))).then((layers) => {
     const best = new Map<string, number>()
     for (const layer of layers)
       for (const f of layer)
@@ -151,13 +157,14 @@ export function useExpectedLayer(
   timestepIndex: number,
   enabled: boolean,
 ): { state: HazardState<HazardLayer[]>; shown: HazardLayer[] } {
-  const key = `${type}|expected|${REPLAY_TIMESTEPS[timestepIndex]}`
+  const { timesteps } = useTimeline()
+  const key = `${type}|expected|${timesteps[timestepIndex]}`
   const [settled, setSettled] = useState<Settled | null>(null)
   const [lastOk, setLastOk] = useState<HazardLayer[]>([])
   useEffect(() => {
     if (!enabled) return
     let cancelled = false
-    loadExpected(type, timestepIndex).then(
+    loadExpected(type, timesteps, timestepIndex).then(
       (data) => {
         if (cancelled) return
         setSettled({ key, state: { status: 'ok', data } })
@@ -172,7 +179,7 @@ export function useExpectedLayer(
     return () => {
       cancelled = true
     }
-  }, [enabled, key, type, timestepIndex])
+  }, [enabled, key, type, timesteps, timestepIndex])
   if (!enabled) return { state: { status: 'off' }, shown: [] }
   const state: HazardState<HazardLayer[]> =
     settled?.key === key ? settled.state : { status: 'loading' }

@@ -14,6 +14,7 @@ import type {
   GeneratedBy,
   Language,
 } from '../../types/contracts'
+import { useTimeline } from '../../lib/timeline'
 import { DispatchDialog, ReceiptList } from '../dispatch'
 import { ApproveDialog, RejectDialog } from './Dialogs'
 import { errorText } from './errors'
@@ -140,6 +141,7 @@ export default function AdvisoryDetail(props: {
   onChanged: (a: Advisory) => void
   onBack: () => void
 }) {
+  const timeline = useTimeline()
   const p = props.advisory.properties
   const [language, setLanguage] = useState<Language>('en')
   const [editing, setEditing] = useState<AdvisoryText | null>(null)
@@ -171,7 +173,7 @@ export default function AdvisoryDetail(props: {
       </button>
       <div className="mt-1 flex items-center gap-2">
         <p className="font-medium">{p.block_name}</p>
-        <span className="text-xs text-slate-500">{timestepLabel(p.timestep)}</span>
+        <span className="text-xs text-slate-500">{timestepLabel(timeline, p.timestep)}</span>
         <span className={`ml-auto rounded px-2 py-0.5 text-xs ${STATUS_STYLE[p.status]}`}>
           {p.status}
         </span>

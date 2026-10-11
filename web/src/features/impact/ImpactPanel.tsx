@@ -1,4 +1,4 @@
-import { relativeLabel } from '../../lib/constants'
+import { useTimeline } from '../../lib/timeline'
 import type { Horizon, ImpactStatus } from '../../types/contracts'
 import { cssColor, NON_OK, STATUS_COLOR, STATUS_LABEL } from './style'
 import type { ImpactState } from './useImpacts'
@@ -14,13 +14,14 @@ interface Props {
 
 /** "Impact" side-panel section: counts per status for the scrubber's timestep. */
 export default function ImpactPanel(props: Props) {
+  const timeline = useTimeline()
   const { state, counts } = props
   return (
     <section className="mt-5">
       <h2 className="mb-2 flex items-baseline text-xs font-semibold tracking-wide text-slate-500">
         <span className="uppercase">Impact</span>
         <span className="ml-auto font-normal tracking-normal">
-          {relativeLabel(props.timestepIndex)}
+          {timeline.label(props.timestepIndex)}
           {props.horizon === 24 && ', next 24 h'}
         </span>
       </h2>

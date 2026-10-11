@@ -22,12 +22,15 @@ import { HazardPanel, type MapViewMode, StormEdge, useHazardMap } from './featur
 import { ImpactPanel, PathwayCard, useImpactMap } from './features/impact'
 import { InsurancePanel, useInsuranceMap } from './features/insurance'
 import { RiskCard, RiskPanel, SurgeHeadline, useRiskMap } from './features/risk'
-import { LANDFALL_INDEX, REPLAY_TIMESTEPS, relativeLabel } from './lib/constants'
+import { useTimeline } from './lib/timeline'
 import type { Horizon } from './types/contracts'
 
 export default function App() {
-  // Replay index into REPLAY_TIMESTEPS; features will read the timestep from here.
-  const [timestepIndex, setTimestepIndex] = useState(0)
+  const timeline = useTimeline()
+  // Replay index into the timeline's timesteps; features read the timestep from here.
+  const [chosenIndex, setTimestepIndex] = useState(0)
+  // Clamped: the API's timeline replaces the fallback and could be shorter.
+  const timestepIndex = Math.min(chosenIndex, timeline.timesteps.length - 1)
   // The user's Hazard / Risk choice; null until they pick one (then the view is automatic:
   // Hazard until a block reaches the advisory threshold at this timestep, Risk after).
   const [chosenView, setChosenView] = useState<MapViewMode | null>(null)
@@ -35,14 +38,14 @@ export default function App() {
   // Now / Next 24 h (v1.3): the user's choice, or null = Next 24 h before landfall (there is
   // nothing ahead to forecast at landfall itself).
   const [chosenHorizon, setChosenHorizon] = useState<Horizon | null>(null)
-  const horizon: Horizon = chosenHorizon ?? (timestepIndex < LANDFALL_INDEX ? 24 : 0)
+  const horizon: Horizon = chosenHorizon ?? (timestepIndex < timeline.landfallIndex ? 24 : 0)
 
   const infra = useInfraMap()
   const impact = useImpactMap(timestepIndex, infra.state, horizon)
   const risk = useRiskMap(timestepIndex, chosenView, horizon)
   const hazard = useHazardMap(timestepIndex, risk.view, setChosenView, map, horizon, setChosenHorizon)
   const insurance = useInsuranceMap(timestepIndex, risk.view === 'risk')
-  const countdown = useCountdown(REPLAY_TIMESTEPS[timestepIndex])
+  const countdown = useCountdown(timeline.timesteps[timestepIndex])
   const departures = useDepartures()
   const departure = impact.card.selectedId
     ? (departures.get(impact.card.selectedId) ?? null)
@@ -50,7 +53,7 @@ export default function App() {
   const routeLayers = useMemo(() => buildRouteLayers(departure), [departure])
   // Keep these open (v1.4): links grouped for the panel (roads by name); the hovered entry or
   // segment, else the clicked one, on the map.
-  const criticalLinks = useCriticalLinks(REPLAY_TIMESTEPS[timestepIndex], horizon)
+  const criticalLinks = useCriticalLinks(timeline.timesteps[timestepIndex], horizon)
   const [hoveredLink, setHoveredLink] = useState<string | null>(null)
   const [pinnedLink, setPinnedLink] = useState<string | null>(null)
   const linkGroups = useMemo(
@@ -68,7 +71,7 @@ export default function App() {
           (f) => f.infra_id === impact.card.selectedId && f.infra_type === 'shelter',
         )
       : undefined
-  const shelterSince = shelterCutOff?.since ? REPLAY_TIMESTEPS.indexOf(shelterCutOff.since) : -1
+  const shelterSince = timeline.indexOf(shelterCutOff?.since)
   // Red and orange mean impact only: exposure mutes its colours while impact results show.
   const infraLayers = useInfraLayers(infra, impact.active)
 
@@ -174,7 +177,7 @@ export default function App() {
         {...impact.card}
         departure={departure}
         timestepIndex={timestepIndex}
-        shelterCutOffFrom={shelterSince >= 0 ? relativeLabel(shelterSince) : null}
+        shelterCutOffFrom={shelterSince >= 0 ? timeline.label(shelterSince) : null}
       />
       <RiskCard {...risk.card} />
       <AdvisoryDrawer {...advisory.drawer} />

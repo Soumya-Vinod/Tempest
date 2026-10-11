@@ -1,4 +1,4 @@
-import { REPLAY_TIMESTEPS, relativeLabel } from '../../lib/constants'
+import type { Timeline } from '../../lib/timeline'
 import type { AdvisoryStatus, Timestep } from '../../types/contracts'
 
 export const STATUS_STYLE: Record<AdvisoryStatus, string> = {
@@ -9,7 +9,7 @@ export const STATUS_STYLE: Record<AdvisoryStatus, string> = {
 }
 
 /** "T-3" for a replay timestep. */
-export function timestepLabel(timestep: Timestep): string {
-  const i = REPLAY_TIMESTEPS.indexOf(timestep)
-  return i < 0 ? timestep : relativeLabel(i)
+export function timestepLabel(timeline: Timeline, timestep: Timestep): string {
+  const i = timeline.indexOf(timestep)
+  return i < 0 ? timestep : timeline.label(i)
 }

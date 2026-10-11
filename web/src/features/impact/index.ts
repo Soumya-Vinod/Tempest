@@ -2,7 +2,7 @@
 import type { DeckProps, Layer, PickingInfo } from '@deck.gl/core'
 import { useCallback, useMemo, useState } from 'react'
 
-import { REPLAY_TIMESTEPS } from '../../lib/constants'
+import { useTimeline } from '../../lib/timeline'
 import type { Horizon, ImpactStatus } from '../../types/contracts'
 import type { InfraByType } from '../exposure'
 import type { default as ImpactPanelComponent } from './ImpactPanel'
@@ -50,7 +50,7 @@ export function useImpactMap(
   infra: InfraByType,
   horizon: Horizon = 0,
 ): ImpactMap {
-  const timestep = REPLAY_TIMESTEPS[timestepIndex]
+  const timestep = useTimeline().timesteps[timestepIndex]
   const { state, shown } = useImpacts(timestep, horizon)
   // At horizon 24, what is isolated now (cached, shared with the Now view): the rest of the
   // isolated features are only expected, drawn with a dashed ring.

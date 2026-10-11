@@ -3,7 +3,8 @@ import type { DeckProps, Layer, PickingInfo } from '@deck.gl/core'
 import type { Map as MapLibreMap } from 'maplibre-gl'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
-import { REPLAY_TIMESTEPS, RISK_VIEW_MIN_SCORE } from '../../lib/constants'
+import { RISK_VIEW_MIN_SCORE } from '../../lib/constants'
+import { useTimeline } from '../../lib/timeline'
 import type { Horizon } from '../../types/contracts'
 import type { MapViewMode } from '../hazard'
 import { syncUnscored } from './hatch'
@@ -62,7 +63,7 @@ export function useRiskMap(
   chosenView: MapViewMode | null,
   horizon: Horizon = 0,
 ): RiskMap {
-  const timestep = REPLAY_TIMESTEPS[timestepIndex]
+  const timestep = useTimeline().timesteps[timestepIndex]
   // v1.3: at horizon 24 the scores are on the expected hazard (the next 24 h), so the Risk view
   // turns on (automatically) as soon as a block is expected to reach the threshold.
   const { state, shown } = useRisk(timestep, horizon)

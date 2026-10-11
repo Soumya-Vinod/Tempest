@@ -1,4 +1,4 @@
-import { REPLAY_TIMESTEPS, relativeLabel } from '../../lib/constants'
+import { type Timeline, useTimeline } from '../../lib/timeline'
 import type { Horizon, Timestep } from '../../types/contracts'
 import { entryOf, type LinkEntry, type LinkGroups, ROADS_SHOWN } from './grouping'
 import type { CriticalLinksState } from './useCriticalLinks'
@@ -9,9 +9,9 @@ function count(n: number): string {
   return `${n} ${n === 1 ? 'facility' : 'facilities'}`
 }
 
-function before(deadline: Timestep): string {
-  const i = REPLAY_TIMESTEPS.indexOf(deadline)
-  return i >= 0 ? ` · before ${relativeLabel(i)}` : ''
+function before(timeline: Timeline, deadline: Timestep): string {
+  const i = timeline.indexOf(deadline)
+  return i >= 0 ? ` · before ${timeline.label(i)}` : ''
 }
 
 interface Highlight {
@@ -23,6 +23,7 @@ interface Highlight {
 /** "Diamond Harbour Road (Namkhana → Kulpi) · 9 facilities · before T-21", its facilities, and
  *  for a grouped entry, its segments while expanded. */
 function Entry({ entry, pinned, onHover, onPin }: { entry: LinkEntry } & Highlight) {
+  const timeline = useTimeline()
   const grouped = entry.segments.length > 1
   const expanded = grouped && entryOf({ roads: [entry], ferries: [] }, pinned) === entry.key
   const on = pinned === entry.key
@@ -44,7 +45,7 @@ function Entry({ entry, pinned, onHover, onPin }: { entry: LinkEntry } & Highlig
         <span className="tabular-nums">
           {' '}
           · {count(entry.facilities.length)}
-          {before(entry.earliest_deadline)}
+          {before(timeline, entry.earliest_deadline)}
         </span>
         {grouped && (
           <span className="text-slate-500"> · {expanded ? '▾' : '▸'} {entry.segments.length} segments</span>
@@ -71,7 +72,7 @@ function Entry({ entry, pinned, onHover, onPin }: { entry: LinkEntry } & Highlig
                 }`}
               >
                 {s.label} · {count(s.link.facility_count)}
-                {before(s.link.earliest_deadline)}
+                {before(timeline, s.link.earliest_deadline)}
               </button>
             </li>
           ))}

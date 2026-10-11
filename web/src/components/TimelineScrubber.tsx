@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 
-import { LANDFALL_INDEX, REPLAY_TIMESTEPS, relativeLabel } from '../lib/constants'
 import { TIMELINE_HEIGHT, UI_GAP } from '../lib/layout'
+import { useTimeline } from '../lib/timeline'
 import { useApiStatus } from '../lib/useApiStatus'
 import type { KeyMoment, KeyMomentKind } from '../types/contracts'
 
@@ -12,7 +12,7 @@ interface Props {
   moments?: KeyMoment[]
 }
 
-const TICKS = [0, 8, 16, LANDFALL_INDEX] // T-72, T-48, T-24, T-0
+const TICK_EVERY_H = 24 // labelled ticks: T-72, T-48, T-24, T-0
 const PLAY_STEP_MS = 1500
 const THUMB_PX = 16 // the range thumb's width: markers line up with its centre
 
@@ -32,7 +32,8 @@ function MomentMarker({
   index: number
   onJump: (index: number) => void
 }) {
-  const label = `${moment.label} (${relativeLabel(index)})`
+  const { label: at, landfallIndex } = useTimeline()
+  const label = `${moment.label} (${at(index)})`
   return (
     <button
       type="button"
@@ -40,7 +41,7 @@ function MomentMarker({
       aria-label={label}
       className="group absolute top-0 -translate-x-1/2"
       style={{
-        left: `calc(${THUMB_PX / 2}px + (100% - ${THUMB_PX}px) * ${index / LANDFALL_INDEX})`,
+        left: `calc(${THUMB_PX / 2}px + (100% - ${THUMB_PX}px) * ${index / landfallIndex})`,
       }}
     >
       <span className={`block size-2.5 rotate-45 ${MOMENT_COLOR[moment.kind]}`} />
@@ -52,12 +53,17 @@ function MomentMarker({
 }
 
 export default function TimelineScrubber({ index, onChange, moments = [] }: Props) {
-  const timestep = REPLAY_TIMESTEPS[index]
+  const timeline = useTimeline()
+  const { landfallIndex, label: relativeLabel } = timeline
+  const timestep = timeline.timesteps[index]
+  const ticks = timeline.timesteps.flatMap((_, i) =>
+    timeline.hoursToLandfall(i) % TICK_EVERY_H === 0 ? [i] : [],
+  )
   const [playing, setPlaying] = useState(false)
   const { busy } = useApiStatus()
   const lastStepAt = useRef(0)
   const step = (delta: number) =>
-    onChange(Math.min(LANDFALL_INDEX, Math.max(0, index + delta)))
+    onChange(Math.min(landfallIndex, Math.max(0, index + delta)))
 
   // Play: one step every PLAY_STEP_MS at most, stopping at landfall. It waits while any API
   // request is queued or in flight, so the current timestep's data has loaded before the next
@@ -66,23 +72,23 @@ export default function TimelineScrubber({ index, onChange, moments = [] }: Prop
     if (!playing || busy) return
     const wait = Math.max(0, PLAY_STEP_MS - (Date.now() - lastStepAt.current))
     const id = window.setTimeout(() => {
-      const next = Math.min(LANDFALL_INDEX, index + 1)
+      const next = Math.min(landfallIndex, index + 1)
       lastStepAt.current = Date.now()
       onChange(next)
-      if (next === LANDFALL_INDEX) setPlaying(false)
+      if (next === landfallIndex) setPlaying(false)
     }, wait)
     return () => window.clearTimeout(id)
-  }, [playing, busy, index, onChange])
+  }, [playing, busy, index, onChange, landfallIndex])
 
   const togglePlay = () => {
     if (playing) return setPlaying(false)
-    if (index === LANDFALL_INDEX) onChange(0) // replay from the start
+    if (index === landfallIndex) onChange(0) // replay from the start
     lastStepAt.current = Date.now()
     setPlaying(true)
   }
 
   const placed = moments.flatMap((m) => {
-    const i = m.timestep ? REPLAY_TIMESTEPS.indexOf(m.timestep) : -1
+    const i = timeline.indexOf(m.timestep)
     return i >= 0 ? [{ moment: m, index: i }] : []
   })
 
@@ -104,7 +110,7 @@ export default function TimelineScrubber({ index, onChange, moments = [] }: Prop
         <button
           type="button"
           onClick={() => step(1)}
-          disabled={index === LANDFALL_INDEX}
+          disabled={index === landfallIndex}
           className="rounded border border-slate-300 px-2 py-0.5 disabled:opacity-40"
           aria-label="Next timestep"
         >
@@ -121,7 +127,7 @@ export default function TimelineScrubber({ index, onChange, moments = [] }: Prop
         </button>
         <span className="font-semibold">{relativeLabel(index)}h</span>
         <span className="font-mono text-xs text-slate-600">{timestep}</span>
-        {index === LANDFALL_INDEX && (
+        {index === landfallIndex && (
           <span className="rounded bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-800">
             LANDFALL
           </span>
@@ -135,7 +141,7 @@ export default function TimelineScrubber({ index, onChange, moments = [] }: Prop
       <input
         type="range"
         min={0}
-        max={LANDFALL_INDEX}
+        max={landfallIndex}
         step={1}
         value={index}
         onChange={(e) => onChange(Number(e.target.value))}
@@ -144,8 +150,8 @@ export default function TimelineScrubber({ index, onChange, moments = [] }: Prop
         aria-valuetext={`${relativeLabel(index)} hours, ${timestep}`}
       />
       <div className="flex justify-between text-xs text-slate-500">
-        {TICKS.map((i) => (
-          <span key={i}>{i === LANDFALL_INDEX ? 'T-0 landfall' : relativeLabel(i)}</span>
+        {ticks.map((i) => (
+          <span key={i}>{i === landfallIndex ? 'T-0 landfall' : relativeLabel(i)}</span>
         ))}
       </div>
     </div>

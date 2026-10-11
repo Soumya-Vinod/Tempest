@@ -2,7 +2,7 @@
 import { useCallback, useMemo, useState } from 'react'
 
 import { createAdvisory } from '../../lib/api'
-import { REPLAY_TIMESTEPS, relativeLabel } from '../../lib/constants'
+import { useTimeline } from '../../lib/timeline'
 import type { Advisory, BlockId } from '../../types/contracts'
 import type { AdvisoryDrawerProps } from './AdvisoryDrawer'
 import type { AdvisoryPanelProps } from './AdvisoryPanel'
@@ -26,7 +26,8 @@ export function useAdvisories(
   blocks: { block_id: BlockId; block_name: string }[],
   selectBlock: (blockId: BlockId) => void,
 ): AdvisoryUi {
-  const timestep = REPLAY_TIMESTEPS[timestepIndex]
+  const timeline = useTimeline()
+  const timestep = timeline.timesteps[timestepIndex]
   const suggestions = useSuggestions(timestep)
   const { queue, reload } = useQueue()
   const [open, setOpen] = useState(false)
@@ -78,7 +79,7 @@ export function useAdvisories(
 
   return {
     panel: {
-      timestepLabel: relativeLabel(timestepIndex),
+      timestepLabel: timeline.label(timestepIndex),
       suggestions,
       blocks,
       generating,

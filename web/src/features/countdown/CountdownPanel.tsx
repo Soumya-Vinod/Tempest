@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-import { REPLAY_TIMESTEPS, relativeLabel } from '../../lib/constants'
+import { type Timeline, useTimeline } from '../../lib/timeline'
 import type { CountdownFacility } from '../../types/contracts'
 import { DEPARTURE_NOTE, DepartureLine, type DepartureLookup } from '../departures'
 import { FORECAST_FRAMING } from '../about'
@@ -14,11 +14,11 @@ function when(f: CountdownFacility): string {
   return f.hours_remaining === 0 ? 'now' : `in ~${f.hours_remaining} h`
 }
 
-function since(f: CountdownFacility): string {
-  const i = f.since ? REPLAY_TIMESTEPS.indexOf(f.since) : -1
+function since(f: CountdownFacility, timeline: Timeline): string {
+  const i = timeline.indexOf(f.since)
   if (i < 0) return 'cut off'
   // Shelter stand-ins have no departure (hospitals and health centres only): just when.
-  const at = relativeLabel(i)
+  const at = timeline.label(i)
   return f.infra_type === 'shelter' ? `cut off from ${at}` : `cut off since ${at}`
 }
 
@@ -87,6 +87,7 @@ export default function CountdownPanel({
   departures: DepartureLookup
   timestepIndex: number
 }) {
+  const timeline = useTimeline()
   return (
     <section className="mt-4">
       <h3 className={HEADING}>Action countdown</h3>
@@ -120,7 +121,7 @@ export default function CountdownPanel({
             key={`c|${state.data.timestep}`}
             title="Already cut off"
             items={state.data.cut_off}
-            detail={since}
+            detail={(f) => since(f, timeline)}
             departures={departures}
             timestepIndex={timestepIndex}
           />
