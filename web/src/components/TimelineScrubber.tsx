@@ -19,7 +19,7 @@ const THUMB_PX = 16 // the range thumb's width: markers line up with its centre
 const MOMENT_COLOR: Record<KeyMomentKind, string> = {
   first_alert: 'bg-amber-500',
   first_expected_isolation: 'bg-violet-500',
-  first_actual_isolation: 'bg-red-600',
+  first_actual_isolation: 'bg-red-900',
   landfall: 'bg-slate-800',
 }
 

@@ -14,6 +14,7 @@ import { useImpacts, usePulse } from './useImpacts'
 
 export { default as ImpactPanel } from './ImpactPanel'
 export { default as PathwayCard } from './PathwayCard'
+export { default as StatusSwatch } from './StatusSwatch'
 
 type TooltipContent = ReturnType<NonNullable<DeckProps['getTooltip']>>
 type PanelProps = Parameters<typeof ImpactPanelComponent>[0]

@@ -4,6 +4,7 @@ import { type Timeline, useTimeline } from '../../lib/timeline'
 import type { CountdownFacility } from '../../types/contracts'
 import { DEPARTURE_NOTE, DepartureLine, type DepartureLookup } from '../departures'
 import { FORECAST_FRAMING } from '../about'
+import { StatusSwatch } from '../impact'
 import type { CountdownState } from './useCountdown'
 
 const HEADING = 'text-xs font-semibold tracking-wide text-slate-500 uppercase'
@@ -24,12 +25,15 @@ function since(f: CountdownFacility, timeline: Timeline): string {
 
 function FacilityList({
   title,
+  expected,
   items,
   detail,
   departures,
   timestepIndex,
 }: {
   title: string
+  /** Expected isolation (dashed ring) or actual (target), as on the map. */
+  expected: boolean
   items: CountdownFacility[]
   detail: (f: CountdownFacility) => string
   departures: DepartureLookup
@@ -40,7 +44,8 @@ function FacilityList({
   const shown = all ? items : items.slice(0, SHOWN)
   return (
     <div className="mt-2">
-      <p className="text-xs font-medium text-slate-700">
+      <p className="flex items-center gap-1.5 text-xs font-medium text-slate-700">
+        <StatusSwatch status="isolated" expected={expected} />
         {title} ({items.length})
       </p>
       <ul className="mt-0.5 space-y-0.5 text-xs">
@@ -112,6 +117,7 @@ export default function CountdownPanel({
           <FacilityList
             key={`e|${state.data.timestep}`}
             title="Expected to be cut off"
+            expected
             items={state.data.expected}
             detail={when}
             departures={departures}
@@ -120,6 +126,7 @@ export default function CountdownPanel({
           <FacilityList
             key={`c|${state.data.timestep}`}
             title="Already cut off"
+            expected={false}
             items={state.data.cut_off}
             detail={(f) => since(f, timeline)}
             departures={departures}

@@ -1,6 +1,7 @@
 import { useTimeline } from '../../lib/timeline'
 import type { Horizon, ImpactStatus } from '../../types/contracts'
-import { cssColor, NON_OK, STATUS_COLOR, STATUS_LABEL } from './style'
+import StatusSwatch from './StatusSwatch'
+import { NON_OK, STATUS_LABEL } from './style'
 import type { ImpactState } from './useImpacts'
 
 interface Props {
@@ -26,9 +27,12 @@ export default function ImpactPanel(props: Props) {
         </span>
       </h2>
       {props.horizon === 24 && (
-        <p className="mb-1 text-[11px] text-slate-500">
-          Expected within the next 24 h (worst case). Dashed rings: expected to be cut off, not
-          yet ({props.expectedCount}).
+        <p className="mb-1 flex items-start gap-1.5 text-[11px] text-slate-500">
+          <StatusSwatch status="isolated" expected />
+          <span>
+            Expected within the next 24 h (worst case). Dashed rings: expected to be cut off, not
+            yet ({props.expectedCount}).
+          </span>
         </p>
       )}
 
@@ -42,11 +46,7 @@ export default function ImpactPanel(props: Props) {
           <ul className="space-y-1">
             {NON_OK.map((s) => (
               <li key={s} className="flex items-center gap-2">
-                <span
-                  className="size-2.5 shrink-0 rounded-full"
-                  style={{ background: cssColor(STATUS_COLOR[s]) }}
-                  aria-hidden
-                />
+                <StatusSwatch status={s} />
                 <span>{STATUS_LABEL[s]}</span>
                 <span className="ml-auto text-xs text-slate-500 tabular-nums">
                   {counts[s].toLocaleString()}

@@ -2,13 +2,13 @@ import { CARD_BOTTOM, CARD_TOP_CLEARANCE, PANEL_WIDTH, UI_GAP } from '../../lib/
 import type {
   Departure,
   ImpactResultProperties,
-  ImpactStatus,
   PathwayStep,
 } from '../../types/contracts'
 import { DepartureLine } from '../departures'
 import type { Affected } from './layers'
 import { featureName, hospitalAccess, type InfraLookup } from './labels'
-import { cssColor, HAZARD_LABEL, STATUS_COLOR, STATUS_LABEL } from './style'
+import StatusSwatch from './StatusSwatch'
+import { HAZARD_LABEL, STATUS_LABEL } from './style'
 
 export interface PathwayCardProps {
   selectedId: string | null
@@ -25,16 +25,6 @@ export interface PathwayCardProps {
 }
 
 // Bottom-left of the map, above the timeline and the attribution control; below the zoom buttons.
-
-function StatusDot({ status }: { status: ImpactStatus }) {
-  return (
-    <span
-      className="size-2.5 shrink-0 rounded-full"
-      style={{ background: cssColor(STATUS_COLOR[status]) }}
-      aria-hidden
-    />
-  )
-}
 
 function Step({
   step,
@@ -95,7 +85,7 @@ function Pathway({
   return (
     <div className="mt-2">
       <p className="mb-1 flex items-center gap-1.5 text-xs font-semibold">
-        <StatusDot status={row.status} />
+        <StatusSwatch status={row.status} />
         {HAZARD_LABEL[row.hazard_type]}: {STATUS_LABEL[row.status].toLowerCase()}
       </p>
       <ol className="ml-1">
