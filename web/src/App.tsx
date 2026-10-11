@@ -3,6 +3,7 @@ import type { Map as MapLibreMap } from 'maplibre-gl'
 import { useCallback, useMemo, useState } from 'react'
 
 import HealthPanel from './components/HealthPanel'
+import MapErrorBoundary from './components/MapErrorBoundary'
 import MapView from './components/MapView'
 import TimelineScrubber from './components/TimelineScrubber'
 import WakingNotice from './components/WakingNotice'
@@ -163,10 +164,24 @@ export default function App() {
     },
     [risk],
   )
+  // The map was removed (e.g. remounted after a map error): forget it until the new one loads.
+  const onMapRemove = useCallback(() => {
+    risk.onMapLoad(null)
+    setMap(null)
+  }, [risk])
 
   return (
     <main className="relative h-full w-full overflow-hidden">
-      <MapView layers={layers} getTooltip={getTooltip} onClick={onClick} onMapLoad={onMapLoad} />
+      {/* Only the map is behind the boundary: if it fails, the panels and timeline stay up. */}
+      <MapErrorBoundary>
+        <MapView
+          layers={layers}
+          getTooltip={getTooltip}
+          onClick={onClick}
+          onMapLoad={onMapLoad}
+          onMapRemove={onMapRemove}
+        />
+      </MapErrorBoundary>
       <StormEdge {...hazard.edge} />
       <HealthPanel>
         <HazardPanel {...hazard.panel} />

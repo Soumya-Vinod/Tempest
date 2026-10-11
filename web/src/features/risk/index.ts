@@ -4,6 +4,7 @@ import type { Map as MapLibreMap } from 'maplibre-gl'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { RISK_VIEW_MIN_SCORE } from '../../lib/constants'
+import { useMapAlive } from '../../lib/mapAlive'
 import { useTimeline } from '../../lib/timeline'
 import type { Horizon } from '../../types/contracts'
 import type { BlockArea } from '../exposure'
@@ -49,7 +50,8 @@ export interface RiskMap {
   areas: BlockArea[] | null
   /** Every scored block, for pickers. */
   blocks: { block_id: string; block_name: string }[]
-  onMapLoad: (map: MapLibreMap) => void
+  /** The map once loaded; null when it is removed. */
+  onMapLoad: (map: MapLibreMap | null) => void
   panel: { visible: boolean; state: RiskState }
   card: RiskCardProps
   /** District people-in-surge headline (v1.3), for the current horizon. */
@@ -99,9 +101,22 @@ export function useRiskMap(
   )
 
   // Hatched unscored areas live in MapLibre (fill-pattern); keep them in sync with the toggle.
+  // Not while the map's WebGL context is lost (its style is gone); after a restore, once the
+  // restored style has loaded. A failure here must not take the panels down with it.
+  const alive = useMapAlive(map)
   useEffect(() => {
-    if (map && unscored) syncUnscored(map, unscored, visible)
-  }, [map, unscored, visible])
+    if (!map || !unscored || !alive) return
+    const sync = () => {
+      try {
+        syncUnscored(map, unscored, visible)
+      } catch (err) {
+        console.warn('Could not sync the unscored-area hatching.', err)
+      }
+    }
+    if (map.isStyleLoaded()) return sync()
+    map.once('style.load', sync)
+    return () => void map.off('style.load', sync)
+  }, [map, unscored, visible, alive])
 
   const clear = useCallback(() => setSelectedId(null), [])
   const select = useCallback((blockId: string) => setSelectedId(blockId), [])
