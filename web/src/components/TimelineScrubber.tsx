@@ -1,9 +1,15 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
+import { useCountdownSeries } from '../features/countdown'
 import { TIMELINE_HEIGHT, UI_GAP } from '../lib/layout'
 import { useTimeline } from '../lib/timeline'
 import { useApiStatus } from '../lib/useApiStatus'
-import type { KeyMoment, KeyMomentKind } from '../types/contracts'
+import type { KeyMoment } from '../types/contracts'
+import Markers from './timeline/Markers'
+import { MOMENT, MOMENT_ORDER } from './timeline/moments'
+import Sparkline from './timeline/Sparkline'
+import { trackLeft } from './timeline/track'
+import { useTimelineKeys } from './timeline/useTimelineKeys'
 
 interface Props {
   index: number
@@ -14,60 +20,23 @@ interface Props {
 
 const TICK_EVERY_H = 24 // labelled ticks: T-72, T-48, T-24, T-0
 const PLAY_STEP_MS = 1500
-const THUMB_PX = 16 // the range thumb's width: markers line up with its centre
-
-const MOMENT_COLOR: Record<KeyMomentKind, string> = {
-  first_alert: 'bg-amber-500',
-  first_expected_isolation: 'bg-violet-500',
-  first_actual_isolation: 'bg-red-900',
-  landfall: 'bg-slate-800',
-}
-
-function MomentMarker({
-  moment,
-  index,
-  onJump,
-}: {
-  moment: KeyMoment
-  index: number
-  onJump: (index: number) => void
-}) {
-  const { label: at, landfallIndex } = useTimeline()
-  const label = `${moment.label} (${at(index)})`
-  return (
-    <button
-      type="button"
-      onClick={() => onJump(index)}
-      aria-label={label}
-      className="group absolute top-0 -translate-x-1/2"
-      style={{
-        left: `calc(${THUMB_PX / 2}px + (100% - ${THUMB_PX}px) * ${index / landfallIndex})`,
-      }}
-    >
-      <span className={`block size-2.5 rotate-45 ${MOMENT_COLOR[moment.kind]}`} />
-      <span className="pointer-events-none absolute bottom-full left-1/2 mb-1 hidden -translate-x-1/2 rounded bg-slate-800 px-1.5 py-0.5 text-[11px] whitespace-nowrap text-white group-hover:block group-focus-visible:block">
-        {label}
-      </span>
-    </button>
-  )
-}
 
 export default function TimelineScrubber({ index, onChange, moments = [] }: Props) {
   const timeline = useTimeline()
   const { landfallIndex, label: relativeLabel } = timeline
   const timestep = timeline.timesteps[index]
-  const ticks = timeline.timesteps.flatMap((_, i) =>
-    timeline.hoursToLandfall(i) % TICK_EVERY_H === 0 ? [i] : [],
-  )
+  const series = useCountdownSeries(timeline.timesteps)
   const [playing, setPlaying] = useState(false)
   const { busy } = useApiStatus()
   const lastStepAt = useRef(0)
-  const step = (delta: number) =>
-    onChange(Math.min(landfallIndex, Math.max(0, index + delta)))
+  const step = useCallback(
+    (delta: number) => onChange(Math.min(landfallIndex, Math.max(0, index + delta))),
+    [onChange, landfallIndex, index],
+  )
 
   // Play: one step every PLAY_STEP_MS at most, stopping at landfall. It waits while any API
   // request is queued or in flight, so the current timestep's data has loaded before the next
-  // step (never more than one timestep ahead of the data).
+  // step (never more than one timestep ahead of the data). Prefetches never count as busy.
   useEffect(() => {
     if (!playing || busy) return
     const wait = Math.max(0, PLAY_STEP_MS - (Date.now() - lastStepAt.current))
@@ -80,16 +49,18 @@ export default function TimelineScrubber({ index, onChange, moments = [] }: Prop
     return () => window.clearTimeout(id)
   }, [playing, busy, index, onChange, landfallIndex])
 
-  const togglePlay = () => {
+  const togglePlay = useCallback(() => {
     if (playing) return setPlaying(false)
     if (index === landfallIndex) onChange(0) // replay from the start
     lastStepAt.current = Date.now()
     setPlaying(true)
-  }
+  }, [playing, index, landfallIndex, onChange])
 
-  const placed = moments.flatMap((m) => {
-    const i = timeline.indexOf(m.timestep)
-    return i >= 0 ? [{ moment: m, index: i }] : []
+  useTimelineKeys({
+    step,
+    first: useCallback(() => onChange(0), [onChange]),
+    last: useCallback(() => onChange(landfallIndex), [onChange, landfallIndex]),
+    togglePlay,
   })
 
   return (
@@ -97,13 +68,14 @@ export default function TimelineScrubber({ index, onChange, moments = [] }: Prop
       className="absolute z-20 flex flex-col justify-center rounded-lg bg-white px-4 text-sm text-slate-800 shadow-lg"
       style={{ left: UI_GAP, right: UI_GAP, bottom: UI_GAP, height: TIMELINE_HEIGHT }}
     >
-      <div className="mb-1 flex items-center gap-3">
+      <div className="flex items-center gap-3">
         <button
           type="button"
           onClick={() => step(-1)}
           disabled={index === 0}
           className="rounded border border-slate-300 px-2 py-0.5 disabled:opacity-40"
           aria-label="Previous timestep"
+          aria-keyshortcuts="ArrowLeft"
         >
           ◀
         </button>
@@ -113,6 +85,7 @@ export default function TimelineScrubber({ index, onChange, moments = [] }: Prop
           disabled={index === landfallIndex}
           className="rounded border border-slate-300 px-2 py-0.5 disabled:opacity-40"
           aria-label="Next timestep"
+          aria-keyshortcuts="ArrowRight"
         >
           ▶
         </button>
@@ -122,37 +95,69 @@ export default function TimelineScrubber({ index, onChange, moments = [] }: Prop
           className="rounded border border-slate-300 px-2 py-0.5 text-xs"
           aria-label={playing ? 'Pause replay' : 'Play replay'}
           aria-pressed={playing}
+          aria-keyshortcuts="Space"
         >
           {playing ? '❚❚ Pause' : '▶ Play'}
         </button>
-        <span className="font-semibold">{relativeLabel(index)}h</span>
-        <span className="font-mono text-xs text-slate-600">{timestep}</span>
+        <span className="font-semibold whitespace-nowrap">{relativeLabel(index)}h</span>
+        <span className="hidden font-mono text-xs text-slate-600 sm:inline">{timestep}</span>
         {index === landfallIndex && (
           <span className="rounded bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-800">
             LANDFALL
           </span>
         )}
+        <ul className="ml-auto hidden items-center gap-3 text-[10px] text-slate-500 lg:flex" aria-label="Timeline legend">
+          {MOMENT_ORDER.map((k) => (
+            <li key={k} className="flex items-center gap-1">
+              <span className="block size-2 rotate-45" style={{ background: MOMENT[k].color }} aria-hidden />
+              {MOMENT[k].legend}
+            </li>
+          ))}
+          <li className="flex items-center gap-1">
+            <span className="block h-2 w-3 rounded-sm bg-red-900/25 ring-1 ring-red-900/70" aria-hidden />
+            Cut off
+          </li>
+          <li className="flex items-center gap-1">
+            <span className="block w-3 border-t border-dashed border-amber-600" aria-hidden />
+            Expected
+          </li>
+          <li className="text-slate-400">← → step · Space play · Home/End</li>
+        </ul>
       </div>
-      <div className="relative h-3" aria-label="Key moments">
-        {placed.map(({ moment, index: i }) => (
-          <MomentMarker key={moment.kind} moment={moment} index={i} onJump={onChange} />
-        ))}
+      <Markers moments={moments} onJump={onChange} />
+      <div className="relative">
+        <Sparkline points={series} labelOf={relativeLabel} />
+        <input
+          type="range"
+          min={0}
+          max={landfallIndex}
+          step={1}
+          value={index}
+          onChange={(e) => onChange(Number(e.target.value))}
+          className="relative -mt-2 w-full accent-slate-800"
+          aria-label="Replay timestep"
+          aria-valuetext={`${relativeLabel(index)} hours, ${timestep}`}
+        />
       </div>
-      <input
-        type="range"
-        min={0}
-        max={landfallIndex}
-        step={1}
-        value={index}
-        onChange={(e) => onChange(Number(e.target.value))}
-        className="w-full accent-slate-800"
-        aria-label="Replay timestep"
-        aria-valuetext={`${relativeLabel(index)} hours, ${timestep}`}
-      />
+      {/* A tick per step; taller every 24 h, which are labelled below. */}
+      <div className="relative h-1.5" aria-hidden>
+        {timeline.timesteps.map((_, i) => {
+          const major = timeline.hoursToLandfall(i) % TICK_EVERY_H === 0
+          return (
+            <span
+              key={i}
+              className={`absolute top-0 w-px -translate-x-1/2 ${major ? 'h-1.5 bg-slate-500' : 'h-1 bg-slate-300'}`}
+              style={{ left: trackLeft(i / landfallIndex) }}
+            />
+          )
+        })}
+      </div>
       <div className="flex justify-between text-xs text-slate-500">
-        {ticks.map((i) => (
-          <span key={i}>{i === landfallIndex ? 'T-0 landfall' : relativeLabel(i)}</span>
-        ))}
+        {timeline.timesteps.flatMap((_, i) =>
+          timeline.hoursToLandfall(i) % TICK_EVERY_H === 0
+            ? [<span key={i}>{i === landfallIndex ? 'T-0 landfall' : relativeLabel(i)}</span>]
+            : [],
+        )}
       </div>
     </div>
   )

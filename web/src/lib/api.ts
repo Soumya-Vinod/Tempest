@@ -283,8 +283,8 @@ export const getImpactResults = (
   })
 
 /** v1.3 change, pending Dev A. Precomputed: expected and actual cut-offs, key moments. */
-export const getCountdown = (timestep: TimestepParam) =>
-  request<ActionCountdown>('GET', '/api/impact/countdown', { query: { timestep } })
+export const getCountdown = (timestep: TimestepParam, low?: string) =>
+  request<ActionCountdown>('GET', '/api/impact/countdown', { query: { timestep }, low })
 
 /** v1.3 change, pending Dev A. Precomputed: last safe departure per cut-off facility. */
 export const getDepartures = () => request<Departures>('GET', '/api/impact/departures')

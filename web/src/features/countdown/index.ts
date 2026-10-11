@@ -2,3 +2,4 @@
 // and the replay's key moments for the timeline.
 export { default as CountdownPanel } from './CountdownPanel'
 export { type CountdownState, useCountdown } from './useCountdown'
+export { type CountdownPoint, useCountdownSeries } from './useCountdownSeries'
