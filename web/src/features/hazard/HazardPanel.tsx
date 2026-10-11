@@ -48,29 +48,36 @@ function Toggle(props: { label: string; on: boolean; onToggle: () => void }) {
   )
 }
 
+/** One labelled row; rows stack, so the options never wrap in the 320 px panel. */
 function Segmented<T extends string | number>(props: {
   label: string
+  caption: string
   value: T
   options: [T, string][]
   onChange: (value: T) => void
 }) {
   return (
-    <div className="flex flex-1 gap-1 rounded-md bg-slate-100 p-0.5" role="group" aria-label={props.label}>
-      {props.options.map(([v, text]) => (
-        <button
-          key={String(v)}
-          type="button"
-          aria-pressed={props.value === v}
-          onClick={() => props.onChange(v)}
-          className={`flex-1 rounded px-2 py-1 text-xs font-medium ${
-            props.value === v
-              ? 'bg-white text-violet-800 shadow-sm'
-              : 'text-slate-600 hover:text-slate-800'
-          }`}
-        >
-          {text}
-        </button>
-      ))}
+    <div className="flex items-center gap-2">
+      <span className="w-10 shrink-0 text-[11px] text-slate-500" aria-hidden>
+        {props.caption}
+      </span>
+      <div className="flex flex-1 gap-1 rounded-md bg-slate-100 p-0.5" role="group" aria-label={props.label}>
+        {props.options.map(([v, text]) => (
+          <button
+            key={String(v)}
+            type="button"
+            aria-pressed={props.value === v}
+            onClick={() => props.onChange(v)}
+            className={`flex-1 rounded px-2 py-1 text-xs font-medium whitespace-nowrap ${
+              props.value === v
+                ? 'bg-white text-violet-800 shadow-sm'
+                : 'text-slate-600 hover:text-slate-800'
+            }`}
+          >
+            {text}
+          </button>
+        ))}
+      </div>
     </div>
   )
 }
@@ -119,9 +126,10 @@ export default function HazardPanel(props: HazardPanelProps) {
     <>
       <section>
         <h3 className={`${HEADING} mb-2`}>Map view</h3>
-        <div className="flex gap-2">
+        <div className="space-y-1.5">
           <Segmented
             label="Map view"
+            caption="Show"
             value={props.view}
             options={[
               ['hazard', 'Hazard'],
@@ -131,6 +139,7 @@ export default function HazardPanel(props: HazardPanelProps) {
           />
           <Segmented<Horizon>
             label="Time"
+            caption="When"
             value={props.horizon}
             options={[
               [0, 'Now'],
