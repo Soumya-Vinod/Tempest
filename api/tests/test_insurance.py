@@ -196,6 +196,18 @@ def test_summary_matches_the_trigger_fixtures(demo):
         assert d.released_payout_inr == sum(f.properties.released_payout_inr for f in fc.features)
 
 
+def test_released_so_far_not_first_release_adds_up_to_the_district_total(demo):
+    """The panel's per-block amounts must be released-so far: first releases miss the tier
+    upgrades (Namkhana and Patharpratima at landfall), so they don't add up to the total."""
+    summary = insurance.get_summary()
+    total = summary.district[-1].released_payout_inr
+    assert sum(z.final_released_payout_inr for z in summary.zones) == pytest.approx(total)
+    first = sum(z.first_trigger_payout_inr for z in summary.zones)
+    topped_up = [z for z in summary.zones if z.final_released_tier > z.first_trigger_tier]
+    assert {z.zone_name for z in topped_up} >= {"Namkhana", "Patharpratima"}
+    assert first < total
+
+
 def test_fixtures_round_trip_the_live_computation(demo, monkeypatch):
     live = Settings(_env_file=None, DEMO_MODE=False)
     monkeypatch.setattr(insurance, "get_settings", lambda: live)
