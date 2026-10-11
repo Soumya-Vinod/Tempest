@@ -76,7 +76,7 @@ export function useKpis(args: {
       id: 'surge',
       label: horizon === 24 ? 'People in ≥0.3 m surge (24 h)' : 'People in ≥0.3 m surge',
       value: surge === null ? null : formatPeople(surge),
-      delta: surge !== null && surgePrev !== null && prevIndex !== null ? signed(surge - surgePrev, formatPeople) : null,
+      delta: surge !== null && surgePrev !== null && prevIndex !== null ? signed(surge - surgePrev, (n) => formatPeople(n).replace('~', '')) : null,
       worse: surge !== null && surgePrev !== null && surge > surgePrev,
       title: `Residents of areas with at least 0.3 m of storm surge (${surgeWhen(horizon)}). ${SURGE_ESTIMATE_NOTE}`,
     },
