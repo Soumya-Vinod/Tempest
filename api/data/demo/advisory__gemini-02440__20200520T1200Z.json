@@ -1,0 +1,40 @@
+{
+ "en": {
+  "headline": "Landfall is under way in {{block_name}} with severe storm surge and cut health facilities",
+  "body": "Cyclone landfall is under way across {{block_name}}, bringing peak winds of {{peak_wind_ms}} and a storm surge of {{peak_surge_m}}. Storm surge flooding has cut {{cut_road_km}} of roads and disrupted {{cut_substation_count}} electrical substation. Road access is already severed to {{isolated_hospital_count}} health facilities, including {{isolated_1_name}}, {{isolated_2_name}} and {{isolated_3_name}}.",
+  "actions": [
+   "Deploy emergency boat teams to supply and support the cut-off staff and patients at {{isolated_1_name}}, {{isolated_2_name}} and {{isolated_3_name}}.",
+   "Clear debris and assess floodwaters along {{isolated_1_route}} as conditions allow.",
+   "Dispatch power restoration crews and backup generators to the area of the disconnected electrical substation."
+  ]
+ },
+ "bn": {
+  "headline": "{{block_name}} ব্লকে আছড়ে পড়ছে ঘূর্ণিঝড়; প্রবল জলোচ্ছ্বাসে বিচ্ছিন্ন একাধিক স্বাস্থ্যকেন্দ্র",
+  "body": "{{block_name}} ব্লকে ঘূর্ণিঝড়ের আছড়ে পড়ার প্রক্রিয়া চলছে, যেখানে বাতাসের গতিবেগ {{peak_wind_ms}} এবং জলোচ্ছ্বাসের উচ্চতা {{peak_surge_m}} পৌঁছেছে। প্লাবনের কারণে {{cut_road_km}} সড়কপথে যোগাযোগ বিচ্ছিন্ন হয়েছে এবং {{cut_substation_count}} বিদ্যুৎ সাবস্টেশন ক্ষতিগ্রস্ত হয়েছে। প্লাবিত সড়কের কারণে {{isolated_1_name}}, {{isolated_2_name}} এবং {{isolated_3_name}} সহ {{isolated_hospital_count}} স্বাস্থ্যকেন্দ্রের সড়ক যোগাযোগ এখনই সম্পূর্ণ বন্ধ হয়ে গেছে।",
+  "actions": [
+   "বিচ্ছিন্ন হয়ে পড়া {{isolated_1_name}}, {{isolated_2_name}} এবং {{isolated_3_name}}-এ নৌকার মাধ্যমে জরুরি সহায়তা ও ওষুধ পৌঁছে দিন।",
+   "পরিস্থিতি কিছুটা স্বাভাবিক হলে {{isolated_1_route}} থেকে জল নামানো ও গাছ সরানোর কাজ শুরু করুন।",
+   "সংযোগ বিচ্ছিন্ন হওয়া বিদ্যুৎ সাবস্টেশনের এলাকায় ব্যাকআপ জেনারেটর এবং জরুরি মেরামতকারী দল পাঠান।"
+  ]
+ },
+ "hi": {
+  "headline": "{{block_name}} में चक्रवात का लैंडफॉल जारी; भारी तूफान और स्वास्थ्य केंद्र कटे",
+  "body": "{{block_name}} में चक्रवात का लैंडफॉल जारी है, जिससे हवा की गति {{peak_wind_ms}} और तूफान की लहरें {{peak_surge_m}} तक पहुँच रही हैं। बाढ़ के चलते {{cut_road_km}} सड़कें कट चुकी हैं और {{cut_substation_count}} विद्युत सबस्टेशन बाधित है। {{isolated_1_name}}, {{isolated_2_name}} और {{isolated_3_name}} सहित {{isolated_hospital_count}} स्वास्थ्य केंद्रों का सड़क संपर्क पूरी तरह टूट चुका है।",
+  "actions": [
+   "सड़क से कटे {{isolated_1_name}}, {{isolated_2_name}} और {{isolated_3_name}} तक नावों के जरिए राहत सामग्री और स्वास्थ्य सहायता पहुँचाएँ।",
+   "मौसम अनुकूल होते ही {{isolated_1_route}} से पानी निकालने और मलबा हटाने का काम शुरू करें।",
+   "बाधित विद्युत सबस्टेशन के क्षेत्र में मरम्मत दल और वैकल्पिक जनरेटर की व्यवस्था करें।"
+  ]
+ },
+ "_cited_text": {
+  "block_name": "Patharpratima",
+  "isolated_1_name": "Drbachati Sub Health Centre",
+  "isolated_1_route": "Addha Bazar to Paschim Surendranagar Road",
+  "isolated_2_name": "Gadamathura PHC",
+  "isolated_3_name": "Madhabnagar Rural Hospital"
+ },
+ "_generated_by": {
+  "provider": "gemini",
+  "model": "gemini-3.7-flash"
+ }
+}

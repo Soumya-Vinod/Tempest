@@ -1,0 +1,39 @@
+{
+ "en": {
+  "headline": "Cyclone landfall is under way in {{block_name}} with severe surge and cut-off health centres",
+  "body": "Landfall is under way across the block, bringing peak storm surge of {{peak_surge_m}} and peak wind speeds of {{peak_wind_ms}}. Storm surge floodwaters have cut {{cut_road_km}} of roadways. There are {{isolated_hospital_count}} health facilities completely cut off by road inundation.",
+  "actions": [
+   "Dispatch boat teams to deliver emergency supplies and medical support to {{isolated_1_name}}, {{isolated_2_name}}, and {{isolated_3_name}}.",
+   "Clear fallen debris and assess breach points along the {{cut_road_km}} of submerged roadways where water levels permit.",
+   "Maintain boat-based transport links to reach higher-level facilities, noting that access normally takes {{hospital_median_min}} by road."
+  ]
+ },
+ "bn": {
+  "headline": "{{block_name}} ব্লকে ঘূর্ণিঝড়ের ল্যান্ডফল চলছে, তীব্র জলোচ্ছ্বাসে স্বাস্থ্যকেন্দ্রগুলি বিচ্ছিন্ন",
+  "body": "ব্লকে ঘূর্ণিঝড়ের ল্যান্ডফল চলছে, যার ফলে সর্বোচ্চ {{peak_surge_m}} জলোচ্ছ্বাস এবং {{peak_wind_ms}} বেগে ঝোড়ো হাওয়া বইছে। জলোচ্ছ্বাসের কারণে {{cut_road_km}} রাস্তা প্লাবিত হয়েছে। সড়ক যোগাযোগ বিচ্ছিন্ন হয়ে পড়ায় {{isolated_hospital_count}} স্বাস্থ্যকেন্দ্র সম্পূর্ণ যোগাযোগহীন অবস্থায় রয়েছে।",
+  "actions": [
+   "জলমগ্ন হয়ে বিচ্ছিন্ন থাকা {{isolated_1_name}}, {{isolated_2_name}} এবং {{isolated_3_name}}-এ নৌকার মাধ্যমে জরুরি ত্রাণ ও চিকিৎসা সহায়তা পাঠান।",
+   "জল নামার সাথে সাথে প্লাবিত {{cut_road_km}} সড়কের জল নিষ্কাশন ও গাছপালা সরানোর দল নামান।",
+   "স্বাভাবিক সময়ে হাসপাতালে পৌঁছানোর সড়কপথের সময় যেখানে {{hospital_median_min}}, সেখানে আপৎকালীন রোগী স্থানান্তরের জন্য নৌপথ প্রস্তুত রাখুন।"
+  ]
+ },
+ "hi": {
+  "headline": "{{block_name}} में चक्रवात का लैंडफॉल जारी, भारी तूफान से स्वास्थ्य केंद्र कटे",
+  "body": "ब्लॉक में चक्रवात का लैंडफॉल जारी है, जिससे {{peak_surge_m}} का तूफान और {{peak_wind_ms}} की रफ्तार से हवाएं चल रही हैं। तूफानी पानी के कारण {{cut_road_km}} सड़कों पर आवागमन ठप है। सड़कें डूबने से {{isolated_hospital_count}} स्वास्थ्य केंद्र पूरी तरह संपर्क से कट चुके हैं।",
+  "actions": [
+   "सड़क कटने से अलग-थलग पड़े {{isolated_1_name}}, {{isolated_2_name}} और {{isolated_3_name}} तक नावों के जरिए तुरंत दवाएं और मदद पहुंचाएं।",
+   "पानी घटने पर जलमग्न हुई {{cut_road_km}} सड़कों से मलबा हटाने और संपर्क बहाल करने के लिए टीमें भेजें।",
+   "अस्पताल पहुंचने का सामान्य सड़क समय {{hospital_median_min}} है, अतः आपातकालीन रेफरल के लिए नाव आधारित परिवहन जारी रखें।"
+  ]
+ },
+ "_cited_text": {
+  "block_name": "Namkhana",
+  "isolated_1_name": "Dwariknagar Rural Hospital",
+  "isolated_2_name": "Frasergunj PHC",
+  "isolated_3_name": "Maharajganj PHC"
+ },
+ "_generated_by": {
+  "provider": "gemini",
+  "model": "gemini-3.7-flash"
+ }
+}

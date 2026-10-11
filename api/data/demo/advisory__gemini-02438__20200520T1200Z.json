@@ -1,0 +1,38 @@
+{
+ "en": {
+  "headline": "Cyclone landfall under way in {{block_name}} with severe storm surge and flooding",
+  "body": "Landfall is under way with peak storm surge reaching {{peak_surge_m}} and peak winds of {{peak_wind_ms}}. Storm surge flooding has cut {{cut_road_km}} of roads and disconnected {{cut_substation_count}} electrical substation. Across the block, {{isolated_hospital_count}} health facilities—{{isolated_1_name}} and {{isolated_2_name}}—are cut off due to flooded roads.",
+  "actions": [
+   "Deploy emergency boats to deliver critical medical supplies and support to staff at {{isolated_1_name}} and {{isolated_2_name}}.",
+   "Dispatch road clearance and drainage teams to clear key supply corridors across the {{cut_road_km}} of submerged roads.",
+   "Provide backup generator fuel and technical support to power networks affected by the {{cut_substation_count}} cut substation."
+  ]
+ },
+ "bn": {
+  "headline": "{{block_name}} ব্লকে তীব্র জলোচ্ছ্বাস ও ঝড়সহ ল্যান্ডফল চলছে",
+  "body": "ল্যান্ডফল এখন চলছে এবং সর্বোচ্চ জলোচ্ছ্বাসের উচ্চতা {{peak_surge_m}} ও বাতাসের গতিবেগ {{peak_wind_ms}} স্পর্শ করেছে। জলোচ্ছ্বাসের কারণে {{cut_road_km}} রাস্তা প্লাবিত হয়েছে এবং {{cut_substation_count}} সাবস্টেশন বিচ্ছিন্ন হয়ে পড়েছে। প্লাবিত রাস্তার কারণে {{isolated_1_name}} এবং {{isolated_2_name}} সহ মোট {{isolated_hospital_count}} স্বাস্থ্যকেন্দ্র সম্পূর্ণ বিচ্ছিন্ন হয়ে গেছে।",
+  "actions": [
+   "বিচ্ছিন্ন হয়ে পড়া {{isolated_1_name}} এবং {{isolated_2_name}}-এ নৌকার মাধ্যমে জরুরি ওষুধ ও সহায়তা পৌঁছে দিন।",
+   "প্লাবিত {{cut_road_km}} রাস্তার গুরুত্বপূর্ণ অংশগুলি চলাচলের উপযোগী করতে উদ্ধারকারী দল পাঠান।",
+   "বিচ্ছিন্ন {{cut_substation_count}} সাবস্টেশনের আওতাধীন এলাকায় জরুরি বিদ্যুৎ ব্যবস্থার জন্য জেনারেটর ও জ্বালানি নিশ্চিত করুন।"
+  ]
+ },
+ "hi": {
+  "headline": "{{block_name}} में तीव्र तूफान और तूफानी लहरों के साथ लैंडफॉल जारी",
+  "body": "लैंडफॉल की प्रक्रिया जारी है, जिसमें तूफानी लहरें {{peak_surge_m}} तक पहुँच रही हैं और हवा की गति {{peak_wind_ms}} दर्ज की गई है। जलभराव के कारण {{cut_road_km}} सड़कें अवरुद्ध हो गई हैं और {{cut_substation_count}} सबस्टेशन कट गया है। सड़कों के डूबने से {{isolated_1_name}} और {{isolated_2_name}} सहित {{isolated_hospital_count}} स्वास्थ्य केंद्र कट चुके हैं।",
+  "actions": [
+   "मार्ग बाधित होने के कारण {{isolated_1_name}} और {{isolated_2_name}} में नावों द्वारा आवश्यक चिकित्सा आपूर्ति पहुँचाएँ।",
+   "जलमग्न {{cut_road_km}} सड़कों को खाली कराने और आवागमन बहाल करने के लिए टीमें भेजें।",
+   "बाधित {{cut_substation_count}} सबस्टेशन से प्रभावित क्षेत्रों में आपातकालीन बैकअप बिजली और ईंधन की व्यवस्था करें।"
+  ]
+ },
+ "_cited_text": {
+  "block_name": "Sagar",
+  "isolated_1_name": "Gangasagar PHC",
+  "isolated_2_name": "Mahendraganj PHC"
+ },
+ "_generated_by": {
+  "provider": "gemini",
+  "model": "gemini-3.7-flash"
+ }
+}
