@@ -20,6 +20,8 @@ import {
   MUTED,
   OUTLINE_PX,
   POINT_PX,
+  POWER_LINE_OPACITY,
+  ROAD_OPACITY,
   ROAD_WIDTH,
   STAND_IN,
   STAND_IN_RING_PX,
@@ -123,11 +125,27 @@ function pointLayer(
   })
 }
 
+/** Which facility points to draw (health facilities and shelters); null draws them all. */
+export type FacilityFilter = ((f: InfraFeatureCollection['features'][number]) => boolean) | null
+
+// Filtered collections, per source collection and filter: rebuilt only when either changes.
+const filtered = new WeakMap<InfraFeatureCollection, { filter: FacilityFilter; fc: InfraFeatureCollection }>()
+
+function applyFilter(fc: InfraFeatureCollection, filter: FacilityFilter): InfraFeatureCollection {
+  if (!filter) return fc
+  const hit = filtered.get(fc)
+  if (hit && hit.filter === filter) return hit.fc
+  const out: InfraFeatureCollection = { type: 'FeatureCollection', features: fc.features.filter(filter) }
+  filtered.set(fc, { filter, fc: out })
+  return out
+}
+
 /** Layers bottom to top: roads, power lines, then points (hospitals on top). */
 export function buildInfraLayers(
   state: InfraByType,
   visible: Record<InfraType, boolean>,
   muted = false,
+  facilities: FacilityFilter = null,
 ): Layer[] {
   // Colour accessors are fixed functions; updateTriggers make deck.gl recolour only when `muted`
   // flips, never on other rebuilds.
@@ -137,7 +155,10 @@ export function buildInfraLayers(
     const s = state[t]
     return s.status === 'ok' ? s.data : EMPTY
   }
-  const [hospitals, healthCentres] = splitHealth(data('hospital'))
+  const [allHospitals, allHealthCentres] = splitHealth(data('hospital'))
+  const hospitals = applyFilter(allHospitals, facilities)
+  const healthCentres = applyFilter(allHealthCentres, facilities)
+  const shelters = applyFilter(data('shelter'), facilities)
   const outlined = (fill: Color): PointStyle => ({
     getFillColor: fill,
     getLineColor: COLOR.outline,
@@ -153,6 +174,7 @@ export function buildInfraLayers(
       updateTriggers: colours,
       getLineWidth: roadWidth,
       lineWidthMinPixels: 1,
+      opacity: ROAD_OPACITY,
     }),
     new GeoJsonLayer<InfraFeatureProperties>({
       id: 'infra-power_line',
@@ -161,6 +183,7 @@ export function buildInfraLayers(
       ...COMMON,
       getLineColor: palette.powerLine,
       getLineWidth: 1.2,
+      opacity: POWER_LINE_OPACITY,
     }),
     pointLayer(
       'infra-substation',
@@ -169,7 +192,7 @@ export function buildInfraLayers(
       POINT_PX.substation,
       outlined(palette.substation),
     ),
-    pointLayer('infra-shelter', data('shelter'), visible.shelter, POINT_PX.shelter, {
+    pointLayer('infra-shelter', shelters, visible.shelter, POINT_PX.shelter, {
       getFillColor: muted ? mutedShelterFill : shelterFill,
       getLineColor: muted ? mutedShelterLine : shelterLine,
       getLineWidth: shelterLineWidth,

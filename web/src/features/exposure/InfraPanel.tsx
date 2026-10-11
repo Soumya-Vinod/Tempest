@@ -11,6 +11,8 @@ interface Props {
   onToggle: (infraType: InfraType) => void
   /** Impact is showing: the map's exposure colours are muted, so the swatches are too. */
   muted?: boolean
+  showAllFacilities: boolean
+  onToggleShowAll: () => void
 }
 
 const count = (fc: InfraFeatureCollection, key: string, value: unknown) =>
@@ -108,7 +110,14 @@ function Swatch({ infraType, muted }: { infraType: InfraType; muted: boolean }) 
 }
 
 /** "Infrastructure" side-panel section: one toggle and count per type. */
-export default function InfraPanel({ state, visible, onToggle, muted = false }: Props) {
+export default function InfraPanel({
+  state,
+  visible,
+  onToggle,
+  muted = false,
+  showAllFacilities,
+  onToggleShowAll,
+}: Props) {
   return (
     <section className="mt-5">
       <h2 className="mb-2 text-xs font-semibold tracking-wide text-slate-500 uppercase">
@@ -143,6 +152,20 @@ export default function InfraPanel({ state, visible, onToggle, muted = false }: 
           )
         })}
       </ul>
+      <label className="mt-3 flex cursor-pointer items-start gap-2 text-xs text-slate-700">
+        <input
+          type="checkbox"
+          checked={showAllFacilities}
+          onChange={onToggleShowAll}
+          className="mt-0.5 accent-slate-700"
+        />
+        <span>
+          Show all health facilities and shelters
+          <span className="block text-slate-500">
+            Off: only those affected, or in blocks at risk (score ≥ 0.25).
+          </span>
+        </span>
+      </label>
     </section>
   )
 }

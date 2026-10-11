@@ -14,7 +14,7 @@ export const RISK_RAMP: readonly (readonly [number, readonly [number, number, nu
   [0.75, [112, 56, 190]],
   [1, [59, 16, 110]],
 ]
-export const FILL_ALPHA = Math.round(0.7 * 255) // 70 % fill; outlines stay full strength
+export const FILL_ALPHA = Math.round(0.45 * 255) // 45 % fill, so impact reads on top; outlines stay full strength
 export const OUTLINE: Color = [71, 85, 105, 200] // slate-600
 export const SELECTED_OUTLINE: Color = [6, 182, 212] // cyan-500, as the impact highlight
 export const UNSCORED_PICK: Color = [0, 0, 0, 1] // invisible, but pickable for the tooltip

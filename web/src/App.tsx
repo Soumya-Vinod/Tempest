@@ -19,6 +19,7 @@ import {
 } from './features/criticalLinks'
 import { buildRouteLayers, useDepartures } from './features/departures'
 import {
+  type FacilityFilter,
   InfraPanel,
   makeInfraTooltip,
   useBlockOf,
@@ -82,8 +83,17 @@ export default function App() {
         )
       : undefined
   const shelterSince = timeline.indexOf(shelterCutOff?.since)
+  // Less noise: health facilities and shelters only where something is happening (affected, or
+  // in a block at risk), unless the user shows them all. The block test is lazy and memoized.
+  const { affectedIds } = impact
+  const { atRiskBlocks } = risk
+  const facilityFilter = useMemo<FacilityFilter>(
+    () => (f) =>
+      affectedIds.has(f.id) || (blockOf !== null && atRiskBlocks.has(blockOf(f.id, f.geometry) ?? '')),
+    [affectedIds, atRiskBlocks, blockOf],
+  )
   // Red and orange mean impact only: exposure mutes its colours while impact results show.
-  const infraLayers = useInfraLayers(infra, impact.active)
+  const infraLayers = useInfraLayers(infra, impact.active, facilityFilter)
 
   // Bottom to top: hazard fills or the risk choropleth (one view at a time: both are area
   // fills; in Risk view, gold outlines on blocks with an insurance payout released), muted
@@ -204,6 +214,8 @@ export default function App() {
           visible={infra.visible}
           onToggle={infra.toggle}
           muted={impact.active}
+          showAllFacilities={infra.showAllFacilities}
+          onToggleShowAll={infra.toggleShowAllFacilities}
         />
         <RiskPanel {...risk.panel} />
         <ImpactPanel {...impact.panel} />

@@ -54,6 +54,10 @@ export const MUTED = {
 } satisfies Record<string, Color>
 
 /** Road line width (px) by OSM highway class; `_link` roads use LINK_WIDTH. */
+/** Layer opacity of the baseline network: context, not the story. */
+export const ROAD_OPACITY = 0.5
+export const POWER_LINE_OPACITY = 0.6
+
 export const ROAD_WIDTH: Record<string, number> = {
   motorway: 3.5,
   trunk: 3.5,

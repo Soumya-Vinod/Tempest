@@ -38,6 +38,8 @@ export interface ImpactMap {
   highlightLayers: Layer[]
   /** Impact results are on the map (exposure should mute its colours). */
   active: boolean
+  /** Ids of every affected (non-OK) feature at this timestep and horizon. */
+  affectedIds: { has: (id: string) => boolean }
   /** Tooltip for impact layers; null elsewhere, so the exposure tooltip can take over. */
   tooltip: (info: PickingInfo) => TooltipContent
   /** Selects the clicked affected feature (true) or clears the selection (false). */
@@ -137,6 +139,7 @@ export function useImpactMap(
     layers,
     highlightLayers,
     active: shown.length > 0,
+    affectedIds: affected,
     tooltip,
     onClick,
     clear,

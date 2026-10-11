@@ -46,6 +46,8 @@ export interface RiskMap {
   clear: () => void
   /** Selects a block by id (e.g. from the advisory queue); the caller switches to the Risk view. */
   select: (blockId: string) => void
+  /** Names of the blocks at risk (score >= RISK_VIEW_MIN_SCORE): the affected area. */
+  atRiskBlocks: Set<string>
   /** Every scored block's polygon, for labelling unnamed features by block. */
   areas: BlockArea[] | null
   /** Every scored block, for pickers. */
@@ -136,6 +138,15 @@ export function useRiskMap(
       })) ?? [],
     [shown],
   )
+  const atRiskBlocks = useMemo(
+    () =>
+      new Set(
+        shown?.scores.features
+          .filter((f) => f.properties.score >= RISK_VIEW_MIN_SCORE)
+          .map((f) => f.properties.block_name) ?? [],
+      ),
+    [shown],
+  )
   const areas = useMemo(
     () =>
       shown?.scores.features.map((f) => ({
@@ -169,6 +180,7 @@ export function useRiskMap(
     clear,
     select,
     blocks,
+    atRiskBlocks,
     areas,
     onMapLoad: setMap,
     panel: { visible, state },
