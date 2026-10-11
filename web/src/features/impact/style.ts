@@ -33,9 +33,12 @@ export const RADIUS = {
   isolatedRing: 10,
   haloMin: 13,
   haloMax: 19,
+  haloStatic: 16, // prefers-reduced-motion
   highlight: 15,
 }
 export const PULSE_MS = 900
+/** Pause between halo pulses, with nothing animating. */
+export const PULSE_REST_MS = 3000
 
 /** Worst first. */
 export const STATUS_RANK: Record<ImpactStatus, number> = { ok: 0, at_risk: 1, cut: 2, isolated: 3 }

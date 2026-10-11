@@ -81,14 +81,3 @@ export function useImpacts(
   const state: ImpactState = settled?.key === key ? settled.state : { status: 'loading' }
   return { state, shown: state.status === 'ok' ? state.data : lastOk }
 }
-
-/** Flips every PULSE_MS while active; the ring layer animates between the two sizes. */
-export function usePulse(active: boolean, periodMs: number): boolean {
-  const [on, setOn] = useState(false)
-  useEffect(() => {
-    if (!active) return
-    const id = setInterval(() => setOn((v) => !v), periodMs)
-    return () => clearInterval(id)
-  }, [active, periodMs])
-  return active && on
-}

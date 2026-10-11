@@ -1,5 +1,6 @@
 // Impact feature (Dev B): affected infrastructure on the map, counts and pathways in the panel.
 import type { DeckProps, Layer, PickingInfo } from '@deck.gl/core'
+import type { Map as MapLibreMap } from 'maplibre-gl'
 import { useCallback, useMemo, useState } from 'react'
 
 import { useTimeline } from '../../lib/timeline'
@@ -7,10 +8,11 @@ import type { Horizon, ImpactStatus } from '../../types/contracts'
 import type { BlockOf, InfraByType } from '../exposure'
 import type { default as ImpactPanelComponent } from './ImpactPanel'
 import type { PathwayCardProps } from './PathwayCard'
-import { aggregate, buildImpactLayers, layerData, pickedAffected } from './layers'
+import { aggregate, buildImpactLayers, type HaloState, layerData, pickedAffected } from './layers'
 import { featureName, infraLookup } from './labels'
-import { HAZARD_LABEL, PULSE_MS, STATUS_LABEL } from './style'
-import { useImpacts, usePulse } from './useImpacts'
+import { useAnyInView, usePageVisible, usePulse, useReducedMotion } from './motion'
+import { HAZARD_LABEL, PULSE_MS, PULSE_REST_MS, STATUS_LABEL } from './style'
+import { useImpacts } from './useImpacts'
 
 export { default as ImpactPanel } from './ImpactPanel'
 export { default as PathwayCard } from './PathwayCard'
@@ -51,6 +53,7 @@ export function useImpactMap(
   infra: InfraByType,
   horizon: Horizon = 0,
   blockOf: BlockOf | null = null,
+  map: MapLibreMap | null = null,
 ): ImpactMap {
   const timestep = useTimeline().timesteps[timestepIndex]
   const { state, shown } = useImpacts(timestep, horizon)
@@ -70,7 +73,17 @@ export function useImpactMap(
   const affected = useMemo(() => aggregate(shown), [shown])
   const data = useMemo(() => layerData(affected, isolatedNow), [affected, isolatedNow])
   const lookup = useMemo(() => infraLookup(infra), [infra])
-  const pulse = usePulse(data.isolated.length > 0, PULSE_MS)
+  // The halo pulses only while isolated facilities are in view on a visible page; static under
+  // prefers-reduced-motion. Otherwise nothing animates and the map stays idle.
+  const reducedMotion = useReducedMotion()
+  const pageVisible = usePageVisible()
+  const isolatedPoints = useMemo(
+    () => data.isolated.map((a) => a.geometry.coordinates as [number, number]),
+    [data.isolated],
+  )
+  const inView = useAnyInView(map, isolatedPoints)
+  const pulse = usePulse(inView && pageVisible && !reducedMotion, PULSE_MS, PULSE_REST_MS)
+  const halo: HaloState = reducedMotion ? 'static' : pulse ? 'grow' : 'shrink'
 
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [highlightId, setHighlightId] = useState<string | null>(null)
@@ -79,8 +92,8 @@ export function useImpactMap(
     : null
 
   const { layers, highlight: highlightLayers } = useMemo(
-    () => buildImpactLayers(data, highlight, pulse),
-    [data, highlight, pulse],
+    () => buildImpactLayers(data, highlight, halo),
+    [data, highlight, halo],
   )
 
   const counts = useMemo(() => {

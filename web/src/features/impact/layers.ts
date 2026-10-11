@@ -64,6 +64,9 @@ const position = (a: Affected) => a.geometry.coordinates as [number, number]
 const haloMax = () => RADIUS.haloMax
 const haloMin = () => RADIUS.haloMin
 
+/** The halo: 'grow' / 'shrink' while pulsing (animated), 'static' when motion is off. */
+export type HaloState = 'grow' | 'shrink' | 'static'
+
 export interface ImpactLayerData {
   lines: AffectedFeature[]
   points: AffectedFeature[] // at_risk / cut points (substations, facilities)
@@ -118,7 +121,7 @@ const AUTO_HIGHLIGHT: number[] = [250, 204, 21, 200]
 export function buildImpactLayers(
   data: ImpactLayerData,
   highlight: InfraGeometry | null,
-  pulse: boolean,
+  halo: HaloState,
 ): { layers: Layer[]; highlight: Layer[] } {
   const layers: Layer[] = [
     new GeoJsonLayer<{ affected: Affected }>({
@@ -162,8 +165,8 @@ export function buildImpactLayers(
     )
   if (data.isolated.length > 0)
     layers.push(
-      // Pulsing halo: only its target radius changes (every PULSE_MS); deck.gl animates the
-      // transition on the GPU, so there's no per-frame React work.
+      // Halo: while pulsing only its target radius changes and deck.gl animates the transition on
+      // the GPU (no per-frame React work); between pulses and when static nothing redraws.
       new ScatterplotLayer<Affected>({
         id: 'impact-isolated-halo',
         data: data.isolated,
@@ -171,12 +174,12 @@ export function buildImpactLayers(
         getPosition: position,
         radiusUnits: 'pixels',
         // An accessor (not a constant) so the radius is a buffer that transitions can interpolate.
-        getRadius: pulse ? haloMax : haloMin,
-        updateTriggers: { getRadius: pulse },
+        getRadius: halo === 'grow' ? haloMax : halo === 'shrink' ? haloMin : RADIUS.haloStatic,
+        updateTriggers: { getRadius: halo },
         filled: true,
         stroked: false,
         getFillColor: IMPACT_COLOR.isolatedHalo,
-        transitions: { getRadius: { duration: PULSE_MS } },
+        transitions: halo === 'static' ? {} : { getRadius: { duration: PULSE_MS } },
       }),
       // The ring (filled white inside, so the whole target is clickable), then its core.
       new ScatterplotLayer<Affected>({

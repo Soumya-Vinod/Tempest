@@ -51,7 +51,7 @@ export default function App() {
   // Unnamed features are labelled by block ("Road segment · Kultali"), looked up on hover.
   const blockOf = useBlockOf(risk.areas)
   const infraTooltip = useMemo(() => makeInfraTooltip(blockOf), [blockOf])
-  const impact = useImpactMap(timestepIndex, infra.state, horizon, blockOf)
+  const impact = useImpactMap(timestepIndex, infra.state, horizon, blockOf, map)
   const hazard = useHazardMap(timestepIndex, risk.view, setChosenView, map, horizon, setChosenHorizon)
   const insurance = useInsuranceMap(timestepIndex, risk.view === 'risk')
   const countdown = useCountdown(timeline.timesteps[timestepIndex])
