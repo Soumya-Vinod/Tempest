@@ -64,3 +64,6 @@ $RECYCLE.BIN/
 *.swp
 *.swo
 *~
+
+# --- Review screenshots (local only) ---
+review/
