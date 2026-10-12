@@ -2,7 +2,15 @@
 // map's fit padding and attribution offset, so they can't drift apart.
 export const UI_GAP = 16
 export const PANEL_WIDTH = 320
-export const TIMELINE_HEIGHT = 128
+/**
+ * Short viewports (small laptops, 1366x768): the timeline drops its sparkline and step labels.
+ * Decided once at load, so every offset derived from TIMELINE_HEIGHT stays consistent.
+ */
+const viewportHeight = typeof window === 'undefined' ? 1080 : window.innerHeight
+export const COMPACT_TIMELINE = viewportHeight < 800
+/** Below this height the map legend starts folded. */
+export const LEGEND_FOLDED = viewportHeight < 900
+export const TIMELINE_HEIGHT = COMPACT_TIMELINE ? 96 : 128
 /** The KPI strip over the top of the map; it starts right of MapLibre's zoom buttons. */
 export const KPI_HEIGHT = 52
 export const KPI_LEFT = UI_GAP + 44

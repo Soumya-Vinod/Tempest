@@ -5,7 +5,7 @@ import { SURGE_RAMP_CSS } from '../features/hazard/style'
 import type { MapViewMode } from '../features/hazard'
 import { StatusSwatch } from '../features/impact'
 import { cssColor, HATCH_CSS, RAMP_CSS } from '../features/risk/style'
-import { ABOVE_TIMELINE, CARD_TOP_CLEARANCE, UI_GAP } from '../lib/layout'
+import { ABOVE_TIMELINE, CARD_TOP_CLEARANCE, LEGEND_FOLDED, UI_GAP } from '../lib/layout'
 import type { Horizon } from '../types/contracts'
 
 const rgb = (c: readonly number[]) => cssColor([c[0], c[1], c[2], c[3] ?? 255])
@@ -72,7 +72,8 @@ export default function MapLegend({
   horizon: Horizon
   cardOpen: boolean
 }) {
-  const [open, setOpen] = useState(true)
+  // Folded at first on short screens, where it would cover much of the map.
+  const [open, setOpen] = useState(!LEGEND_FOLDED)
   const expanded = open && !cardOpen
   return (
     <section

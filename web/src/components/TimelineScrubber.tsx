@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { useCountdownSeries } from '../features/countdown'
-import { TIMELINE_HEIGHT, UI_GAP } from '../lib/layout'
+import { COMPACT_TIMELINE, TIMELINE_HEIGHT, UI_GAP } from '../lib/layout'
 import { useTimeline } from '../lib/timeline'
 import { useApiStatus } from '../lib/useApiStatus'
 import type { KeyMoment } from '../types/contracts'
@@ -126,7 +126,7 @@ export default function TimelineScrubber({ index, onChange, moments = [] }: Prop
       </div>
       <Markers moments={moments} onJump={onChange} />
       <div className="relative">
-        <Sparkline points={series} labelOf={relativeLabel} />
+        {!COMPACT_TIMELINE && <Sparkline points={series} labelOf={relativeLabel} />}
         <input
           type="range"
           min={0}
@@ -134,7 +134,7 @@ export default function TimelineScrubber({ index, onChange, moments = [] }: Prop
           step={1}
           value={index}
           onChange={(e) => onChange(Number(e.target.value))}
-          className="relative -mt-2 w-full accent-slate-800"
+          className={`relative w-full accent-slate-800 ${COMPACT_TIMELINE ? '' : '-mt-2'}`}
           aria-label="Replay timestep"
           aria-valuetext={`${relativeLabel(index)} hours, ${timestep}`}
         />
@@ -152,13 +152,15 @@ export default function TimelineScrubber({ index, onChange, moments = [] }: Prop
           )
         })}
       </div>
-      <div className="flex justify-between text-xs text-slate-500">
-        {timeline.timesteps.flatMap((_, i) =>
-          timeline.hoursToLandfall(i) % TICK_EVERY_H === 0
-            ? [<span key={i}>{i === landfallIndex ? 'T-0 landfall' : relativeLabel(i)}</span>]
-            : [],
-        )}
-      </div>
+      {!COMPACT_TIMELINE && (
+        <div className="flex justify-between text-xs text-slate-500">
+          {timeline.timesteps.flatMap((_, i) =>
+            timeline.hoursToLandfall(i) % TICK_EVERY_H === 0
+              ? [<span key={i}>{i === landfallIndex ? 'T-0 landfall' : relativeLabel(i)}</span>]
+              : [],
+          )}
+        </div>
+      )}
     </div>
   )
 }
