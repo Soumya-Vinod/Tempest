@@ -151,6 +151,7 @@ def test_every_response_matches_the_contract(fixture, deps):
                 assert x.label == f"{base} ({' → '.join(x.blocks)})" and x.blocks
 
 
+@pytest.mark.local_data
 @pytest.mark.skipif(not impact.GRAPH_PATH.is_file(), reason="needs data/processed/roads.graphml")
 def test_fixture_matches_a_fresh_build(fixture):
     """Rebuild it (scripts/build_critical_links_fixture.py) after rebuilding the departures."""

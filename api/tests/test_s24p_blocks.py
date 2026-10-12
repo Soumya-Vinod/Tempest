@@ -63,6 +63,7 @@ def test_blocks_do_not_overlap(blocks, blocks_m):
     assert not overlaps
 
 
+@pytest.mark.local_data
 @pytest.mark.skipif(not BOUNDARY_JSON.exists(), reason="needs api/data/raw (ingest_osm.py)")
 def test_no_block_area_inside_kolkata(blocks_m):
     boundary = json.loads(BOUNDARY_JSON.read_text(encoding="utf-8"))

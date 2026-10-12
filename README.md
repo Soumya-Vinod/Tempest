@@ -1,5 +1,7 @@
 # Tempest
 
+[![CI](https://github.com/Soumya-Vinod/Tempest/actions/workflows/ci.yml/badge.svg)](https://github.com/Soumya-Vinod/Tempest/actions/workflows/ci.yml)
+
 Anticipatory action for cyclones in South 24 Parganas, West Bengal: a replay of Cyclone Amphan
 (May 2020) that shows, block by block and ahead of landfall, which roads and facilities the storm
 will cut off, where risk concentrates, and drafts trilingual advisories that an official approves

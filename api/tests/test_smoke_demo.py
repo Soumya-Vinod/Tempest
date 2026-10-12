@@ -221,6 +221,7 @@ def test_the_image_setting_points_state_and_xsd_outside_the_repo(monkeypatch, tm
         config.get_settings.cache_clear()
 
 
+@pytest.mark.local_data
 def test_the_watch_catches_python_and_native_reads(monkeypatch):
     """The detector itself: a relative Python open and a native parquet read are both caught."""
     raw = cap.DEFAULT_XSD_PATH
