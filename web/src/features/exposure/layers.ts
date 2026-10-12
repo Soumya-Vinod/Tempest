@@ -2,9 +2,10 @@
 // so rebuilding a layer (e.g. a visibility toggle) never makes deck.gl recompute attributes:
 // only `visible` changes and the GPU buffers are reused, which keeps panning smooth.
 import type { Color, Layer } from '@deck.gl/core'
-import { GeoJsonLayer, type GeoJsonLayerProps } from '@deck.gl/layers'
+import type { GeoJsonLayerProps } from '@deck.gl/layers'
 import type { Feature, Geometry } from 'geojson'
 
+import type { Deck } from '../../lib/deck'
 import type {
   InfraFeatureCollection,
   InfraFeatureProperties,
@@ -105,13 +106,14 @@ type PointStyle = Pick<
 
 /** Points sized in metres, clamped to [min, max] px: small at AOI zoom, full size zoomed in. */
 function pointLayer(
+  deck: Deck,
   id: string,
   data: InfraFeatureCollection,
   visible: boolean,
   [minPx, maxPx]: readonly [number, number],
   style: PointStyle,
 ) {
-  return new GeoJsonLayer<InfraFeatureProperties>({
+  return new deck.GeoJsonLayer<InfraFeatureProperties>({
     id,
     data,
     visible,
@@ -154,8 +156,14 @@ const QUIET_OPACITY = 0.3
 const QUIET_PX: readonly [number, number] = [2.5, 4]
 
 /** Facilities outside the affected area: small, faint, no outline (still hoverable). */
-function quietLayer(id: string, data: InfraFeatureCollection, visible: boolean, fill: Color) {
-  return new GeoJsonLayer<InfraFeatureProperties>({
+function quietLayer(
+  deck: Deck,
+  id: string,
+  data: InfraFeatureCollection,
+  visible: boolean,
+  fill: Color,
+) {
+  return new deck.GeoJsonLayer<InfraFeatureProperties>({
     id,
     data,
     visible,
@@ -172,6 +180,7 @@ function quietLayer(id: string, data: InfraFeatureCollection, visible: boolean, 
 
 /** Layers bottom to top: roads, power lines, then points (hospitals on top). */
 export function buildInfraLayers(
+  deck: Deck,
   state: InfraByType,
   visible: Record<InfraType, boolean>,
   muted = false,
@@ -180,6 +189,7 @@ export function buildInfraLayers(
   // Colour accessors are fixed functions; updateTriggers make deck.gl recolour only when `muted`
   // flips, never on other rebuilds.
   const colours = { getLineColor: muted, getFillColor: muted }
+  const { GeoJsonLayer } = deck
   const palette = muted ? MUTED : COLOR
   const data = (t: InfraType) => {
     const s = state[t]
@@ -216,6 +226,7 @@ export function buildInfraLayers(
       opacity: POWER_LINE_OPACITY,
     }),
     pointLayer(
+      deck,
       'infra-substation',
       data('substation'),
       visible.substation,
@@ -223,16 +234,17 @@ export function buildInfraLayers(
       outlined(palette.substation),
     ),
     // Quiet facilities first, under the full-style ones.
-    quietLayer('infra-shelter-quiet', shelters.quiet, visible.shelter, palette.shelter),
-    quietLayer('infra-health-centre-quiet', healthCentres.quiet, visible.hospital, palette.healthCentre),
-    quietLayer('infra-hospital-quiet', hospitals.quiet, visible.hospital, palette.hospital),
-    pointLayer('infra-shelter', shelters.full, visible.shelter, POINT_PX.shelter, {
+    quietLayer(deck, 'infra-shelter-quiet', shelters.quiet, visible.shelter, palette.shelter),
+    quietLayer(deck, 'infra-health-centre-quiet', healthCentres.quiet, visible.hospital, palette.healthCentre),
+    quietLayer(deck, 'infra-hospital-quiet', hospitals.quiet, visible.hospital, palette.hospital),
+    pointLayer(deck, 'infra-shelter', shelters.full, visible.shelter, POINT_PX.shelter, {
       getFillColor: muted ? mutedShelterFill : shelterFill,
       getLineColor: muted ? mutedShelterLine : shelterLine,
       getLineWidth: shelterLineWidth,
       updateTriggers: colours,
     }),
     pointLayer(
+      deck,
       'infra-health-centre',
       healthCentres.full,
       visible.hospital,
@@ -240,6 +252,7 @@ export function buildInfraLayers(
       outlined(palette.healthCentre),
     ),
     pointLayer(
+      deck,
       'infra-hospital',
       hospitals.full,
       visible.hospital,

@@ -5,6 +5,7 @@ import type { Layer } from '@deck.gl/core'
 import type { LngLatBoundsLike, Map as MapLibreMap } from 'maplibre-gl'
 import { useCallback, useMemo, useState } from 'react'
 
+import { useDeck } from '../../lib/deck'
 import { fitAoi, fitPadded } from '../../lib/mapFit'
 import { useTimeline } from '../../lib/timeline'
 import type { CycloneTrackPoint, Horizon } from '../../types/contracts'
@@ -65,16 +66,22 @@ export function useHazardMap(
   const trackIndex = points.findIndex((p) => p.timestep === timestep)
   const point = trackIndex >= 0 ? points[trackIndex] : null
 
+  const deck = useDeck()
   const fillLayers = useMemo(
     () =>
-      buildHazardFills({
-        flood: hazardView && floodOn ? flood.shown : null,
-        surge: hazardView ? surge.shown : null,
-        wind: hazardView && windOn ? wind.shown : null,
-      }),
-    [hazardView, floodOn, windOn, flood.shown, surge.shown, wind.shown],
+      deck
+        ? buildHazardFills(deck, {
+            flood: hazardView && floodOn ? flood.shown : null,
+            surge: hazardView ? surge.shown : null,
+            wind: hazardView && windOn ? wind.shown : null,
+          })
+        : [],
+    [deck, hazardView, floodOn, windOn, flood.shown, surge.shown, wind.shown],
   )
-  const trackLayers = useMemo(() => buildTrackLayers(points, trackIndex), [points, trackIndex])
+  const trackLayers = useMemo(
+    () => (deck ? buildTrackLayers(deck, points, trackIndex) : []),
+    [deck, points, trackIndex],
+  )
 
   const onFullTrack = useCallback(() => {
     if (!map || points.length === 0) return

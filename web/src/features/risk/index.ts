@@ -4,6 +4,7 @@ import type { Map as MapLibreMap } from 'maplibre-gl'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { RISK_VIEW_MIN_SCORE } from '../../lib/constants'
+import { useDeck } from '../../lib/deck'
 import { mapAlive, useMapAlive } from '../../lib/mapAlive'
 import { useTimeline } from '../../lib/timeline'
 import type { Horizon } from '../../types/contracts'
@@ -95,9 +96,13 @@ export function useRiskMap(
     [shown, selectedId],
   )
 
+  const deck = useDeck()
   const { layers, highlight: highlightLayers } = useMemo(
-    () => buildRiskLayers(shown?.scores ?? null, unscored, selected, visible),
-    [shown, unscored, selected, visible],
+    () =>
+      deck
+        ? buildRiskLayers(deck, shown?.scores ?? null, unscored, selected, visible)
+        : { layers: [], highlight: [] },
+    [deck, shown, unscored, selected, visible],
   )
 
   // Hatched unscored areas live in MapLibre (fill-pattern); keep them in sync with the toggle.

@@ -1,9 +1,9 @@
 // deck.gl layers for the risk choropleth: blocks, an invisible pick layer for the unscored areas
 // (their hatching is a MapLibre layer, hatch.ts), and the selected block's outline.
 import type { Layer, PickingInfo } from '@deck.gl/core'
-import { GeoJsonLayer } from '@deck.gl/layers'
 import type { Feature, Geometry } from 'geojson'
 
+import type { Deck } from '../../lib/deck'
 import type {
   RiskScore,
   RiskScoreCollection,
@@ -19,11 +19,13 @@ const blockFill = (f: BlockFeature) => riskColor(f.properties.score, FILL_ALPHA)
 
 /** The choropleth (fills slot) and, separately, the selected block's outline (drawn on top). */
 export function buildRiskLayers(
+  deck: Deck,
   scores: RiskScoreCollection | null,
   unscored: UnscoredAreaCollection | null,
   selected: RiskScore | null,
   visible: boolean,
 ): { layers: Layer[]; highlight: Layer[] } {
+  const { GeoJsonLayer } = deck
   const layers: Layer[] = [
     new GeoJsonLayer<RiskScoreProperties>({
       id: 'risk-blocks',

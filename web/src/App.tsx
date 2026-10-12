@@ -33,6 +33,7 @@ import { ImpactPanel, PathwayCard, useImpactMap } from './features/impact'
 import { InsurancePanel, useInsuranceMap } from './features/insurance'
 import { KpiStrip, useKpis } from './features/kpi'
 import { RiskCard, RiskPanel, useRiskMap } from './features/risk'
+import { useDeck } from './lib/deck'
 import { usePrefetchAround } from './lib/prefetch'
 import { useTimeline } from './lib/timeline'
 import type { Horizon } from './types/contracts'
@@ -67,7 +68,11 @@ export default function App() {
   const departure = impact.card.selectedId
     ? (departures.get(impact.card.selectedId) ?? null)
     : null
-  const routeLayers = useMemo(() => buildRouteLayers(departure), [departure])
+  const deck = useDeck()
+  const routeLayers = useMemo(
+    () => (deck ? buildRouteLayers(deck, departure) : []),
+    [deck, departure],
+  )
   // Keep these open (v1.4): links grouped for the panel (roads by name); the hovered entry or
   // segment, else the clicked one, on the map.
   const criticalLinks = useCriticalLinks(timeline.timesteps[timestepIndex], horizon)
@@ -78,8 +83,9 @@ export default function App() {
     [criticalLinks],
   )
   const linkLayers = useMemo(
-    () => buildLinkLayers(linkGroups ? linksFor(linkGroups, hoveredLink ?? pinnedLink) : []),
-    [linkGroups, hoveredLink, pinnedLink],
+    () =>
+      deck ? buildLinkLayers(deck, linkGroups ? linksFor(linkGroups, hoveredLink ?? pinnedLink) : []) : [],
+    [deck, linkGroups, hoveredLink, pinnedLink],
   )
   // Shelter stand-ins have no departure: the card only says since when they are cut off.
   const shelterCutOff =
