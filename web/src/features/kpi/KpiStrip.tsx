@@ -31,7 +31,9 @@ export default function KpiStrip({ kpis, previousLabel }: { kpis: Kpi[]; previou
             </span>
             {k.delta && previousLabel && (
               <span
-                className={`text-[11px] tabular-nums ${k.worse ? 'text-red-700' : 'text-slate-500'}`}
+                className={`text-[11px] tabular-nums ${
+                  k.upIsWorse && (k.change ?? 0) > 0 ? 'text-red-700' : 'text-slate-500'
+                }`}
                 title={`Change since ${previousLabel}`}
               >
                 {k.delta}

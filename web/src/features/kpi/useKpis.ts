@@ -18,8 +18,13 @@ export interface Kpi {
   value: string | null
   /** Change since the previous timestep, e.g. "+3"; null when there is none to show. */
   delta: string | null
-  /** The delta is a worsening (more cut off, more people): shown in red. */
-  worse?: boolean
+  /** The change as a number (sign decides the colour); null when there is none to show. */
+  change?: number | null
+  /**
+   * A rise is bad news (people in surge, facilities cut off): a positive change shows in red.
+   * Unset (released money, advisories, landfall): changes stay neutral.
+   */
+  upIsWorse?: boolean
   tone?: KpiTone
   /** Tooltip: caveats and definitions. */
   title?: string
@@ -77,7 +82,8 @@ export function useKpis(args: {
       label: horizon === 24 ? 'People in ≥0.3 m surge (24 h)' : 'People in ≥0.3 m surge',
       value: surge === null ? null : formatPeople(surge),
       delta: surge !== null && surgePrev !== null && prevIndex !== null ? signed(surge - surgePrev, (n) => formatPeople(n).replace('~', '')) : null,
-      worse: surge !== null && surgePrev !== null && surge > surgePrev,
+      change: surge !== null && surgePrev !== null && prevIndex !== null ? surge - surgePrev : null,
+      upIsWorse: true,
       title: `Residents of areas with at least 0.3 m of storm surge (${surgeWhen(horizon)}). ${SURGE_ESTIMATE_NOTE}`,
     },
     {
@@ -85,7 +91,8 @@ export function useKpis(args: {
       label: 'Expected to be cut off',
       value: now ? String(now.expected) : null,
       delta: now && before ? signed(now.expected - before.expected) : null,
-      worse: !!now && !!before && now.expected > before.expected,
+      change: now && before ? now.expected - before.expected : null,
+      upIsWorse: true,
       tone: now && now.expected > 0 ? 'warn' : 'neutral',
       title: 'Hospitals, health centres and shelters expected to be cut off within the next 24 h (not yet).',
     },
@@ -94,7 +101,8 @@ export function useKpis(args: {
       label: 'Cut off now',
       value: now ? String(now.cutOff) : null,
       delta: now && before ? signed(now.cutOff - before.cutOff) : null,
-      worse: !!now && !!before && now.cutOff > before.cutOff,
+      change: now && before ? now.cutOff - before.cutOff : null,
+      upIsWorse: true,
       tone: now && now.cutOff > 0 ? 'alert' : 'neutral',
       title: 'Hospitals, health centres and shelters already cut off from the road network.',
     },
