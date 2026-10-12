@@ -111,7 +111,7 @@ export default function TimelineScrubber({ index, onChange, moments = [] }: Prop
             LANDFALL
           </span>
         )}
-        <ul className="ml-auto hidden items-center gap-3 text-[10px] text-slate-500 lg:flex" aria-label="Timeline legend">
+        <ul className="ml-auto hidden items-center gap-3 text-[10px] whitespace-nowrap text-slate-500 xl:flex" aria-label="Timeline legend">
           {MOMENT_ORDER.map((k) => (
             <li key={k} className="flex items-center gap-1">
               <span className="block size-2 rotate-45" style={{ background: MOMENT[k].color }} aria-hidden />
