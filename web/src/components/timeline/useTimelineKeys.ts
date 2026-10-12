@@ -1,5 +1,20 @@
 import { useEffect } from 'react'
 
+/** Elements Space activates natively (or by the ARIA widget pattern). */
+const ACTIVATES_ON_SPACE = [
+  'button',
+  'a[href]',
+  'summary',
+  'label',
+  '[role="button"]',
+  '[role="link"]',
+  '[role="checkbox"]',
+  '[role="switch"]',
+  '[role="radio"]',
+  '[role="menuitem"]',
+  '[role="option"]',
+].join(', ')
+
 /**
  * Timeline keys anywhere on the page: ←/→ step, Space play/pause, Home/End first/last step. Not
  * while typing, on the map (its own arrow-key panning), on tabs (arrows move between tabs), on the
@@ -20,7 +35,8 @@ export function useTimelineKeys(actions: {
       const isRange = tag === 'INPUT' && (t as HTMLInputElement).type === 'range'
       const typing = !!t && (t.isContentEditable || tag === 'TEXTAREA' || tag === 'SELECT' || (tag === 'INPUT' && !isRange))
       if (typing || t?.closest('.maplibregl-map') || t?.getAttribute('role') === 'tab') return
-      const clickable = tag === 'BUTTON' || tag === 'A' || tag === 'SUMMARY'
+      // Space on (or inside) a control activates that control only, never Play as well.
+      const clickable = !!t?.closest(ACTIVATES_ON_SPACE)
       if (e.key === ' ' && !clickable) togglePlay()
       else if (isRange) return
       else if (e.key === 'ArrowLeft') step(-1)
