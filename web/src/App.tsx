@@ -180,6 +180,8 @@ export default function App() {
     insurance: insurance.panel.summary,
     advisories: { drafts: advisory.panel.drafts, approved: advisory.panel.approved },
   })
+  // A pathway or block card is open in the bottom-left slot.
+  const cardOpen = impact.card.selectedId !== null || risk.card.selected !== null
   const getTooltip = useCallback(
     (info: PickingInfo) =>
       impactTooltip(info) ?? riskTooltip(info) ?? hazardTooltip(info) ?? infraTooltip(info),
@@ -221,12 +223,9 @@ export default function App() {
       </MapErrorBoundary>
       <StormEdge {...hazard.edge} />
       <KpiStrip {...kpis} />
-      <MapLegend
-        view={risk.view}
-        horizon={horizon}
-        cardOpen={impact.card.selectedId !== null || risk.card.selected !== null}
-      />
-      <HealthPanel>
+      <MapLegend view={risk.view} horizon={horizon} cardOpen={cardOpen} />
+      {/* On phones a bottom sheet, which drops back to peek when a card opens on the map. */}
+      <HealthPanel collapse={cardOpen}>
         <PanelTabs
           automatic={toAct > 0 ? 'act' : 'situation'}
           tabs={[

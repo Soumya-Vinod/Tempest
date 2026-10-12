@@ -1,7 +1,7 @@
 import { type ComponentProps, lazy, Suspense, useState } from 'react'
 
 import { loadDeck } from '../lib/deck'
-import { PANEL_WIDTH, UI_GAP } from '../lib/layout'
+import { useLayout } from '../lib/layout'
 import type MapViewComponent from './MapView'
 
 type Props = ComponentProps<typeof MapViewComponent>
@@ -37,10 +37,11 @@ export default function LazyMapView(props: Props) {
 }
 
 function MapPlaceholder() {
+  const { mapRight, coveredBottom } = useLayout()
   return (
     <div
       className="absolute inset-0 flex items-center justify-center bg-slate-100 text-sm text-slate-500"
-      style={{ paddingRight: PANEL_WIDTH + 2 * UI_GAP }}
+      style={{ paddingRight: mapRight, paddingBottom: coveredBottom }}
       role="status"
     >
       Loading map…

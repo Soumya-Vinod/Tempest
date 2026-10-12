@@ -1,3 +1,4 @@
+import { useLayout } from '../../lib/layout'
 import { useTimeline } from '../../lib/timeline'
 import type { KeyMoment, KeyMomentKind } from '../../types/contracts'
 import { MOMENT, MOMENT_ORDER as ORDER } from './moments'
@@ -29,10 +30,14 @@ function fill(kinds: KeyMomentKind[]): string {
   return `linear-gradient(90deg, ${stops.join(', ')})`
 }
 
-/** Key moments above the track: a captioned marker each (merged per timestep), click to jump. */
+/**
+ * Key moments above the track: a captioned marker each (merged per timestep), click to jump. On
+ * phones the caption is only the time (the bar is too narrow); the full one is in the tooltip.
+ */
 export default function Markers({ moments, onJump }: { moments: KeyMoment[]; onJump: (index: number) => void }) {
   const timeline = useTimeline()
   const { landfallIndex } = timeline
+  const { phone } = useLayout()
   return (
     <div className="relative h-7" aria-label="Key moments">
       {groups(moments, timeline.indexOf).map(({ index, moments: ms }) => {
@@ -56,7 +61,7 @@ export default function Markers({ moments, onJump }: { moments: KeyMoment[]; onJ
               className={`pointer-events-none absolute top-0 left-1/2 text-[10px] leading-3 font-medium whitespace-nowrap text-slate-700 ${align}`}
               style={align === '' ? { left: 0 } : align === '-translate-x-full' ? { left: '100%' } : undefined}
             >
-              {caption} · {at}
+              {phone ? at : `${caption} · ${at}`}
             </span>
             <span
               className="mt-3.5 block size-3 rotate-45 ring-1 ring-white"

@@ -14,6 +14,28 @@ body {
   font-family: system-ui, "Segoe UI", Roboto, sans-serif;
 }
 
+/* Phones: the bottom sheet's height is --sheet-h (lib/sheet.ts); the timeline, the legend and
+   the cards ride on it, easing between snap points but not while a finger drags it. At full
+   height the sheet leaves no map, so the legend and the cards step aside. */
+@layer components {
+  .sheet-rides {
+    transition-property: bottom, height;
+    transition-duration: 200ms;
+    transition-timing-function: ease-out;
+  }
+  :root[data-sheet-drag] .sheet-rides {
+    transition: none;
+  }
+  :root[data-sheet="full"] .sheet-hides {
+    display: none;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .sheet-rides {
+      transition: none;
+    }
+  }
+}
+
 /* MapLibre's attribution (bottom-right): above the timeline bar and left of the side panel.
    --map-ctrl-bottom and --map-ctrl-right are set by MapView from lib/layout.ts. */
 @layer components {

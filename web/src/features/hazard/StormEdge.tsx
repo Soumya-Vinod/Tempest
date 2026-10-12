@@ -1,7 +1,7 @@
 import type { Map as MapLibreMap } from 'maplibre-gl'
 import { useEffect, useState } from 'react'
 
-import { currentLayout, PANEL_WIDTH, UI_GAP } from '../../lib/layout'
+import { currentLayout } from '../../lib/layout'
 
 /** Inset of the arrow from the edge of the visible map area, px. */
 const EDGE_INSET = 34
@@ -31,8 +31,9 @@ function distanceKm(a: [number, number], b: [number, number]): number {
  */
 function place(map: MapLibreMap, storm: [number, number]): Placement | null {
   const { clientWidth: w, clientHeight: h } = map.getContainer()
-  const right = w - PANEL_WIDTH - 2 * UI_GAP
-  const bottom = h - currentLayout().aboveTimeline
+  const { mapRight, coveredBottom } = currentLayout()
+  const right = w - mapRight
+  const bottom = h - coveredBottom
   if (right <= 2 * EDGE_INSET || bottom <= 2 * EDGE_INSET) return null
   const p = map.project(storm)
   if (p.x >= 0 && p.x <= right && p.y >= 0 && p.y <= bottom) return null

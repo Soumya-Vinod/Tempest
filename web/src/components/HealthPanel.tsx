@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 
 import { getHealth, type HealthResponse } from '../lib/api'
-import { PANEL_WIDTH, UI_GAP, useLayout } from '../lib/layout'
+import { PANEL_WIDTH, useLayout } from '../lib/layout'
+import { useSheet } from '../lib/sheet'
+import SheetHandle from './SheetHandle'
 
 const POLL_MS = 15_000
 
@@ -111,11 +113,23 @@ function useMoreBelow() {
   return { ref, more }
 }
 
-/** Side panel: a slim header (name, one-line backend status), then the feature sections. */
-export default function HealthPanel({ children }: { children?: ReactNode }) {
+/**
+ * Side panel: a slim header (name, one-line backend status), then the feature sections. On
+ * phones it is a bottom sheet (lib/sheet.ts) that snaps back to peek when `collapse` turns true.
+ */
+export default function HealthPanel({
+  children,
+  collapse = false,
+}: {
+  children?: ReactNode
+  collapse?: boolean
+}) {
   const [health, setHealth] = useState<HealthState>({ kind: 'loading' })
   const { ref: scrollRef, more } = useMoreBelow()
-  const { aboveTimeline } = useLayout()
+  const layout = useLayout()
+  const { phone, gap, aboveTimeline } = layout
+  const panelRef = useRef<HTMLElement>(null)
+  const sheet = useSheet(panelRef, layout, phone, collapse)
 
   useEffect(() => {
     let cancelled = false
@@ -136,29 +150,45 @@ export default function HealthPanel({ children }: { children?: ReactNode }) {
   }, [])
 
   return (
+    // The handle is the first child only on phones; the content keeps its place either way, so
+    // crossing the breakpoint doesn't remount the sections (tabs, expanded lists).
     <aside
-      className="absolute z-20 overflow-hidden rounded-lg bg-white text-sm text-slate-800 shadow-lg"
-      style={{ top: UI_GAP, right: UI_GAP, bottom: aboveTimeline, width: PANEL_WIDTH }}
+      ref={panelRef}
+      aria-label="Panel"
+      className={`absolute flex flex-col overflow-hidden bg-white text-sm text-slate-800 shadow-lg ${
+        phone ? 'sheet-rides inset-x-0 bottom-0 z-30 rounded-t-xl' : 'z-20 rounded-lg'
+      }`}
+      style={
+        phone
+          ? { height: 'var(--sheet-h)' }
+          : { top: gap, right: gap, bottom: aboveTimeline, width: PANEL_WIDTH }
+      }
+      onClickCapture={phone ? sheet.onClickCapture : undefined}
     >
-      <div ref={scrollRef} className="h-full overflow-y-auto p-4 pb-8">
-        <header className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-slate-100 pb-2">
-          <h1 className="text-base leading-5 font-semibold">Tempest</h1>
-          <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide whitespace-nowrap text-slate-600">
-            REPLAY · Amphan 2020 · South 24 Parganas
-          </span>
-          <div className="ml-auto">
-            <BackendStatus health={health} />
-          </div>
-        </header>
-        {children}
+      {phone && <SheetHandle snap={sheet.snap} handle={sheet.handle} />}
+      <div className="relative min-h-0 flex-1">
+        <div ref={scrollRef} className={`h-full overflow-y-auto overscroll-contain pb-8 ${phone ? 'px-4 pt-1' : 'p-4'}`}>
+          <header className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-slate-100 pb-2">
+            <h1 className="text-base leading-5 font-semibold">Tempest</h1>
+            {!phone && (
+              <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide whitespace-nowrap text-slate-600">
+                REPLAY · Amphan 2020 · South 24 Parganas
+              </span>
+            )}
+            <div className="ml-auto">
+              <BackendStatus health={health} />
+            </div>
+          </header>
+          {children}
+        </div>
+        {/* Content continues below: fade the cut edge instead of slicing text in half. */}
+        <div
+          className={`pointer-events-none absolute inset-x-0 bottom-0 h-10 rounded-b-lg bg-linear-to-t from-white to-transparent transition-opacity ${
+            more ? 'opacity-100' : 'opacity-0'
+          }`}
+          aria-hidden
+        />
       </div>
-      {/* Content continues below: fade the cut edge instead of slicing text in half. */}
-      <div
-        className={`pointer-events-none absolute inset-x-0 bottom-0 h-10 rounded-b-lg bg-linear-to-t from-white to-transparent transition-opacity ${
-          more ? 'opacity-100' : 'opacity-0'
-        }`}
-        aria-hidden
-      />
     </aside>
   )
 }

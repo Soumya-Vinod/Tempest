@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { useCountdownSeries } from '../features/countdown'
-import { UI_GAP, useLayout } from '../lib/layout'
+import { above, useLayout } from '../lib/layout'
 import { useTimeline } from '../lib/timeline'
 import { useApiStatus } from '../lib/useApiStatus'
 import type { KeyMoment } from '../types/contracts'
@@ -56,7 +56,8 @@ export default function TimelineScrubber({ index, onChange, moments = [] }: Prop
     setPlaying(true)
   }, [playing, index, landfallIndex, onChange])
 
-  const { compactTimeline, timelineHeight } = useLayout()
+  const layout = useLayout()
+  const { compactTimeline, timelineHeight, gap, phone } = layout
 
   useTimelineKeys({
     step,
@@ -67,8 +68,10 @@ export default function TimelineScrubber({ index, onChange, moments = [] }: Prop
 
   return (
     <div
-      className="absolute z-20 flex flex-col justify-center rounded-lg bg-white px-4 text-sm text-slate-800 shadow-lg"
-      style={{ left: UI_GAP, right: UI_GAP, bottom: UI_GAP, height: timelineHeight }}
+      className={`absolute z-20 flex flex-col justify-center rounded-lg bg-white text-sm text-slate-800 shadow-lg ${
+        phone ? 'sheet-rides px-3' : 'px-4'
+      }`}
+      style={{ left: gap, right: gap, bottom: above(layout, gap), height: timelineHeight }}
     >
       <div className="flex items-center gap-3">
         <button
