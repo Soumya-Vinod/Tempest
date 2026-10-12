@@ -4,57 +4,73 @@ import { getHealth, type HealthResponse } from '../lib/api'
 import { ABOVE_TIMELINE, PANEL_WIDTH, UI_GAP } from '../lib/layout'
 
 const POLL_MS = 15_000
-// Earth Engine runs offline (its results are committed as fixtures), so in DEMO_MODE these keys
-// are listed as not needed and left out of the count.
-const OFFLINE_KEYS = new Set(['gee_service_account', 'gee_key_path'])
 
 type HealthState =
   | { kind: 'loading' }
   | { kind: 'ok'; data: HealthResponse }
   | { kind: 'error'; message: string }
 
-/** "● Healthy · DEMO MODE · Keys 8/10 ▸": one line that expands into the per-key list. */
+/**
+ * The configured keys (/health), grouped into the services they enable. Earth Engine is not
+ * listed: it runs offline and its results are committed as fixtures.
+ */
+const SERVICES: { name: string; ready: (k: Record<string, boolean>) => boolean }[] = [
+  { name: 'AI drafting (Gemini, Groq fallback)', ready: (k) => !!(k.gemini_api_key || k.groq_api_key) },
+  { name: 'Telegram alerts', ready: (k) => !!(k.telegram_bot_token && k.telegram_chat_id) },
+  {
+    name: 'Email alerts',
+    ready: (k) =>
+      !!(k.dispatch_email_to && ((k.gmail_address && k.gmail_app_password) || k.brevo_api_key)),
+  },
+  { name: 'Dispatch PIN', ready: (k) => !!k.dispatch_pin },
+]
+
+/**
+ * "● Replay mode · all services connected ▸": one plain line that expands into the services;
+ * the raw key names are in its tooltip.
+ */
 function BackendStatus({ health }: { health: HealthState }) {
   const [open, setOpen] = useState(false)
-  if (health.kind === 'loading') return <span className="text-xs text-slate-500">Checking…</span>
+  if (health.kind === 'loading') return <span className="text-xs text-slate-500">Connecting…</span>
   if (health.kind === 'error') {
     return (
       <span className="text-xs text-red-700" title={health.message}>
-        ● Backend unreachable
+        ● Can&apos;t reach the server
       </span>
     )
   }
-  const keys = Object.entries(health.data.configured)
-  const unused = (key: string) => health.data.demo_mode && OFFLINE_KEYS.has(key)
-  const counted = keys.filter(([key]) => !unused(key))
-  const set = counted.filter(([, ok]) => ok).length
+  const keys = health.data.configured
+  const services = SERVICES.map((s) => ({ name: s.name, ready: s.ready(keys) }))
+  const ready = services.filter((s) => s.ready).length
+  const mode = health.data.demo_mode ? 'Replay mode' : 'Live mode'
+  const summary =
+    ready === services.length
+      ? 'all services connected'
+      : `${ready} of ${services.length} services connected`
+  const details = Object.entries(keys)
+    .map(([key, ok]) => `${key}: ${ok ? 'set' : 'not set'}`)
+    .join('\n')
+  const what = health.data.demo_mode ? 'replaying Cyclone Amphan from stored data' : 'live data'
   return (
     <div className="text-right">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
-        aria-label="Backend status and configured keys"
+        title={`${mode}: ${what}.\n${details}`}
         className="text-xs text-slate-600 hover:text-slate-900"
       >
-        <span className="text-emerald-500">●</span> Healthy ·{' '}
-        <span className={health.data.demo_mode ? 'text-amber-700' : 'text-sky-700'}>
-          {health.data.demo_mode ? 'DEMO MODE' : 'LIVE'}
-        </span>{' '}
-        · Keys {set}/{counted.length} {open ? '▾' : '▸'}
+        <span className={ready === services.length ? 'text-emerald-500' : 'text-amber-500'}>●</span>{' '}
+        {mode} · {summary} {open ? '▾' : '▸'}
       </button>
       {open && (
         <ul className="mt-1 space-y-1 text-left">
-          {keys.map(([key, ok]) => (
-            <li key={key} className="flex justify-between font-mono text-xs">
-              <span>{key}</span>
-              {unused(key) ? (
-                <span className="text-slate-400">— not needed in demo</span>
-              ) : (
-                <span className={ok ? 'text-emerald-600' : 'text-slate-400'}>
-                  {ok ? '✓ set' : '✗ not set'}
-                </span>
-              )}
+          {services.map((s) => (
+            <li key={s.name} className="flex justify-between gap-2 text-xs">
+              <span>{s.name}</span>
+              <span className={s.ready ? 'text-emerald-700' : 'text-slate-500'}>
+                {s.ready ? '✓ connected' : '— not set up'}
+              </span>
             </li>
           ))}
         </ul>

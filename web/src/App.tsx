@@ -4,7 +4,9 @@ import { useCallback, useMemo, useState } from 'react'
 
 import HealthPanel from './components/HealthPanel'
 import MapErrorBoundary from './components/MapErrorBoundary'
+import MapLegend from './components/MapLegend'
 import MapView from './components/MapView'
+import PanelTabs from './components/PanelTabs'
 import TimelineScrubber from './components/TimelineScrubber'
 import WakingNotice from './components/WakingNotice'
 import { AboutPanel } from './features/about'
@@ -19,6 +21,7 @@ import {
 } from './features/criticalLinks'
 import { buildRouteLayers, useDepartures } from './features/departures'
 import {
+  type FacilityFilter,
   InfraPanel,
   makeInfraTooltip,
   useBlockOf,
@@ -28,7 +31,9 @@ import {
 import { HazardPanel, type MapViewMode, StormEdge, useHazardMap } from './features/hazard'
 import { ImpactPanel, PathwayCard, useImpactMap } from './features/impact'
 import { InsurancePanel, useInsuranceMap } from './features/insurance'
-import { RiskCard, RiskPanel, SurgeHeadline, useRiskMap } from './features/risk'
+import { KpiStrip, useKpis } from './features/kpi'
+import { RiskCard, RiskPanel, useRiskMap } from './features/risk'
+import { usePrefetchAround } from './lib/prefetch'
 import { useTimeline } from './lib/timeline'
 import type { Horizon } from './types/contracts'
 
@@ -55,6 +60,8 @@ export default function App() {
   const impact = useImpactMap(timestepIndex, infra.state, horizon, blockOf, map)
   const hazard = useHazardMap(timestepIndex, risk.view, setChosenView, map, horizon, setChosenHorizon)
   const insurance = useInsuranceMap(timestepIndex, risk.view === 'risk')
+  // Warm the steps around this one (low priority: never delays the current step or Play).
+  usePrefetchAround(timestepIndex, timeline.timesteps, horizon, risk.view === 'hazard')
   const countdown = useCountdown(timeline.timesteps[timestepIndex])
   const departures = useDepartures()
   const departure = impact.card.selectedId
@@ -82,8 +89,18 @@ export default function App() {
         )
       : undefined
   const shelterSince = timeline.indexOf(shelterCutOff?.since)
+  // Less noise: health facilities and shelters in full only where something is happening
+  // (affected, or in a block at risk), the rest faint, unless the user highlights all. The block
+  // test is lazy and memoized.
+  const { affectedIds } = impact
+  const { atRiskBlocks } = risk
+  const facilityFilter = useMemo<FacilityFilter>(
+    () => (f) =>
+      affectedIds.has(f.id) || (blockOf !== null && atRiskBlocks.has(blockOf(f.id, f.geometry) ?? '')),
+    [affectedIds, atRiskBlocks, blockOf],
+  )
   // Red and orange mean impact only: exposure mutes its colours while impact results show.
-  const infraLayers = useInfraLayers(infra, impact.active)
+  const infraLayers = useInfraLayers(infra, impact.active, facilityFilter)
 
   // Bottom to top: hazard fills or the risk choropleth (one view at a time: both are area
   // fills; in Risk view, gold outlines on blocks with an insurance payout released), muted
@@ -143,6 +160,19 @@ export default function App() {
     [countdown.state, timeline, timestepIndex],
   )
   const advisory = useAdvisories(timestepIndex, risk.blocks, selectBlock, cutOff)
+  // Facilities to act on now: expected to be cut off, or already cut off. Any: the Act tab opens
+  // by default (until the user picks a tab) and shows the count.
+  const toAct =
+    countdown.state.status === 'ok'
+      ? countdown.state.data.expected.length + countdown.state.data.cut_off.length
+      : 0
+  const kpis = useKpis({
+    timestepIndex,
+    horizon,
+    countdown: countdown.state,
+    insurance: insurance.panel.summary,
+    advisories: { drafts: advisory.panel.drafts, approved: advisory.panel.approved },
+  })
   const getTooltip = useCallback(
     (info: PickingInfo) =>
       impactTooltip(info) ?? riskTooltip(info) ?? hazardTooltip(info) ?? infraTooltip(info),
@@ -183,33 +213,70 @@ export default function App() {
         />
       </MapErrorBoundary>
       <StormEdge {...hazard.edge} />
+      <KpiStrip {...kpis} />
+      <MapLegend
+        view={risk.view}
+        horizon={horizon}
+        cardOpen={impact.card.selectedId !== null || risk.card.selected !== null}
+      />
       <HealthPanel>
-        <HazardPanel {...hazard.panel} />
-        <SurgeHeadline {...risk.surge} />
-        <CountdownPanel
-          state={countdown.state}
-          departures={departures}
-          timestepIndex={timestepIndex}
+        <PanelTabs
+          automatic={toAct > 0 ? 'act' : 'situation'}
+          tabs={[
+            {
+              id: 'act',
+              label: 'Act',
+              badge: toAct,
+              content: (
+                <>
+                  <CountdownPanel
+                    state={countdown.state}
+                    departures={departures}
+                    timestepIndex={timestepIndex}
+                  />
+                  <KeepOpenPanel
+                    state={criticalLinks}
+                    groups={linkGroups}
+                    horizon={horizon}
+                    pinned={pinnedLink}
+                    onHover={setHoveredLink}
+                    onPin={setPinnedLink}
+                  />
+                  <AdvisoryPanel {...advisory.panel} />
+                </>
+              ),
+            },
+            {
+              id: 'situation',
+              label: 'Situation',
+              content: (
+                <>
+                  <HazardPanel {...hazard.panel} />
+                  <RiskPanel {...risk.panel} />
+                  <ImpactPanel {...impact.panel} />
+                </>
+              ),
+            },
+            { id: 'finance', label: 'Finance', content: <InsurancePanel {...insurance.panel} /> },
+            {
+              id: 'layers',
+              label: 'Layers',
+              content: (
+                <>
+                  <InfraPanel
+                    state={infra.state}
+                    visible={infra.visible}
+                    onToggle={infra.toggle}
+                    muted={impact.active}
+                    highlightAllFacilities={infra.highlightAllFacilities}
+                    onToggleHighlightAll={infra.toggleHighlightAllFacilities}
+                  />
+                  <AboutPanel />
+                </>
+              ),
+            },
+          ]}
         />
-        <KeepOpenPanel
-          state={criticalLinks}
-          groups={linkGroups}
-          horizon={horizon}
-          pinned={pinnedLink}
-          onHover={setHoveredLink}
-          onPin={setPinnedLink}
-        />
-        <InfraPanel
-          state={infra.state}
-          visible={infra.visible}
-          onToggle={infra.toggle}
-          muted={impact.active}
-        />
-        <RiskPanel {...risk.panel} />
-        <ImpactPanel {...impact.panel} />
-        <InsurancePanel {...insurance.panel} />
-        <AdvisoryPanel {...advisory.panel} />
-        <AboutPanel />
       </HealthPanel>
       <PathwayCard
         {...impact.card}

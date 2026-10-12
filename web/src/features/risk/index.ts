@@ -12,13 +12,13 @@ import type { MapViewMode } from '../hazard'
 import { syncUnscored } from './hatch'
 import { buildRiskLayers, pickedBlock, pickedUnscored } from './layers'
 import type { RiskCardProps } from './RiskCard'
-import type { SurgeHeadlineProps } from './SurgeHeadline'
 import { DRIVER_LABEL } from './style'
 import { type RiskState, useRisk, useUnscoredAreas } from './useRisk'
 
 export { default as RiskCard } from './RiskCard'
 export { default as RiskPanel } from './RiskPanel'
-export { default as SurgeHeadline, type SurgeHeadlineProps } from './SurgeHeadline'
+export { SURGE_ESTIMATE_NOTE, surgeWhen } from './surge'
+export { useSurgeTotal } from './useRisk'
 
 type TooltipContent = ReturnType<NonNullable<DeckProps['getTooltip']>>
 
@@ -46,6 +46,8 @@ export interface RiskMap {
   clear: () => void
   /** Selects a block by id (e.g. from the advisory queue); the caller switches to the Risk view. */
   select: (blockId: string) => void
+  /** Names of the blocks at risk (score >= RISK_VIEW_MIN_SCORE): the affected area. */
+  atRiskBlocks: Set<string>
   /** Every scored block's polygon, for labelling unnamed features by block. */
   areas: BlockArea[] | null
   /** Every scored block, for pickers. */
@@ -54,8 +56,6 @@ export interface RiskMap {
   onMapLoad: (map: MapLibreMap | null) => void
   panel: { visible: boolean; state: RiskState }
   card: RiskCardProps
-  /** District people-in-surge headline (v1.3), for the current horizon. */
-  surge: SurgeHeadlineProps
 }
 
 /**
@@ -136,6 +136,15 @@ export function useRiskMap(
       })) ?? [],
     [shown],
   )
+  const atRiskBlocks = useMemo(
+    () =>
+      new Set(
+        shown?.scores.features
+          .filter((f) => f.properties.score >= RISK_VIEW_MIN_SCORE)
+          .map((f) => f.properties.block_name) ?? [],
+      ),
+    [shown],
+  )
   const areas = useMemo(
     () =>
       shown?.scores.features.map((f) => ({
@@ -169,10 +178,10 @@ export function useRiskMap(
     clear,
     select,
     blocks,
+    atRiskBlocks,
     areas,
     onMapLoad: setMap,
     panel: { visible, state },
     card: { timestepIndex, selected, breakdown, horizon, onClose: clear },
-    surge: { total: shown?.breakdown?.surge_population_total ?? null, horizon },
   }
 }

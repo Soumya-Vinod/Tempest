@@ -20,6 +20,8 @@ import {
   MUTED,
   OUTLINE_PX,
   POINT_PX,
+  POWER_LINE_OPACITY,
+  ROAD_OPACITY,
   ROAD_WIDTH,
   STAND_IN,
   STAND_IN_RING_PX,
@@ -123,11 +125,57 @@ function pointLayer(
   })
 }
 
+/**
+ * Which facility points (health facilities and shelters) get the full style; the rest are drawn
+ * quiet (small, faint, no outline) so the map is never empty. null: every facility in full.
+ */
+export type FacilityFilter = ((f: InfraFeatureCollection['features'][number]) => boolean) | null
+
+type Split = { full: InfraFeatureCollection; quiet: InfraFeatureCollection }
+// Split collections, per source collection and filter: rebuilt only when either changes.
+const splits = new WeakMap<InfraFeatureCollection, { filter: FacilityFilter; split: Split }>()
+
+function split(fc: InfraFeatureCollection, filter: FacilityFilter): Split {
+  if (!filter) return { full: fc, quiet: EMPTY }
+  const hit = splits.get(fc)
+  if (hit && hit.filter === filter) return hit.split
+  const full: InfraFeatureCollection['features'] = []
+  const quiet: InfraFeatureCollection['features'] = []
+  for (const f of fc.features) (filter(f) ? full : quiet).push(f)
+  const out = {
+    full: { type: 'FeatureCollection' as const, features: full },
+    quiet: { type: 'FeatureCollection' as const, features: quiet },
+  }
+  splits.set(fc, { filter, split: out })
+  return out
+}
+
+const QUIET_OPACITY = 0.3
+const QUIET_PX: readonly [number, number] = [2.5, 4]
+
+/** Facilities outside the affected area: small, faint, no outline (still hoverable). */
+function quietLayer(id: string, data: InfraFeatureCollection, visible: boolean, fill: Color) {
+  return new GeoJsonLayer<InfraFeatureProperties>({
+    id,
+    data,
+    visible,
+    ...COMMON,
+    pointRadiusUnits: 'meters',
+    getPointRadius: QUIET_PX[1] * FULL_SIZE_M_PER_PX,
+    pointRadiusMinPixels: QUIET_PX[0],
+    pointRadiusMaxPixels: QUIET_PX[1],
+    stroked: false,
+    getFillColor: fill,
+    opacity: QUIET_OPACITY,
+  })
+}
+
 /** Layers bottom to top: roads, power lines, then points (hospitals on top). */
 export function buildInfraLayers(
   state: InfraByType,
   visible: Record<InfraType, boolean>,
   muted = false,
+  facilities: FacilityFilter = null,
 ): Layer[] {
   // Colour accessors are fixed functions; updateTriggers make deck.gl recolour only when `muted`
   // flips, never on other rebuilds.
@@ -137,7 +185,10 @@ export function buildInfraLayers(
     const s = state[t]
     return s.status === 'ok' ? s.data : EMPTY
   }
-  const [hospitals, healthCentres] = splitHealth(data('hospital'))
+  const [allHospitals, allHealthCentres] = splitHealth(data('hospital'))
+  const hospitals = split(allHospitals, facilities)
+  const healthCentres = split(allHealthCentres, facilities)
+  const shelters = split(data('shelter'), facilities)
   const outlined = (fill: Color): PointStyle => ({
     getFillColor: fill,
     getLineColor: COLOR.outline,
@@ -153,6 +204,7 @@ export function buildInfraLayers(
       updateTriggers: colours,
       getLineWidth: roadWidth,
       lineWidthMinPixels: 1,
+      opacity: ROAD_OPACITY,
     }),
     new GeoJsonLayer<InfraFeatureProperties>({
       id: 'infra-power_line',
@@ -161,6 +213,7 @@ export function buildInfraLayers(
       ...COMMON,
       getLineColor: palette.powerLine,
       getLineWidth: 1.2,
+      opacity: POWER_LINE_OPACITY,
     }),
     pointLayer(
       'infra-substation',
@@ -169,7 +222,11 @@ export function buildInfraLayers(
       POINT_PX.substation,
       outlined(palette.substation),
     ),
-    pointLayer('infra-shelter', data('shelter'), visible.shelter, POINT_PX.shelter, {
+    // Quiet facilities first, under the full-style ones.
+    quietLayer('infra-shelter-quiet', shelters.quiet, visible.shelter, palette.shelter),
+    quietLayer('infra-health-centre-quiet', healthCentres.quiet, visible.hospital, palette.healthCentre),
+    quietLayer('infra-hospital-quiet', hospitals.quiet, visible.hospital, palette.hospital),
+    pointLayer('infra-shelter', shelters.full, visible.shelter, POINT_PX.shelter, {
       getFillColor: muted ? mutedShelterFill : shelterFill,
       getLineColor: muted ? mutedShelterLine : shelterLine,
       getLineWidth: shelterLineWidth,
@@ -177,14 +234,14 @@ export function buildInfraLayers(
     }),
     pointLayer(
       'infra-health-centre',
-      healthCentres,
+      healthCentres.full,
       visible.hospital,
       POINT_PX.healthCentre,
       outlined(palette.healthCentre),
     ),
     pointLayer(
       'infra-hospital',
-      hospitals,
+      hospitals.full,
       visible.hospital,
       POINT_PX.hospital,
       outlined(palette.hospital),

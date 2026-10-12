@@ -59,7 +59,7 @@ export class ApiError extends Error {
   }
 }
 
-type Query = Record<string, string | undefined>
+export type Query = Record<string, string | undefined>
 
 // --- Load control: at most MAX_IN_FLIGHT requests at a time, the rest wait in order. The free
 // API instance has a fraction of a CPU; ~30 parallel requests on load made them all time out.
@@ -116,15 +116,142 @@ async function queued<T>(run: () => Promise<T>): Promise<T> {
     if (next) next()
     else inFlight--
     setStatus({ busy: pending > 0, waking: false })
+    if (pending === 0) pumpLow()
   }
+}
+
+// --- Replay data: one shared promise per GET, and a low-priority lane (prefetch, sparkline) ---
+//
+// Replay GETs are memoized by request key, so the features' own caches and the prefetcher share
+// one response. The low lane runs at most one request at a time, only while no foreground
+// request is queued or in flight, and never sets `busy` (Play waits on the foreground only). A
+// foreground request for a key still waiting in the low lane promotes it instead of fetching it
+// twice. Queued prefetches can be dropped (cancelPrefetches) when the user changes direction.
+
+// Only replay data is memoized: an explicit allowlist of exact GET paths (fixed for a given URL in
+// a replay). Advisories, dispatch and health change as people act, so they are never memoized.
+const MEMO_PATHS: ReadonlySet<string> = new Set([
+  '/api/hazard/timesteps',
+  '/api/hazard/track',
+  '/api/hazard/layers',
+  '/api/exposure/infra',
+  '/api/impact/results',
+  '/api/impact/countdown',
+  '/api/impact/departures',
+  '/api/impact/critical-links',
+  '/api/risk/scores',
+  '/api/risk/breakdown',
+  '/api/risk/unscored-areas',
+  '/api/insurance/triggers',
+  '/api/insurance/summary',
+])
+const NEVER_MEMO_PREFIXES = ['/api/advisory', '/api/dispatch', '/health']
+if (import.meta.env.DEV) {
+  for (const path of MEMO_PATHS) {
+    console.assert(
+      !NEVER_MEMO_PREFIXES.some((p) => path.startsWith(p)),
+      `api memo: ${path} must never be memoized`,
+    )
+  }
+}
+const MEMO_SIZE = 64
+const memo = new Map<string, Promise<unknown>>()
+
+interface LowEntry {
+  key: string
+  group: string
+  run: () => Promise<void>
+  reject: (err: unknown) => void
+}
+const lowQueue: LowEntry[] = []
+let lowInFlight = 0
+
+/** The request key: path plus the query parameters sorted by name (as the API's static cache). */
+export function requestKey(path: string, query?: Query): string {
+  const params = Object.entries(query ?? {})
+    .filter(([, v]) => v !== undefined)
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+  return params.length ? `${path}?${new URLSearchParams(params as [string, string][])}` : path
+}
+
+function pumpLow() {
+  while (lowInFlight < 1 && pending === 0 && lowQueue.length) {
+    const entry = lowQueue.shift()!
+    lowInFlight++
+    void entry.run().finally(() => {
+      lowInFlight--
+      pumpLow()
+    })
+  }
+}
+
+function remember(key: string, promise: Promise<unknown>) {
+  memo.set(key, promise)
+  promise.catch(() => {
+    if (memo.get(key) === promise) memo.delete(key)
+  })
+  while (memo.size > MEMO_SIZE) memo.delete(memo.keys().next().value!)
+}
+
+/** Drop queued (not started) low-priority requests of `group` whose key `keep` rejects. */
+export function cancelPrefetches(group: string, keep: (key: string) => boolean = () => false) {
+  for (let i = lowQueue.length - 1; i >= 0; i--) {
+    const e = lowQueue[i]
+    if (e.group !== group || keep(e.key)) continue
+    lowQueue.splice(i, 1)
+    memo.delete(e.key)
+    e.reject(new DOMException('Prefetch cancelled', 'AbortError'))
+  }
+}
+
+interface RequestOptions {
+  query?: Query
+  body?: unknown
+  /** Low-priority lane (GET replay data only), tagged with a group for cancelPrefetches. */
+  low?: string
 }
 
 function request<T>(
   method: 'GET' | 'POST' | 'PATCH',
   path: string,
-  options: { query?: Query; body?: unknown } = {},
+  options: RequestOptions = {},
 ): Promise<T> {
-  return queued(() => send<T>(method, path, options))
+  const memoized = method === 'GET' && MEMO_PATHS.has(path)
+  if (import.meta.env.DEV && memoized && NEVER_MEMO_PREFIXES.some((p) => path.startsWith(p))) {
+    throw new Error(`api memo: ${path} must never be memoized`)
+  }
+  if (!memoized) return queued(() => send<T>(method, path, options))
+  const key = requestKey(path, options.query)
+  const hit = memo.get(key)
+  if (hit) {
+    memo.delete(key) // most recently used last
+    memo.set(key, hit)
+    if (!options.low) {
+      // Still waiting in the low lane: run it in the foreground queue instead.
+      const i = lowQueue.findIndex((e) => e.key === key)
+      if (i >= 0) void queued(lowQueue.splice(i, 1)[0].run)
+    }
+    return hit as Promise<T>
+  }
+  let promise: Promise<T>
+  if (options.low) {
+    const group = options.low
+    promise = new Promise<T>((resolve, reject) => {
+      const run = () => send<T>(method, path, options).then(resolve, reject)
+      lowQueue.push({ key, group, run, reject })
+    })
+    remember(key, promise)
+    pumpLow()
+  } else {
+    promise = queued(() => send<T>(method, path, options))
+    remember(key, promise)
+  }
+  return promise
+}
+
+/** A GET in the low lane, for warming the memo ahead of use (errors ignored). */
+export function prefetch(group: string, path: string, query?: Query): void {
+  request('GET', path, { query, low: group }).catch(() => {})
 }
 
 /** One request, body read included (a slot is held until the whole response has arrived). */
@@ -184,8 +311,8 @@ export const getImpactResults = (
   })
 
 /** v1.3 change, pending Dev A. Precomputed: expected and actual cut-offs, key moments. */
-export const getCountdown = (timestep: TimestepParam) =>
-  request<ActionCountdown>('GET', '/api/impact/countdown', { query: { timestep } })
+export const getCountdown = (timestep: TimestepParam, low?: string) =>
+  request<ActionCountdown>('GET', '/api/impact/countdown', { query: { timestep }, low })
 
 /** v1.3 change, pending Dev A. Precomputed: last safe departure per cut-off facility. */
 export const getDepartures = () => request<Departures>('GET', '/api/impact/departures')

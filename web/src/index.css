@@ -14,10 +14,11 @@ body {
   font-family: system-ui, "Segoe UI", Roboto, sans-serif;
 }
 
-/* Lift MapLibre's bottom-left controls (attribution) above the timeline bar.
-   --map-ctrl-bottom is set by MapView from lib/layout.ts. */
+/* MapLibre's attribution (bottom-right): above the timeline bar and left of the side panel.
+   --map-ctrl-bottom and --map-ctrl-right are set by MapView from lib/layout.ts. */
 @layer components {
-  .maplibregl-ctrl-bottom-left {
+  .maplibregl-ctrl-bottom-right {
     bottom: var(--map-ctrl-bottom, 0px);
+    right: var(--map-ctrl-right, 0px);
   }
 }

@@ -4,12 +4,13 @@ import { useCallback, useMemo, useState } from 'react'
 
 import type { InfraType } from '../../types/contracts'
 import { type BlockArea, type BlockOf, createBlockOf } from './blocks'
-import { buildInfraLayers } from './layers'
+import { buildInfraLayers, type FacilityFilter } from './layers'
 import { INFRA_TYPES } from './style'
 import { useInfra, type InfraByType } from './useInfra'
 
 export { default as InfraPanel } from './InfraPanel'
 export type { BlockArea, BlockOf } from './blocks'
+export type { FacilityFilter } from './layers'
 export { displayName, makeInfraTooltip } from './tooltip'
 export type { InfraByType } from './useInfra'
 
@@ -22,26 +23,36 @@ export interface InfraMap {
   state: InfraByType
   visible: Record<InfraType, boolean>
   toggle: (infraType: InfraType) => void
+  /** Highlight every health facility and shelter, not only those in the affected area. */
+  highlightAllFacilities: boolean
+  toggleHighlightAllFacilities: () => void
 }
 
 /** Infra data and per-type visibility. Layers come from useInfraLayers. */
 export function useInfraMap(): InfraMap {
   const state = useInfra()
   const [visible, setVisible] = useState(ALL_VISIBLE)
+  const [highlightAllFacilities, setHighlightAll] = useState(false)
   const toggle = useCallback(
     (infraType: InfraType) => setVisible((v) => ({ ...v, [infraType]: !v[infraType] })),
     [],
   )
-  return { state, visible, toggle }
+  const toggleHighlightAllFacilities = useCallback(() => setHighlightAll((v) => !v), [])
+  return { state, visible, toggle, highlightAllFacilities, toggleHighlightAllFacilities }
 }
 
 /**
  * The deck.gl layers for MapView's overlay. `muted` (impact results showing) switches exposure to
- * greys and pale tints so red and orange mean impact only.
+ * greys and pale tints so red and orange mean impact only. `facilities` picks the health
+ * facilities and shelters drawn in full; the rest are faint (unless the user highlights all).
  */
-export function useInfraLayers(infra: InfraMap, muted: boolean): Layer[] {
-  const { state, visible } = infra
-  return useMemo(() => buildInfraLayers(state, visible, muted), [state, visible, muted])
+export function useInfraLayers(infra: InfraMap, muted: boolean, facilities: FacilityFilter): Layer[] {
+  const { state, visible, highlightAllFacilities } = infra
+  const filter = highlightAllFacilities ? null : facilities
+  return useMemo(
+    () => buildInfraLayers(state, visible, muted, filter),
+    [state, visible, muted, filter],
+  )
 }
 
 /**

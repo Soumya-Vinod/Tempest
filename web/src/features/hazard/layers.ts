@@ -28,12 +28,15 @@ import {
   ISOTACH_LABEL_BG,
   isotachWidth,
   STORM_FILL,
+  STORM_HALO,
   STORM_OUTLINE,
   SURGE_MIN_M,
   surgePixel,
   toKmh,
   TRACK_COLOR,
   TRACK_FUTURE_COLOR,
+  TRACK_NEXT_COLOR,
+  TRACK_NEXT_H,
 } from './style'
 
 const EMPTY = { type: 'FeatureCollection' as const, features: [] as HazardLayer[] }
@@ -187,6 +190,10 @@ export function buildTrackLayers(points: CycloneTrackPoint[], index: number): La
   const i = Math.min(index, points.length - 1)
   const current = points[i]
   const category = imdCategory(toKmh(current.max_wind_mps))
+  // The next 24 h of track (by time, so it doesn't depend on the step length), then the rest.
+  const horizonMs = Date.parse(current.timestep) + TRACK_NEXT_H * 3600 * 1000
+  let next = i
+  while (next + 1 < points.length && Date.parse(points[next + 1].timestep) <= horizonMs) next++
   return [
     new PathLayer<CycloneTrackPoint[]>({
       id: 'track-past',
@@ -200,7 +207,7 @@ export function buildTrackLayers(points: CycloneTrackPoint[], index: number): La
     }),
     new PathLayer<CycloneTrackPoint[], PathStyleExtensionProps<CycloneTrackPoint[]>>({
       id: 'track-future',
-      data: i < points.length - 1 ? [points.slice(i)] : [],
+      data: next < points.length - 1 ? [points.slice(next)] : [],
       getPath: (d) => d.map(lonLat),
       getColor: TRACK_FUTURE_COLOR,
       widthUnits: 'pixels',
@@ -209,13 +216,33 @@ export function buildTrackLayers(points: CycloneTrackPoint[], index: number): La
       dashJustified: true,
       extensions: [new PathStyleExtension({ dash: true })],
     }),
+    new PathLayer<CycloneTrackPoint[]>({
+      id: 'track-next',
+      data: next > i ? [points.slice(i, next + 1)] : [],
+      getPath: (d) => d.map(lonLat),
+      getColor: TRACK_NEXT_COLOR,
+      widthUnits: 'pixels',
+      getWidth: 4,
+      capRounded: true,
+      jointRounded: true,
+    }),
+    // The current position: a static halo under the storm dot (no animation, no redraws).
+    new ScatterplotLayer<CycloneTrackPoint>({
+      id: 'track-storm-halo',
+      data: [current],
+      pickable: false,
+      getPosition: lonLat,
+      radiusUnits: 'pixels',
+      getRadius: 16,
+      getFillColor: STORM_HALO,
+    }),
     new ScatterplotLayer<CycloneTrackPoint>({
       id: 'track-storm',
       data: [current],
       pickable: true,
       getPosition: lonLat,
       radiusUnits: 'pixels',
-      getRadius: 8,
+      getRadius: 9,
       getFillColor: STORM_FILL,
       stroked: true,
       getLineColor: STORM_OUTLINE,
