@@ -141,7 +141,7 @@ export default function InfraPanel({
                 <span className="ml-auto text-xs text-slate-500 tabular-nums">
                   {s.status === 'loading' && 'loading…'}
                   {s.status === 'ok' && s.data.features.length.toLocaleString()}
-                  {s.status === 'error' && <span className="text-red-600">error</span>}
+                  {s.status === 'error' && <span title="Data unavailable">—</span>}
                 </span>
               </label>
               {detail && <div className="mt-0.5 ml-6 text-xs text-slate-500">{detail}</div>}

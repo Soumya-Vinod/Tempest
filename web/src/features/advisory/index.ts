@@ -2,11 +2,11 @@
 import { lazy, useCallback, useMemo, useState } from 'react'
 
 import { createAdvisory } from '../../lib/api'
+import { actionErrorText } from '../../lib/errors'
 import { useTimeline } from '../../lib/timeline'
 import type { Advisory, BlockId } from '../../types/contracts'
 import type { AdvisoryDrawerProps } from './AdvisoryDrawer'
 import type { AdvisoryPanelProps } from './AdvisoryPanel'
-import { errorText } from './errors'
 import { useQueue, useSuggestions } from './useAdvisories'
 
 // Code-split: loaded the first time it is shown (see components/Deferred).
@@ -55,7 +55,7 @@ export function useAdvisories(
         setOpen(true)
         onSelect(advisory)
       } catch (err) {
-        setError(errorText(err))
+        setError(actionErrorText(err))
       } finally {
         setGenerating(null)
       }

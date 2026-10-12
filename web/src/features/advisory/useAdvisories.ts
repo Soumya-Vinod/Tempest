@@ -1,14 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 
 import { getAdvisoryAudit, getAdvisorySuggestions, listAdvisories } from '../../lib/api'
+import { unavailableText } from '../../lib/errors'
 import type { Advisory, AdvisorySuggestions, AuditEvent, Timestep } from '../../types/contracts'
 
 export type Loadable<T> =
   | { status: 'loading' }
   | { status: 'ok'; data: T }
   | { status: 'error'; message: string }
-
-const message = (err: unknown) => (err instanceof Error ? err.message : String(err))
 
 /** Every advisory (newest first), reloaded on demand after an action. */
 export function useQueue(): { queue: Loadable<Advisory[]>; reload: () => void } {
@@ -18,7 +17,7 @@ export function useQueue(): { queue: Loadable<Advisory[]>; reload: () => void } 
     let cancelled = false
     listAdvisories().then(
       (fc) => !cancelled && setQueue({ status: 'ok', data: fc.features }),
-      (err: unknown) => !cancelled && setQueue({ status: 'error', message: message(err) }),
+      (err: unknown) => !cancelled && setQueue({ status: 'error', message: unavailableText('The advisory queue', err) }),
     )
     return () => {
       cancelled = true
@@ -37,7 +36,10 @@ export function useSuggestions(timestep: Timestep): Loadable<AdvisorySuggestions
       (data) => !cancelled && setState({ key: timestep, value: { status: 'ok', data } }),
       (err: unknown) =>
         !cancelled &&
-        setState({ key: timestep, value: { status: 'error', message: message(err) } }),
+        setState({
+          key: timestep,
+          value: { status: 'error', message: unavailableText('The suggestion list', err) },
+        }),
     )
     return () => {
       cancelled = true

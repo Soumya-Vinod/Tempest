@@ -64,7 +64,7 @@ export default function ReceiptList({
   const receipts = useReceipts(advisoryId, version)
   if (receipts.status === 'loading') return null
   if (receipts.status === 'error') {
-    return <p className="mt-1 text-xs text-red-700">Receipts: {receipts.message}</p>
+    return <p className="mt-1 text-xs text-red-700">{receipts.message}</p>
   }
   if (receipts.data.length === 0) return null
   return (

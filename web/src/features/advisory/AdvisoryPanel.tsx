@@ -69,7 +69,7 @@ export default function AdvisoryPanel(props: AdvisoryPanelProps) {
       </h2>
       {suggestions.status === 'loading' && <p className="text-xs text-slate-500">Loading…</p>}
       {suggestions.status === 'error' && (
-        <p className="text-xs text-slate-500">Suggestions unavailable: {suggestions.message}</p>
+        <p className="text-xs text-slate-500">{suggestions.message}</p>
       )}
       {suggestions.status === 'ok' && (
         <>

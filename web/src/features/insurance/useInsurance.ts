@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 
 import { ApiError, getInsuranceSummary, getTriggers } from '../../lib/api'
+import { unavailableText } from '../../lib/errors'
 import type {
   InsuranceSummary,
   Timestep,
@@ -14,7 +15,7 @@ export type Loadable<T> =
   | { status: 'error'; message: string }
 
 function failure<T>(err: unknown): Loadable<T> {
-  const message = err instanceof Error ? err.message : String(err)
+  const message = unavailableText('Insurance data', err)
   return err instanceof ApiError && [501, 503].includes(err.status)
     ? { status: 'unavailable', message }
     : { status: 'error', message }
