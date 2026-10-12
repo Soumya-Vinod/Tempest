@@ -1,7 +1,7 @@
 import type { Layer } from '@deck.gl/core'
-import { PathStyleExtension, type PathStyleExtensionProps } from '@deck.gl/extensions'
-import { PathLayer } from '@deck.gl/layers'
+import type { PathStyleExtensionProps } from '@deck.gl/extensions'
 
+import type { Deck } from '../../lib/deck'
 import type { CriticalLink } from '../../types/contracts'
 
 const LINK_COLOR: [number, number, number] = [217, 119, 6] // amber-600
@@ -19,8 +19,9 @@ function paths(link: CriticalLink): Path[] {
 }
 
 /** The hovered or clicked critical links (v1.4): amber on a white casing, dashed for a ferry. */
-export function buildLinkLayers(links: CriticalLink[]): Layer[] {
+export function buildLinkLayers(deck: Deck, links: CriticalLink[]): Layer[] {
   if (links.length === 0) return []
+  const { PathLayer, PathStyleExtension } = deck
   const data = links.flatMap(paths)
   return [
     new PathLayer<Path>({

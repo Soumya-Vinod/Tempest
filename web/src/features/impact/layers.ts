@@ -1,9 +1,9 @@
 // deck.gl layers for affected infrastructure. They sit above the exposure layers; unaffected
 // features aren't drawn here at all, so the exposure styling shows through unchanged.
 import type { Color, Layer, PickingInfo } from '@deck.gl/core'
-import { GeoJsonLayer, IconLayer, ScatterplotLayer } from '@deck.gl/layers'
 import type { Feature, Geometry } from 'geojson'
 
+import type { Deck } from '../../lib/deck'
 import type {
   ImpactResult,
   ImpactResultProperties,
@@ -119,10 +119,12 @@ const AUTO_HIGHLIGHT: number[] = [250, 204, 21, 200]
  * (drawn above the storm track with the other selection highlights).
  */
 export function buildImpactLayers(
+  deck: Deck,
   data: ImpactLayerData,
   highlight: InfraGeometry | null,
   halo: HaloState,
 ): { layers: Layer[]; highlight: Layer[] } {
+  const { GeoJsonLayer, IconLayer, ScatterplotLayer } = deck
   const layers: Layer[] = [
     new GeoJsonLayer<{ affected: Affected }>({
       id: 'impact-lines',

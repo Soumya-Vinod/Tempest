@@ -5,7 +5,7 @@ import maplibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&ur
 import { useEffect, useRef, type CSSProperties } from 'react'
 
 import { AOI_BBOX, BASEMAP_STYLE_URL } from '../lib/constants'
-import { ABOVE_TIMELINE, PANEL_WIDTH, UI_GAP } from '../lib/layout'
+import { above, cssLength, useLayout } from '../lib/layout'
 import { mapAlive } from '../lib/mapAlive'
 import { fitAoi } from '../lib/mapFit'
 
@@ -30,6 +30,14 @@ interface Props {
 
 type OverlayProps = Pick<DeckProps, 'layers' | 'getTooltip' | 'onClick'>
 
+const MAP_READY_MARK = 'tempest:map-layers'
+/** The exposure road layer (features/exposure), with at least one road. */
+function hasRoads(l: LayersList[number]): boolean {
+  if (!l || typeof l !== 'object' || !('id' in l) || l.id !== 'infra-road') return false
+  const data = l.props.data as { features?: unknown[] } | null
+  return (data?.features?.length ?? 0) > 0
+}
+
 export default function MapView({ layers = [], getTooltip, onClick, onMapLoad, onMapRemove }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<MapLibreMap | null>(null)
@@ -37,6 +45,7 @@ export default function MapView({ layers = [], getTooltip, onClick, onMapLoad, o
   // The latest overlay props, re-applied when a lost WebGL context is restored.
   const propsRef = useRef<OverlayProps>({ layers: [] })
   // Latest callbacks without re-creating the map when they change.
+  const layout = useLayout()
   const onMapLoadRef = useRef(onMapLoad)
   const onMapRemoveRef = useRef(onMapRemove)
   useEffect(() => {
@@ -105,6 +114,19 @@ export default function MapView({ layers = [], getTooltip, onClick, onMapLoad, o
     if (map && mapAlive(map)) overlayRef.current?.setProps(propsRef.current)
   }, [layers, getTooltip, onClick])
 
+  // A real "map visible" time for load measurements: performance.mark(MAP_READY_MARK) at the
+  // first map idle (basemap and overlay drawn) once the road network has data; once per map.
+  const readyMarked = useRef(false)
+  useEffect(() => {
+    const map = mapRef.current
+    if (readyMarked.current || !map || !layers.some(hasRoads)) return
+    readyMarked.current = true
+    map.once('idle', () => {
+      performance.mark(MAP_READY_MARK)
+      if (import.meta.env.DEV) console.debug(`${MAP_READY_MARK} at ${Math.round(performance.now())} ms`)
+    })
+  }, [layers])
+
   // MapLibre adds .maplibregl-map (position: relative) to its container, so positioning
   // lives on the wrapper and the container only fills it.
   return (
@@ -112,8 +134,11 @@ export default function MapView({ layers = [], getTooltip, onClick, onMapLoad, o
       className="absolute inset-0 isolate"
       style={
         {
-          '--map-ctrl-bottom': `${ABOVE_TIMELINE}px`,
-          '--map-ctrl-right': `${PANEL_WIDTH + 2 * UI_GAP}px`,
+          // Phones: above the legend's row, which spans most of the width.
+          '--map-ctrl-bottom': cssLength(
+            above(layout, layout.phone ? layout.cardBottom : layout.aboveTimeline),
+          ),
+          '--map-ctrl-right': `${layout.mapRight}px`,
         } as CSSProperties
       }
     >

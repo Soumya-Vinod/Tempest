@@ -5,7 +5,7 @@ import { SURGE_RAMP_CSS } from '../features/hazard/style'
 import type { MapViewMode } from '../features/hazard'
 import { StatusSwatch } from '../features/impact'
 import { cssColor, HATCH_CSS, RAMP_CSS } from '../features/risk/style'
-import { ABOVE_TIMELINE, CARD_TOP_CLEARANCE, LEGEND_FOLDED, UI_GAP } from '../lib/layout'
+import { above, CARD_TOP_CLEARANCE, cssLength, useLayout } from '../lib/layout'
 import type { Horizon } from '../types/contracts'
 
 const rgb = (c: readonly number[]) => cssColor([c[0], c[1], c[2], c[3] ?? 255])
@@ -72,17 +72,26 @@ export default function MapLegend({
   horizon: Horizon
   cardOpen: boolean
 }) {
-  // Folded at first on short screens, where it would cover much of the map.
-  const [open, setOpen] = useState(!LEGEND_FOLDED)
+  // Folded on short screens, where it would cover much of the map: at first, and again whenever
+  // a resize crosses into them (unfolded when it crosses out). The user's toggle holds otherwise.
+  const layout = useLayout()
+  const { aboveTimeline, legendFolded, gap, phone } = layout
+  const bottom = above(layout, aboveTimeline)
+  const [fold, setFold] = useState({ folded: legendFolded, open: !legendFolded })
+  if (fold.folded !== legendFolded) setFold({ folded: legendFolded, open: !legendFolded })
+  const { open } = fold
+  const setOpen = (toggle: (open: boolean) => boolean) => setFold((f) => ({ ...f, open: toggle(f.open) }))
   const expanded = open && !cardOpen
   return (
     <section
       aria-label="Map legend"
-      className="absolute z-10 w-56 overflow-y-auto rounded-lg bg-white/95 text-[11px] text-slate-700 shadow-lg"
+      className={`absolute z-10 w-56 overflow-y-auto rounded-lg bg-white/95 text-[11px] text-slate-700 shadow-lg ${
+        phone ? 'sheet-rides sheet-hides' : ''
+      }`}
       style={{
-        left: UI_GAP,
-        bottom: ABOVE_TIMELINE,
-        maxHeight: `calc(100% - ${ABOVE_TIMELINE + CARD_TOP_CLEARANCE}px)`,
+        left: gap,
+        bottom,
+        maxHeight: `calc(100% - ${cssLength(bottom)} - ${CARD_TOP_CLEARANCE}px)`,
       }}
     >
       <button

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { useCountdownSeries } from '../features/countdown'
-import { COMPACT_TIMELINE, TIMELINE_HEIGHT, UI_GAP } from '../lib/layout'
+import { above, useLayout } from '../lib/layout'
 import { useTimeline } from '../lib/timeline'
 import { useApiStatus } from '../lib/useApiStatus'
 import type { KeyMoment } from '../types/contracts'
@@ -56,6 +56,9 @@ export default function TimelineScrubber({ index, onChange, moments = [] }: Prop
     setPlaying(true)
   }, [playing, index, landfallIndex, onChange])
 
+  const layout = useLayout()
+  const { compactTimeline, timelineHeight, gap, phone } = layout
+
   useTimelineKeys({
     step,
     first: useCallback(() => onChange(0), [onChange]),
@@ -65,8 +68,10 @@ export default function TimelineScrubber({ index, onChange, moments = [] }: Prop
 
   return (
     <div
-      className="absolute z-20 flex flex-col justify-center rounded-lg bg-white px-4 text-sm text-slate-800 shadow-lg"
-      style={{ left: UI_GAP, right: UI_GAP, bottom: UI_GAP, height: TIMELINE_HEIGHT }}
+      className={`absolute z-20 flex flex-col justify-center rounded-lg bg-white text-sm text-slate-800 shadow-lg ${
+        phone ? 'sheet-rides px-3' : 'px-4'
+      }`}
+      style={{ left: gap, right: gap, bottom: above(layout, gap), height: timelineHeight }}
     >
       <div className="flex items-center gap-3">
         <button
@@ -106,7 +111,7 @@ export default function TimelineScrubber({ index, onChange, moments = [] }: Prop
             LANDFALL
           </span>
         )}
-        <ul className="ml-auto hidden items-center gap-3 text-[10px] text-slate-500 lg:flex" aria-label="Timeline legend">
+        <ul className="ml-auto hidden items-center gap-3 text-[10px] whitespace-nowrap text-slate-500 xl:flex" aria-label="Timeline legend">
           {MOMENT_ORDER.map((k) => (
             <li key={k} className="flex items-center gap-1">
               <span className="block size-2 rotate-45" style={{ background: MOMENT[k].color }} aria-hidden />
@@ -126,7 +131,7 @@ export default function TimelineScrubber({ index, onChange, moments = [] }: Prop
       </div>
       <Markers moments={moments} onJump={onChange} />
       <div className="relative">
-        {!COMPACT_TIMELINE && <Sparkline points={series} labelOf={relativeLabel} />}
+        {!compactTimeline && <Sparkline points={series} labelOf={relativeLabel} />}
         <input
           type="range"
           min={0}
@@ -134,7 +139,7 @@ export default function TimelineScrubber({ index, onChange, moments = [] }: Prop
           step={1}
           value={index}
           onChange={(e) => onChange(Number(e.target.value))}
-          className={`relative w-full accent-slate-800 ${COMPACT_TIMELINE ? '' : '-mt-2'}`}
+          className={`relative w-full accent-slate-800 ${compactTimeline ? '' : '-mt-2'}`}
           aria-label="Replay timestep"
           aria-valuetext={`${relativeLabel(index)} hours, ${timestep}`}
         />
@@ -152,7 +157,7 @@ export default function TimelineScrubber({ index, onChange, moments = [] }: Prop
           )
         })}
       </div>
-      {!COMPACT_TIMELINE && (
+      {!compactTimeline && (
         <div className="flex justify-between text-xs text-slate-500">
           {timeline.timesteps.flatMap((_, i) =>
             timeline.hoursToLandfall(i) % TICK_EVERY_H === 0

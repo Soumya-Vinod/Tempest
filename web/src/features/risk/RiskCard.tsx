@@ -1,5 +1,5 @@
 import { useTimeline } from '../../lib/timeline'
-import { CARD_BOTTOM, CARD_TOP_CLEARANCE, PANEL_WIDTH, UI_GAP } from '../../lib/layout'
+import { above, CARD_TOP_CLEARANCE, cssLength, PANEL_WIDTH, useLayout } from '../../lib/layout'
 import { formatPeople } from '../../lib/format'
 import type { Horizon, RiskBlockBreakdown, RiskReach, RiskScore } from '../../types/contracts'
 import { cssColor, DRIVER_LABEL, PART_LABEL, riskColor } from './style'
@@ -67,17 +67,22 @@ export default function RiskCard({
   onClose,
 }: RiskCardProps) {
   const timeline = useTimeline()
+  const layout = useLayout()
+  const { gap, phone } = layout
+  const bottom = above(layout, layout.cardBottom)
   if (!selected) return null
   const p = selected.properties
   const bd = breakdown
   return (
     <aside
-      className="absolute z-20 overflow-y-auto rounded-lg bg-white p-3 text-sm text-slate-800 shadow-lg"
+      className={`absolute z-20 overflow-y-auto rounded-lg bg-white p-3 text-sm text-slate-800 shadow-lg ${
+        phone ? 'sheet-rides sheet-hides' : ''
+      }`}
       style={{
-        left: UI_GAP,
-        bottom: CARD_BOTTOM,
-        width: PANEL_WIDTH,
-        maxHeight: `calc(100% - ${CARD_BOTTOM + CARD_TOP_CLEARANCE}px)`,
+        left: gap,
+        bottom,
+        width: phone ? `calc(100% - ${2 * gap}px)` : PANEL_WIDTH,
+        maxHeight: `calc(100% - ${cssLength(bottom)} - ${CARD_TOP_CLEARANCE}px)`,
       }}
       aria-label="Block risk"
     >

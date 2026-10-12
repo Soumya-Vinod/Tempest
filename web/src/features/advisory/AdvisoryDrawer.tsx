@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-import { ABOVE_TIMELINE, PANEL_WIDTH, UI_GAP } from '../../lib/layout'
+import { PANEL_WIDTH, useLayout } from '../../lib/layout'
 import { useTimeline } from '../../lib/timeline'
 import type { Advisory, AdvisoryStatus } from '../../types/contracts'
 import AdvisoryDetail from './AdvisoryDetail'
@@ -28,6 +28,7 @@ export interface AdvisoryDrawerProps {
 export default function AdvisoryDrawer(props: AdvisoryDrawerProps) {
   const timeline = useTimeline()
   const [filter, setFilter] = useState<AdvisoryStatus | 'all'>('draft')
+  const { aboveTimeline, gap, phone } = useLayout()
   if (!props.open) return null
   const all = props.queue.status === 'ok' ? props.queue.data : []
   const selected = all.find((a) => a.id === props.selectedId) ?? null
@@ -35,13 +36,15 @@ export default function AdvisoryDrawer(props: AdvisoryDrawerProps) {
 
   return (
     <aside
-      className="absolute z-20 overflow-y-auto rounded-lg bg-white p-4 text-sm text-slate-800 shadow-lg"
-      style={{
-        top: UI_GAP,
-        right: 2 * UI_GAP + PANEL_WIDTH,
-        bottom: ABOVE_TIMELINE,
-        width: DRAWER_WIDTH,
-      }}
+      className={`absolute overflow-y-auto rounded-lg bg-white p-4 text-sm text-slate-800 shadow-lg ${
+        phone ? 'z-40' : 'z-20'
+      }`}
+      // Phones: over everything (the sheet too), until it is closed.
+      style={
+        phone
+          ? { top: gap, right: gap, bottom: gap, left: gap }
+          : { top: gap, right: 2 * gap + PANEL_WIDTH, bottom: aboveTimeline, width: DRAWER_WIDTH }
+      }
       aria-label="Advisory queue"
     >
       <div className="mb-2 flex items-center">

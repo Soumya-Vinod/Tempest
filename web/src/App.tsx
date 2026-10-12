@@ -2,10 +2,11 @@ import type { PickingInfo } from '@deck.gl/core'
 import type { Map as MapLibreMap } from 'maplibre-gl'
 import { useCallback, useMemo, useState } from 'react'
 
+import Deferred from './components/Deferred'
 import HealthPanel from './components/HealthPanel'
 import MapErrorBoundary from './components/MapErrorBoundary'
 import MapLegend from './components/MapLegend'
-import MapView from './components/MapView'
+import LazyMapView from './components/LazyMapView'
 import PanelTabs from './components/PanelTabs'
 import TimelineScrubber from './components/TimelineScrubber'
 import WakingNotice from './components/WakingNotice'
@@ -33,6 +34,7 @@ import { ImpactPanel, PathwayCard, useImpactMap } from './features/impact'
 import { InsurancePanel, useInsuranceMap } from './features/insurance'
 import { KpiStrip, useKpis } from './features/kpi'
 import { RiskCard, RiskPanel, useRiskMap } from './features/risk'
+import { useDeck } from './lib/deck'
 import { usePrefetchAround } from './lib/prefetch'
 import { useTimeline } from './lib/timeline'
 import type { Horizon } from './types/contracts'
@@ -67,7 +69,11 @@ export default function App() {
   const departure = impact.card.selectedId
     ? (departures.get(impact.card.selectedId) ?? null)
     : null
-  const routeLayers = useMemo(() => buildRouteLayers(departure), [departure])
+  const deck = useDeck()
+  const routeLayers = useMemo(
+    () => (deck ? buildRouteLayers(deck, departure) : []),
+    [deck, departure],
+  )
   // Keep these open (v1.4): links grouped for the panel (roads by name); the hovered entry or
   // segment, else the clicked one, on the map.
   const criticalLinks = useCriticalLinks(timeline.timesteps[timestepIndex], horizon)
@@ -78,8 +84,9 @@ export default function App() {
     [criticalLinks],
   )
   const linkLayers = useMemo(
-    () => buildLinkLayers(linkGroups ? linksFor(linkGroups, hoveredLink ?? pinnedLink) : []),
-    [linkGroups, hoveredLink, pinnedLink],
+    () =>
+      deck ? buildLinkLayers(deck, linkGroups ? linksFor(linkGroups, hoveredLink ?? pinnedLink) : []) : [],
+    [deck, linkGroups, hoveredLink, pinnedLink],
   )
   // Shelter stand-ins have no departure: the card only says since when they are cut off.
   const shelterCutOff =
@@ -173,6 +180,8 @@ export default function App() {
     insurance: insurance.panel.summary,
     advisories: { drafts: advisory.panel.drafts, approved: advisory.panel.approved },
   })
+  // A pathway or block card is open in the bottom-left slot.
+  const cardOpen = impact.card.selectedId !== null || risk.card.selected !== null
   const getTooltip = useCallback(
     (info: PickingInfo) =>
       impactTooltip(info) ?? riskTooltip(info) ?? hazardTooltip(info) ?? infraTooltip(info),
@@ -204,7 +213,7 @@ export default function App() {
     <main className="relative h-full w-full overflow-hidden">
       {/* Only the map is behind the boundary: if it fails, the panels and timeline stay up. */}
       <MapErrorBoundary>
-        <MapView
+        <LazyMapView
           layers={layers}
           getTooltip={getTooltip}
           onClick={onClick}
@@ -214,12 +223,9 @@ export default function App() {
       </MapErrorBoundary>
       <StormEdge {...hazard.edge} />
       <KpiStrip {...kpis} />
-      <MapLegend
-        view={risk.view}
-        horizon={horizon}
-        cardOpen={impact.card.selectedId !== null || risk.card.selected !== null}
-      />
-      <HealthPanel>
+      <MapLegend view={risk.view} horizon={horizon} cardOpen={cardOpen} />
+      {/* On phones a bottom sheet, which drops back to peek when a card opens on the map. */}
+      <HealthPanel collapse={cardOpen}>
         <PanelTabs
           automatic={toAct > 0 ? 'act' : 'situation'}
           tabs={[
@@ -285,7 +291,9 @@ export default function App() {
         shelterCutOffFrom={shelterSince >= 0 ? timeline.label(shelterSince) : null}
       />
       <RiskCard {...risk.card} />
-      <AdvisoryDrawer {...advisory.drawer} />
+      <Deferred when={advisory.drawer.open}>
+        <AdvisoryDrawer {...advisory.drawer} />
+      </Deferred>
       <WakingNotice />
       <TimelineScrubber
         index={timestepIndex}

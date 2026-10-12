@@ -2,6 +2,7 @@
 import type { Layer } from '@deck.gl/core'
 import { useCallback, useMemo, useState } from 'react'
 
+import { useDeck } from '../../lib/deck'
 import type { InfraType } from '../../types/contracts'
 import { type BlockArea, type BlockOf, createBlockOf } from './blocks'
 import { buildInfraLayers, type FacilityFilter } from './layers'
@@ -49,9 +50,10 @@ export function useInfraMap(): InfraMap {
 export function useInfraLayers(infra: InfraMap, muted: boolean, facilities: FacilityFilter): Layer[] {
   const { state, visible, highlightAllFacilities } = infra
   const filter = highlightAllFacilities ? null : facilities
+  const deck = useDeck()
   return useMemo(
-    () => buildInfraLayers(state, visible, muted, filter),
-    [state, visible, muted, filter],
+    () => (deck ? buildInfraLayers(deck, state, visible, muted, filter) : []),
+    [deck, state, visible, muted, filter],
   )
 }
 

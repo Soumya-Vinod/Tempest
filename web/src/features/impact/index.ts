@@ -3,6 +3,7 @@ import type { DeckProps, Layer, PickingInfo } from '@deck.gl/core'
 import type { Map as MapLibreMap } from 'maplibre-gl'
 import { useCallback, useMemo, useState } from 'react'
 
+import { useDeck } from '../../lib/deck'
 import { useTimeline } from '../../lib/timeline'
 import type { Horizon, ImpactStatus } from '../../types/contracts'
 import type { BlockOf, InfraByType } from '../exposure'
@@ -93,9 +94,10 @@ export function useImpactMap(
     ? (lookup.get(highlightId)?.geometry ?? affected.get(highlightId)?.geometry ?? null)
     : null
 
+  const deck = useDeck()
   const { layers, highlight: highlightLayers } = useMemo(
-    () => buildImpactLayers(data, highlight, halo),
-    [data, highlight, halo],
+    () => (deck ? buildImpactLayers(deck, data, highlight, halo) : { layers: [], highlight: [] }),
+    [deck, data, highlight, halo],
   )
 
   const counts = useMemo(() => {

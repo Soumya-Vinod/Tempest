@@ -1,22 +1,10 @@
 // deck.gl layers for the hazard view (flood, surge, wind cells) and the storm track (both views).
 import type { Color, Layer, PickingInfo } from '@deck.gl/core'
-import {
-  MaskExtension,
-  type MaskExtensionProps,
-  PathStyleExtension,
-  type PathStyleExtensionProps,
-} from '@deck.gl/extensions'
-import {
-  BitmapLayer,
-  type BitmapLayerProps,
-  GeoJsonLayer,
-  PathLayer,
-  PolygonLayer,
-  ScatterplotLayer,
-  TextLayer,
-} from '@deck.gl/layers'
+import type { MaskExtensionProps, PathStyleExtensionProps } from '@deck.gl/extensions'
+import type { BitmapLayerProps } from '@deck.gl/layers'
 import type { Feature } from 'geojson'
 
+import type { Deck } from '../../lib/deck'
 import type { CycloneTrackPoint, HazardLayer } from '../../types/contracts'
 import { type Isotach, type IsotachLabel, isotachs } from './contours'
 import land from './land.json'
@@ -48,7 +36,7 @@ const collection = (features: HazardLayer[]) => ({ ...EMPTY, features })
 // 0.04 %. Nothing is drawn or pickable outside it: not over the sea, rivers, N 24 Parganas or
 // Bangladesh.
 const LAND_MASK_ID = 'hazard-land-mask'
-const MASK = { extensions: [new MaskExtension()], maskId: LAND_MASK_ID }
+const mask = (deck: Deck) => ({ extensions: [new deck.MaskExtension()], maskId: LAND_MASK_ID })
 const LINEAR: BitmapLayerProps['textureParameters'] = {
   minFilter: 'linear',
   magFilter: 'linear',
@@ -56,22 +44,27 @@ const LINEAR: BitmapLayerProps['textureParameters'] = {
 // Nearly transparent: deck.gl picks it, the eye doesn't see it.
 const PICK_ONLY: Color = [0, 0, 0, 1]
 
-function landMask(): Layer {
-  return new GeoJsonLayer({ id: LAND_MASK_ID, data: land as Feature, operation: 'mask' })
+function landMask(deck: Deck): Layer {
+  return new deck.GeoJsonLayer({ id: LAND_MASK_ID, data: land as Feature, operation: 'mask' })
 }
 
 /** A smoothed, land-masked image of one hazard (null data: hidden). */
-function imageLayer(id: string, cells: HazardLayer[] | null, colorize: Colorize): Layer[] {
+function imageLayer(
+  deck: Deck,
+  id: string,
+  cells: HazardLayer[] | null,
+  colorize: Colorize,
+): Layer[] {
   const img = cells ? hazardImage(cells, colorize) : null
   if (!img) return []
   return [
-    new BitmapLayer({
+    new deck.BitmapLayer({
       id,
       image: img.image,
       bounds: img.bounds,
       textureParameters: LINEAR,
       pickable: false,
-      ...MASK,
+      ...mask(deck),
     }),
   ]
 }
@@ -112,12 +105,17 @@ function cellValues(cells: {
  * image), wind isotachs (masked lines with km/h labels), then one invisible, masked hover layer
  * per cell for the tooltip. Everything is clipped to land by the mask layer.
  */
-export function buildHazardFills(cells: {
-  flood: HazardLayer[] | null
-  surge: HazardLayer[] | null
-  wind: HazardLayer[] | null
-}): Layer[] {
-  const layers: Layer[] = [landMask()]
+export function buildHazardFills(
+  deck: Deck,
+  cells: {
+    flood: HazardLayer[] | null
+    surge: HazardLayer[] | null
+    wind: HazardLayer[] | null
+  },
+): Layer[] {
+  const { GeoJsonLayer, MaskExtension, PathLayer, PolygonLayer, TextLayer } = deck
+  const MASK = mask(deck)
+  const layers: Layer[] = [landMask(deck)]
   if (cells.flood) {
     layers.push(
       new GeoJsonLayer<HazardLayer['properties']>({
@@ -130,7 +128,7 @@ export function buildHazardFills(cells: {
       }),
     )
   }
-  if (cells.surge) layers.push(...imageLayer('hazard-surge-image', cells.surge, surgePixel))
+  if (cells.surge) layers.push(...imageLayer(deck, 'hazard-surge-image', cells.surge, surgePixel))
   if (cells.flood || cells.surge || cells.wind) {
     layers.push(
       new PolygonLayer<CellValues>({
@@ -185,8 +183,9 @@ const lonLat = (p: CycloneTrackPoint): [number, number] => [p.lon, p.lat]
  * The track: solid up to the scrubber's timestep, dashed after it; the storm's position with its
  * IMD category as a label.
  */
-export function buildTrackLayers(points: CycloneTrackPoint[], index: number): Layer[] {
+export function buildTrackLayers(deck: Deck, points: CycloneTrackPoint[], index: number): Layer[] {
   if (points.length === 0 || index < 0) return []
+  const { PathLayer, PathStyleExtension, ScatterplotLayer, TextLayer } = deck
   const i = Math.min(index, points.length - 1)
   const current = points[i]
   const category = imdCategory(toKmh(current.max_wind_mps))

@@ -3,7 +3,7 @@
 import type { LngLatBoundsLike, Map as MapLibreMap, PaddingOptions } from 'maplibre-gl'
 
 import { AOI_BBOX } from './constants'
-import { ABOVE_TIMELINE, BELOW_KPI, PANEL_WIDTH, UI_GAP } from './layout'
+import { currentLayout, UI_GAP } from './layout'
 
 const [MIN_LON, MIN_LAT, MAX_LON, MAX_LAT] = AOI_BBOX
 export const AOI_BOUNDS: LngLatBoundsLike = [
@@ -11,12 +11,10 @@ export const AOI_BOUNDS: LngLatBoundsLike = [
   [MAX_LON, MAX_LAT],
 ]
 
-/** The map area not covered by the KPI strip, the panel and the timeline. */
-export const FIT_PADDING: Required<PaddingOptions> = {
-  top: BELOW_KPI + UI_GAP,
-  left: 2 * UI_GAP,
-  right: PANEL_WIDTH + 3 * UI_GAP,
-  bottom: ABOVE_TIMELINE + UI_GAP,
+/** The map area not covered by the KPI strip, the panel and the timeline, right now. */
+function fitPadding(): Required<PaddingOptions> {
+  const { belowKpi, gap, mapRight, coveredBottom } = currentLayout()
+  return { top: belowKpi + gap, left: 2 * gap, right: mapRight + gap, bottom: coveredBottom + gap }
 }
 // If the overlays leave less than this (small windows), fit with a plain gap.
 const MIN_FIT_PX = 160
@@ -24,7 +22,7 @@ const MIN_FIT_PX = 160
 export function fitPadded(map: MapLibreMap, bounds: LngLatBoundsLike, animate = false) {
   const { clientWidth: w, clientHeight: h } = map.getContainer()
   if (!w || !h) return
-  const p = FIT_PADDING
+  const p = fitPadding()
   const roomy = w - p.left - p.right >= MIN_FIT_PX && h - p.top - p.bottom >= MIN_FIT_PX
   map.fitBounds(bounds, { padding: roomy ? p : UI_GAP, animate })
 }

@@ -1,4 +1,4 @@
-import { CARD_BOTTOM, CARD_TOP_CLEARANCE, PANEL_WIDTH, UI_GAP } from '../../lib/layout'
+import { above, CARD_TOP_CLEARANCE, cssLength, PANEL_WIDTH, useLayout } from '../../lib/layout'
 import type {
   Departure,
   ImpactResultProperties,
@@ -110,16 +110,21 @@ function Pathway({
 /** Floating card with the selected feature's pathway (one chain per affected hazard). */
 export default function PathwayCard(props: PathwayCardProps) {
   const { selectedId, selected, lookup, blockOf } = props
+  const layout = useLayout()
+  const { gap, phone } = layout
+  const bottom = above(layout, layout.cardBottom)
   if (!selectedId) return null
   const access = hospitalAccess(selectedId, lookup)
   return (
     <aside
-      className="absolute z-20 overflow-y-auto rounded-lg bg-white p-3 text-sm text-slate-800 shadow-lg"
+      className={`absolute z-20 overflow-y-auto rounded-lg bg-white p-3 text-sm text-slate-800 shadow-lg ${
+        phone ? 'sheet-rides sheet-hides' : ''
+      }`}
       style={{
-        left: UI_GAP,
-        bottom: CARD_BOTTOM,
-        width: PANEL_WIDTH,
-        maxHeight: `calc(100% - ${CARD_BOTTOM + CARD_TOP_CLEARANCE}px)`,
+        left: gap,
+        bottom,
+        width: phone ? `calc(100% - ${2 * gap}px)` : PANEL_WIDTH,
+        maxHeight: `calc(100% - ${cssLength(bottom)} - ${CARD_TOP_CLEARANCE}px)`,
       }}
       aria-label="Impact pathway"
     >
