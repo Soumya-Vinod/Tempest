@@ -1,13 +1,41 @@
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
-import { defineConfig } from 'vite'
+import { defineConfig, type Plugin } from 'vite'
 
 // localhost:8000 via IPv4. Node resolves "localhost" to ::1 on Windows, but uvicorn binds 127.0.0.1.
 const API_TARGET = 'http://127.0.0.1:8000'
 
+/**
+ * Low-priority modulepreload hints for the map's chunks in index.html. They are only reached
+ * through dynamic imports, so without a hint the browser starts on them only once the entry has
+ * run; with one they download from the start, behind the entry and the CSS.
+ */
+function preloadMapChunks(): Plugin {
+  let base = '/'
+  return {
+    name: 'tempest:preload-map-chunks',
+    apply: 'build',
+    configResolved(config) {
+      base = config.base
+    },
+    transformIndexHtml: {
+      order: 'post',
+      handler(_html, ctx) {
+        return Object.values(ctx.bundle ?? {})
+          .filter((c) => c.type === 'chunk' && /^(maplibre|deck|deckLayers|MapView)$/.test(c.name))
+          .map((c) => ({
+            tag: 'link',
+            attrs: { rel: 'modulepreload', href: base + c.fileName, crossorigin: '', fetchpriority: 'low' },
+            injectTo: 'head' as const,
+          }))
+      },
+    },
+  }
+}
+
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [react(), tailwindcss(), preloadMapChunks()],
   optimizeDeps: {
     // maplibre-gl v6 finds its web worker at runtime via
     // new URL('./maplibre-gl-worker.mjs', import.meta.url). Pre-bundling moves the main
