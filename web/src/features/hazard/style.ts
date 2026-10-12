@@ -99,14 +99,23 @@ export const FLOOD_RAMP_CSS = `linear-gradient(to right, ${FLOOD_STOPS.map(
 ).join(', ')})`
 
 // --- Storm track ---------------------------------------------------------------------------------
+// The storm is pink, a hue no other symbol uses: red / amber are impact, violet is risk, blue is
+// surge, slate is the network.
 
-export const TRACK_COLOR: Color = [30, 41, 59, 220]
-export const TRACK_FUTURE_COLOR: Color = [30, 41, 59, 110]
+export const TRACK_COLOR: Color = [157, 23, 77, 220] // pink-800
+export const TRACK_FUTURE_COLOR: Color = [157, 23, 77, 110]
 /** The next 24 h of track: where the storm will be while today's decisions play out. */
-export const TRACK_NEXT_COLOR: Color = [217, 119, 6, 235] // amber-600
+export const TRACK_NEXT_COLOR: Color = [236, 72, 153, 235] // pink-500
 export const TRACK_NEXT_H = 24
-export const STORM_HALO: Color = [220, 38, 38, 60]
-export const STORM_FILL: Color = [220, 38, 38, 235]
+export const STORM_HALO: Color = [219, 39, 119, 60]
+export const STORM_FILL: Color = [219, 39, 119, 235] // pink-600
+/** The same colours for the legend and the off-screen arrow. */
+export const STORM_CSS = {
+  track: 'rgb(157 23 77)',
+  next: 'rgb(236 72 153)',
+  later: 'rgb(157 23 77 / 0.45)',
+  storm: 'rgb(219 39 119)',
+} as const
 export const STORM_OUTLINE: Color = [255, 255, 255, 255]
 
 // --- Smoothed images (raster.ts): the same scales, per pixel ------------------------------------

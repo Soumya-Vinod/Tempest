@@ -1,4 +1,4 @@
-import { type KeyboardEvent, type ReactNode, useId, useRef, useState } from 'react'
+import { type KeyboardEvent, type ReactNode, useEffect, useId, useRef, useState } from 'react'
 
 import Deferred from './Deferred'
 
@@ -38,9 +38,19 @@ function storeTab(id: TabId) {
  * expected to be cut off); a pick is remembered across reloads. A tab mounts when first shown
  * (its lazy panels load then) and stays mounted (hidden), so lists keep their expanded state.
  */
-export default function PanelTabs({ tabs, automatic }: { tabs: PanelTab[]; automatic: TabId }) {
+export default function PanelTabs({
+  tabs,
+  automatic,
+  onActive,
+}: {
+  tabs: PanelTab[]
+  automatic: TabId
+  /** Told the tab on show, whenever it changes (e.g. to draw the payout outline for Finance). */
+  onActive?: (id: TabId) => void
+}) {
   const [chosen, setChosen] = useState<TabId | null>(storedTab)
   const active = chosen ?? automatic
+  useEffect(() => onActive?.(active), [active, onActive])
   const base = useId()
   const buttons = useRef<(HTMLButtonElement | null)[]>([])
 
