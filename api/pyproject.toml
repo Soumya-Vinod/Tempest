@@ -8,3 +8,7 @@ select = ["E", "F", "I", "UP", "B"]
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]
+addopts = "--strict-markers"
+markers = [
+    "local_data: needs gitignored files (data/processed/infra.parquet, roads.graphml or data/raw OSM extracts); CI deselects with -m 'not local_data'",
+]

@@ -121,6 +121,7 @@ def test_route_legs_run_from_the_facility(fixture):
         assert np.hypot(*np.subtract(end, dest.geometry.coordinates)) < 0.03, d["name"]
 
 
+@pytest.mark.local_data
 @pytest.mark.skipif(not impact.GRAPH_PATH.is_file(), reason="needs data/processed/roads.graphml")
 def test_fixture_matches_a_fresh_computation(fixture):
     """Rebuild it (scripts/build_departures_fixture.py) after regenerating impact fixtures."""

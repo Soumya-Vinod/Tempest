@@ -1,0 +1,115 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (ruff + pytest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            api/requirements.txt
+            api/requirements-dev.txt
+
+      - name: Install
+        run: python -m pip install -r api/requirements-dev.txt
+
+      - name: Ruff
+        run: ruff check api
+
+      # Tests marked local_data need gitignored files (infra.parquet, roads.graphml, OSM extracts)
+      # that a fresh checkout does not have; they run on a machine with api/data built.
+      - name: Pytest
+        working-directory: api
+        run: |
+          set -o pipefail
+          python -m pytest -m "not local_data" -rs -p no:cacheprovider 2>&1 | tee pytest.log
+
+      - name: Test summary
+        if: always()
+        working-directory: api
+        run: |
+          {
+            echo "### Backend tests"
+            echo
+            echo '```'
+            tail -n 1 pytest.log 2>/dev/null || echo "pytest did not run"
+            echo '```'
+            echo
+            echo "**Not run in CI (marker \`local_data\`, need gitignored data):**"
+            echo
+            python -m pytest --collect-only -q -m local_data -p no:cacheprovider \
+              | grep '::' | sed 's/^/- `/; s/$/`/'
+            echo
+            echo "**Skipped at runtime:**"
+            echo
+            skipped=$(grep '^SKIPPED' pytest.log 2>/dev/null || true)
+            if [ -n "$skipped" ]; then echo "$skipped" | sed 's/^/- /'; else echo "- none"; fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  frontend:
+    name: Frontend (lint + types + build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type check
+        run: npx tsc -b --noEmit
+
+      - name: Build
+        run: npm run build
+
+      # Reported only; bundle size never fails the build.
+      - name: Bundle size
+        run: |
+          gz() { gzip -6 -c "$1" | wc -c; }
+          kb() { awk -v b="$1" 'BEGIN { printf "%.1f kB", b / 1000 }'; }
+          entry=$(grep -o '<script type="module"[^>]*src="/[^"]*"' dist/index.html | sed 's|.*src="/||; s|"$||')
+          total=0
+          rows=""
+          for f in dist/assets/*.js; do
+            raw=$(wc -c < "$f"); z=$(gz "$f"); total=$((total + z))
+            rows+="| \`${f#dist/}\` | $(kb "$raw") | $(kb "$z") |"$'\n'
+          done
+          {
+            echo "### Frontend bundle (gzip -6)"
+            echo
+            echo "| | gzip |"
+            echo "|---|---|"
+            echo "| Entry chunk \`$entry\` | $(kb "$(gz "dist/$entry")") |"
+            echo "| Total JS | $(kb "$total") |"
+            echo
+            echo "| File | Raw | gzip |"
+            echo "|---|---|---|"
+            printf '%s' "$rows"
+          } >> "$GITHUB_STEP_SUMMARY"

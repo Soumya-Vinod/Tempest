@@ -198,6 +198,7 @@ def test_every_timestep_resolves_and_every_file_is_used(prefix):
     assert len(on_disk) < len(REPLAY_TIMESTEPS)  # deduplication actually happened
 
 
+@pytest.mark.local_data
 def test_h24_fixtures_match_a_fresh_computation(monkeypatch):
     """Every timestep: the DEMO_MODE response (dedup file + index) equals the live computation."""
     blocks = load_blocks()
