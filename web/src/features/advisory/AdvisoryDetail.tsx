@@ -14,10 +14,10 @@ import type {
   GeneratedBy,
   Language,
 } from '../../types/contracts'
+import { actionErrorText } from '../../lib/errors'
 import { useTimeline } from '../../lib/timeline'
 import { DispatchDialog, ReceiptList } from '../dispatch'
 import { ApproveDialog, RejectDialog } from './Dialogs'
-import { errorText } from './errors'
 import { STATUS_STYLE, timestepLabel } from './style'
 import { useAudit } from './useAdvisories'
 
@@ -159,7 +159,7 @@ export default function AdvisoryDetail(props: {
       props.onChanged(await action())
       after?.()
     } catch (err) {
-      setError(errorText(err))
+      setError(actionErrorText(err))
     } finally {
       setBusy(false)
     }

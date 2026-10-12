@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 
 import { ApiError, getRiskBreakdown, getRiskScores, getUnscoredAreas } from '../../lib/api'
+import { unavailableText } from '../../lib/errors'
 import type {
   Horizon,
   RiskBreakdown,
@@ -43,7 +44,7 @@ function load(timestep: Timestep, horizon: Horizon): Promise<RiskData> {
 }
 
 function failure(err: unknown): RiskState {
-  const message = err instanceof Error ? err.message : String(err)
+  const message = unavailableText('Risk data', err)
   return err instanceof ApiError && err.status === 501
     ? { status: 'unavailable', message }
     : { status: 'error', message }

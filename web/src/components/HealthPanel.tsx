@@ -133,12 +133,19 @@ export default function HealthPanel({
 
   useEffect(() => {
     let cancelled = false
+    let down = false
     const poll = async () => {
       try {
         const data = await getHealth()
+        down = false
         if (!cancelled) setHealth({ kind: 'ok', data })
       } catch (err) {
-        if (!cancelled) setHealth({ kind: 'error', message: (err as Error).message })
+        // The raw error goes to the console, once per outage; the chip's tooltip says it plainly.
+        if (!down) console.warn('Status check failed.', err)
+        down = true
+        if (!cancelled) {
+          setHealth({ kind: 'error', message: 'The server did not answer the status check.' })
+        }
       }
     }
     void poll()

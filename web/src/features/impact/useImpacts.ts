@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 
 import { ApiError, getImpactResults } from '../../lib/api'
+import { unavailableText } from '../../lib/errors'
 import type { Horizon, ImpactResult, Timestep } from '../../types/contracts'
 import { NON_OK } from './style'
 
@@ -36,7 +37,7 @@ function load(timestep: Timestep, horizon: Horizon): Promise<ImpactResult[]> {
 }
 
 function failure(err: unknown): ImpactState {
-  const message = err instanceof Error ? err.message : String(err)
+  const message = unavailableText('Impact data', err)
   return err instanceof ApiError && err.status === 501
     ? { status: 'unavailable', message }
     : { status: 'error', message }
