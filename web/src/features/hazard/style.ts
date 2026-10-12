@@ -117,6 +117,9 @@ export const STORM_CSS = {
   storm: 'rgb(219 39 119)',
 } as const
 export const STORM_OUTLINE: Color = [255, 255, 255, 255]
+/** White casing each side of every track segment (keeps it apart from roads). */
+export const TRACK_CASING: Color = [255, 255, 255, 230]
+export const TRACK_CASING_PX = 1.5
 
 // --- Smoothed images (raster.ts): the same scales, per pixel ------------------------------------
 // Module-level functions: raster.ts caches images per function, so they must stay stable.
