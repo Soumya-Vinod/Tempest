@@ -21,6 +21,8 @@ import {
   SURGE_MIN_M,
   surgePixel,
   toKmh,
+  TRACK_CASING,
+  TRACK_CASING_PX,
   TRACK_COLOR,
   TRACK_FUTURE_COLOR,
   TRACK_NEXT_COLOR,
@@ -193,10 +195,29 @@ export function buildTrackLayers(deck: Deck, points: CycloneTrackPoint[], index:
   const horizonMs = Date.parse(current.timestep) + TRACK_NEXT_H * 3600 * 1000
   let next = i
   while (next + 1 < points.length && Date.parse(points[next + 1].timestep) <= horizonMs) next++
+  const past = [points.slice(0, i + 1)]
+  const later = next < points.length - 1 ? [points.slice(next)] : []
+  const soon = next > i ? [points.slice(i, next + 1)] : []
+  // A white casing under every segment, so the track stays apart from the slate roads where its
+  // pink reads as grey (deuteranopia). Solid under the dashed part too: dashes on a white band.
+  const casing = (id: string, data: CycloneTrackPoint[][], width: number) =>
+    new PathLayer<CycloneTrackPoint[]>({
+      id: `${id}-casing`,
+      data,
+      getPath: (d) => d.map(lonLat),
+      getColor: TRACK_CASING,
+      widthUnits: 'pixels',
+      getWidth: width + 2 * TRACK_CASING_PX,
+      capRounded: true,
+      jointRounded: true,
+    })
   return [
+    casing('track-past', past, 3),
+    casing('track-future', later, 2),
+    casing('track-next', soon, 4),
     new PathLayer<CycloneTrackPoint[]>({
       id: 'track-past',
-      data: [points.slice(0, i + 1)],
+      data: past,
       getPath: (d) => d.map(lonLat),
       getColor: TRACK_COLOR,
       widthUnits: 'pixels',
@@ -206,7 +227,7 @@ export function buildTrackLayers(deck: Deck, points: CycloneTrackPoint[], index:
     }),
     new PathLayer<CycloneTrackPoint[], PathStyleExtensionProps<CycloneTrackPoint[]>>({
       id: 'track-future',
-      data: next < points.length - 1 ? [points.slice(next)] : [],
+      data: later,
       getPath: (d) => d.map(lonLat),
       getColor: TRACK_FUTURE_COLOR,
       widthUnits: 'pixels',
@@ -217,7 +238,7 @@ export function buildTrackLayers(deck: Deck, points: CycloneTrackPoint[], index:
     }),
     new PathLayer<CycloneTrackPoint[]>({
       id: 'track-next',
-      data: next > i ? [points.slice(i, next + 1)] : [],
+      data: soon,
       getPath: (d) => d.map(lonLat),
       getColor: TRACK_NEXT_COLOR,
       widthUnits: 'pixels',
@@ -246,7 +267,7 @@ export function buildTrackLayers(deck: Deck, points: CycloneTrackPoint[], index:
       stroked: true,
       getLineColor: STORM_OUTLINE,
       lineWidthUnits: 'pixels',
-      getLineWidth: 2,
+      getLineWidth: 3,
     }),
     new TextLayer<CycloneTrackPoint>({
       id: 'track-label',
