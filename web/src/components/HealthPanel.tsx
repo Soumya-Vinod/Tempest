@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 
 import { getHealth, type HealthResponse } from '../lib/api'
 import { ABOVE_TIMELINE, PANEL_WIDTH, UI_GAP } from '../lib/layout'
@@ -63,9 +63,42 @@ function BackendStatus({ health }: { health: HealthState }) {
   )
 }
 
+/** More content below the scroll position (a fade hints at it); re-checked as content changes. */
+function useMoreBelow() {
+  const ref = useRef<HTMLDivElement>(null)
+  const [more, setMore] = useState(false)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    // At most one layout read per frame, however many mutations land in it.
+    let frame = 0
+    const check = () => {
+      if (frame) return
+      frame = requestAnimationFrame(() => {
+        frame = 0
+        setMore(el.scrollTop + el.clientHeight < el.scrollHeight - 4)
+      })
+    }
+    check()
+    el.addEventListener('scroll', check, { passive: true })
+    const resize = new ResizeObserver(check)
+    resize.observe(el)
+    const mutations = new MutationObserver(check)
+    mutations.observe(el, { childList: true, subtree: true })
+    return () => {
+      cancelAnimationFrame(frame)
+      el.removeEventListener('scroll', check)
+      resize.disconnect()
+      mutations.disconnect()
+    }
+  }, [])
+  return { ref, more }
+}
+
 /** Side panel: a slim header (name, one-line backend status), then the feature sections. */
 export default function HealthPanel({ children }: { children?: ReactNode }) {
   const [health, setHealth] = useState<HealthState>({ kind: 'loading' })
+  const { ref: scrollRef, more } = useMoreBelow()
 
   useEffect(() => {
     let cancelled = false
@@ -87,19 +120,28 @@ export default function HealthPanel({ children }: { children?: ReactNode }) {
 
   return (
     <aside
-      className="absolute z-20 overflow-y-auto rounded-lg bg-white p-4 text-sm text-slate-800 shadow-lg"
+      className="absolute z-20 overflow-hidden rounded-lg bg-white text-sm text-slate-800 shadow-lg"
       style={{ top: UI_GAP, right: UI_GAP, bottom: ABOVE_TIMELINE, width: PANEL_WIDTH }}
     >
-      <header className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-slate-100 pb-2">
-        <h1 className="text-base leading-5 font-semibold">Tempest</h1>
-        <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide whitespace-nowrap text-slate-600">
-          REPLAY · Amphan 2020 · South 24 Parganas
-        </span>
-        <div className="ml-auto">
-          <BackendStatus health={health} />
-        </div>
-      </header>
-      {children}
+      <div ref={scrollRef} className="h-full overflow-y-auto p-4 pb-8">
+        <header className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-slate-100 pb-2">
+          <h1 className="text-base leading-5 font-semibold">Tempest</h1>
+          <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide whitespace-nowrap text-slate-600">
+            REPLAY · Amphan 2020 · South 24 Parganas
+          </span>
+          <div className="ml-auto">
+            <BackendStatus health={health} />
+          </div>
+        </header>
+        {children}
+      </div>
+      {/* Content continues below: fade the cut edge instead of slicing text in half. */}
+      <div
+        className={`pointer-events-none absolute inset-x-0 bottom-0 h-10 rounded-b-lg bg-linear-to-t from-white to-transparent transition-opacity ${
+          more ? 'opacity-100' : 'opacity-0'
+        }`}
+        aria-hidden
+      />
     </aside>
   )
 }

@@ -1,4 +1,4 @@
-import { relativeLabel } from '../../lib/constants'
+import { useTimeline } from '../../lib/timeline'
 import { CARD_BOTTOM, CARD_TOP_CLEARANCE, PANEL_WIDTH, UI_GAP } from '../../lib/layout'
 import { formatPeople } from '../../lib/format'
 import type { Horizon, RiskBlockBreakdown, RiskReach, RiskScore } from '../../types/contracts'
@@ -66,6 +66,7 @@ export default function RiskCard({
   horizon,
   onClose,
 }: RiskCardProps) {
+  const timeline = useTimeline()
   if (!selected) return null
   const p = selected.properties
   const bd = breakdown
@@ -83,7 +84,7 @@ export default function RiskCard({
       <div className="flex items-start gap-2">
         <div>
           <p className="font-medium">{p.block_name}</p>
-          <p className="text-xs text-slate-500">CD block · {relativeLabel(timestepIndex)}</p>
+          <p className="text-xs text-slate-500">CD block · {timeline.label(timestepIndex)}</p>
         </div>
         <button
           type="button"

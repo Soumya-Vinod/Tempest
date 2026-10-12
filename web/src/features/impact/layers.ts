@@ -61,13 +61,16 @@ const pointFill = (f: AffectedFeature): Color =>
   f.properties.affected.worst === 'cut' ? IMPACT_COLOR.cut : IMPACT_COLOR.atRisk
 
 const position = (a: Affected) => a.geometry.coordinates as [number, number]
-const pulseMax = () => RADIUS.isolatedMax
-const pulseMin = () => RADIUS.isolatedMin
+const haloMax = () => RADIUS.haloMax
+const haloMin = () => RADIUS.haloMin
+
+/** The halo: 'grow' / 'shrink' while pulsing (animated), 'static' when motion is off. */
+export type HaloState = 'grow' | 'shrink' | 'static'
 
 export interface ImpactLayerData {
   lines: AffectedFeature[]
   points: AffectedFeature[] // at_risk / cut points (substations, facilities)
-  isolated: Affected[] // cut off now: solid, pulsing ring
+  isolated: Affected[] // cut off now: target (core + thick ring) in a pulsing halo
   expected: Affected[] // expected within 24 h, not yet (v1.3): dashed ring
 }
 
@@ -101,8 +104,8 @@ const DASHED_RING = {
     'data:image/svg+xml;charset=utf-8,' +
     encodeURIComponent(
       `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">` +
-        `<circle cx="32" cy="32" r="26" fill="rgba(${ir},${ig},${ib},0.12)" ` +
-        `stroke="rgb(${ir},${ig},${ib})" stroke-width="5" stroke-dasharray="9 7"/></svg>`,
+        `<circle cx="32" cy="32" r="26" fill="rgba(255,255,255,0.75)" ` +
+        `stroke="rgb(${ir},${ig},${ib})" stroke-width="6" stroke-dasharray="9 7"/></svg>`,
     ),
   width: 64,
   height: 64,
@@ -118,7 +121,7 @@ const AUTO_HIGHLIGHT: number[] = [250, 204, 21, 200]
 export function buildImpactLayers(
   data: ImpactLayerData,
   highlight: InfraGeometry | null,
-  pulse: boolean,
+  halo: HaloState,
 ): { layers: Layer[]; highlight: Layer[] } {
   const layers: Layer[] = [
     new GeoJsonLayer<{ affected: Affected }>({
@@ -146,35 +149,63 @@ export function buildImpactLayers(
       getLineColor: IMPACT_COLOR.outline,
       getLineWidth: 1,
     }),
-    // Pulsing: only the target radius changes (every PULSE_MS); deck.gl animates the
-    // transition on the GPU, so there's no per-frame React work.
-    new IconLayer<Affected>({
-      id: 'impact-expected',
-      data: data.expected,
-      pickable: true,
-      getPosition: position,
-      getIcon: () => DASHED_RING,
-      sizeUnits: 'pixels',
-      getSize: 2 * RADIUS.isolatedMax,
-    }),
-    new ScatterplotLayer<Affected>({
-      id: 'impact-isolated',
-      data: data.isolated,
-      pickable: true,
-      getPosition: position,
-      radiusUnits: 'pixels',
-      // An accessor (not a constant) so the radius is a buffer that transitions can interpolate.
-      getRadius: pulse ? pulseMax : pulseMin,
-      updateTriggers: { getRadius: pulse },
-      stroked: true,
-      filled: true,
-      getFillColor: IMPACT_COLOR.isolatedFill,
-      getLineColor: IMPACT_COLOR.isolated,
-      lineWidthUnits: 'pixels',
-      getLineWidth: 3,
-      transitions: { getRadius: { duration: PULSE_MS } },
-    }),
   ]
+  // Rings only when there is something to ring: empty layers still cost a model each on load.
+  if (data.expected.length > 0)
+    layers.push(
+      new IconLayer<Affected>({
+        id: 'impact-expected',
+        data: data.expected,
+        pickable: true,
+        getPosition: position,
+        getIcon: () => DASHED_RING,
+        sizeUnits: 'pixels',
+        getSize: 2 * (RADIUS.isolatedRing + WIDTH.isolatedRing),
+      }),
+    )
+  if (data.isolated.length > 0)
+    layers.push(
+      // Halo: while pulsing only its target radius changes and deck.gl animates the transition on
+      // the GPU (no per-frame React work); between pulses and when static nothing redraws.
+      new ScatterplotLayer<Affected>({
+        id: 'impact-isolated-halo',
+        data: data.isolated,
+        pickable: false,
+        getPosition: position,
+        radiusUnits: 'pixels',
+        // An accessor (not a constant) so the radius is a buffer that transitions can interpolate.
+        getRadius: halo === 'grow' ? haloMax : halo === 'shrink' ? haloMin : RADIUS.haloStatic,
+        updateTriggers: { getRadius: halo },
+        filled: true,
+        stroked: false,
+        getFillColor: IMPACT_COLOR.isolatedHalo,
+        transitions: halo === 'static' ? {} : { getRadius: { duration: PULSE_MS } },
+      }),
+      // The ring (filled white inside, so the whole target is clickable), then its core.
+      new ScatterplotLayer<Affected>({
+        id: 'impact-isolated',
+        data: data.isolated,
+        pickable: true,
+        getPosition: position,
+        radiusUnits: 'pixels',
+        getRadius: RADIUS.isolatedRing,
+        stroked: true,
+        filled: true,
+        getFillColor: IMPACT_COLOR.isolatedGap,
+        getLineColor: IMPACT_COLOR.isolated,
+        lineWidthUnits: 'pixels',
+        getLineWidth: WIDTH.isolatedRing,
+      }),
+      new ScatterplotLayer<Affected>({
+        id: 'impact-isolated-core',
+        data: data.isolated,
+        pickable: false,
+        getPosition: position,
+        radiusUnits: 'pixels',
+        getRadius: RADIUS.isolatedCore,
+        getFillColor: IMPACT_COLOR.isolated,
+      }),
+    )
   const highlightLayers: Layer[] = []
   if (highlight) {
     highlightLayers.push(

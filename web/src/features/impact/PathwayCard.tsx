@@ -2,18 +2,21 @@ import { CARD_BOTTOM, CARD_TOP_CLEARANCE, PANEL_WIDTH, UI_GAP } from '../../lib/
 import type {
   Departure,
   ImpactResultProperties,
-  ImpactStatus,
   PathwayStep,
 } from '../../types/contracts'
 import { DepartureLine } from '../departures'
 import type { Affected } from './layers'
+import type { BlockOf } from '../exposure'
 import { featureName, hospitalAccess, type InfraLookup } from './labels'
-import { cssColor, HAZARD_LABEL, STATUS_COLOR, STATUS_LABEL } from './style'
+import StatusSwatch from './StatusSwatch'
+import { HAZARD_LABEL, STATUS_LABEL } from './style'
 
 export interface PathwayCardProps {
   selectedId: string | null
   selected: Affected | null
   lookup: InfraLookup
+  /** Block lookup for naming unnamed features. */
+  blockOf: BlockOf | null
   highlightId: string | null
   onHighlight: (id: string) => void
   onClose: () => void
@@ -25,16 +28,6 @@ export interface PathwayCardProps {
 }
 
 // Bottom-left of the map, above the timeline and the attribution control; below the zoom buttons.
-
-function StatusDot({ status }: { status: ImpactStatus }) {
-  return (
-    <span
-      className="size-2.5 shrink-0 rounded-full"
-      style={{ background: cssColor(STATUS_COLOR[status]) }}
-      aria-hidden
-    />
-  )
-}
 
 function Step({
   step,
@@ -95,7 +88,7 @@ function Pathway({
   return (
     <div className="mt-2">
       <p className="mb-1 flex items-center gap-1.5 text-xs font-semibold">
-        <StatusDot status={row.status} />
+        <StatusSwatch status={row.status} />
         {HAZARD_LABEL[row.hazard_type]}: {STATUS_LABEL[row.status].toLowerCase()}
       </p>
       <ol className="ml-1">
@@ -116,7 +109,7 @@ function Pathway({
 
 /** Floating card with the selected feature's pathway (one chain per affected hazard). */
 export default function PathwayCard(props: PathwayCardProps) {
-  const { selectedId, selected, lookup } = props
+  const { selectedId, selected, lookup, blockOf } = props
   if (!selectedId) return null
   const access = hospitalAccess(selectedId, lookup)
   return (
@@ -131,7 +124,7 @@ export default function PathwayCard(props: PathwayCardProps) {
       aria-label="Impact pathway"
     >
       <div className="flex items-start gap-2">
-        <p className="font-medium">{featureName(selectedId, lookup)}</p>
+        <p className="font-medium">{featureName(selectedId, lookup, blockOf)}</p>
         <button
           type="button"
           onClick={props.onClose}

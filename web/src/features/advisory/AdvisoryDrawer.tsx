@@ -1,6 +1,7 @@
 import { useState } from 'react'
 
 import { ABOVE_TIMELINE, PANEL_WIDTH, UI_GAP } from '../../lib/layout'
+import { useTimeline } from '../../lib/timeline'
 import type { Advisory, AdvisoryStatus } from '../../types/contracts'
 import AdvisoryDetail from './AdvisoryDetail'
 import { STATUS_STYLE, timestepLabel } from './style'
@@ -25,6 +26,7 @@ export interface AdvisoryDrawerProps {
 
 /** The approval queue, beside the side panel: a list, or one advisory's detail. */
 export default function AdvisoryDrawer(props: AdvisoryDrawerProps) {
+  const timeline = useTimeline()
   const [filter, setFilter] = useState<AdvisoryStatus | 'all'>('draft')
   if (!props.open) return null
   const all = props.queue.status === 'ok' ? props.queue.data : []
@@ -98,7 +100,7 @@ export default function AdvisoryDrawer(props: AdvisoryDrawerProps) {
                   >
                     <span className="flex items-center gap-2">
                       <span className="font-medium">{p.block_name}</span>
-                      <span className="text-xs text-slate-500">{timestepLabel(p.timestep)}</span>
+                      <span className="text-xs text-slate-500">{timestepLabel(timeline, p.timestep)}</span>
                       <span className={`ml-auto rounded px-2 py-0.5 text-xs ${STATUS_STYLE[p.status]}`}>
                         {p.status}
                       </span>

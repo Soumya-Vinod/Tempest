@@ -701,6 +701,28 @@ def test_hours_to_landfall():
     assert facts_module.hours_to_landfall("2020-05-20T09:00:00Z") == 3
 
 
+def test_namkhana_facts_at_landfall_from_the_demo_fixtures(monkeypatch):
+    from app.exposure import service as exposure
+    from app.impact import service as impact
+    from app.risk import service as risk
+
+    s = settings(True, None)
+    for module in (impact, risk, exposure, demo_module):
+        monkeypatch.setattr(module, "get_settings", lambda: s)
+    for module in (impact, risk, exposure):
+        module.clear_cache()
+    try:
+        f = facts_module.build_facts("02439", TS)
+    finally:
+        for module in (impact, risk, exposure):
+            module.clear_cache()
+    by_key = {c.key: c for c in f.citations}
+    assert by_key["hours_to_landfall"].value == 0
+    assert "hours_to_landfall" not in facts_module.offered_keys(f.citations)
+    median = by_key["hospital_median_min"].label
+    assert "normal road time" in median and "before the storm" in median
+
+
 def test_gosaba_facts_from_the_demo_fixtures(monkeypatch):
     from app.exposure import service as exposure
     from app.impact import service as impact
@@ -1533,13 +1555,46 @@ def test_road_times_are_labelled_normal_conditions(monkeypatch):
     assert labels == {"Normal road time to next hospital (before the storm)"}
     prompt_text = " ".join(SYSTEM_PROMPT.split())
     assert "road travel times in normal conditions, before the storm" in prompt_text
-    assert "never as boat times" in prompt_text
+    assert "never describe them as current travel times or as boat times" in prompt_text.lower()
 
 
 def test_hours_to_landfall_rule():
     prompt_text = " ".join(SYSTEM_PROMPT.split())
     assert "{{hours_to_landfall}} is only the time until the cyclone makes landfall" in prompt_text
     assert "Never use it as the time until something is cut off" in prompt_text
+
+
+@pytest.mark.parametrize(("hours", "offered"), [(0, False), (3, True)])
+def test_at_landfall_hours_to_landfall_is_cited_not_offered(hours, offered):
+    """At T-0, "landfall within 0 hours" can't be written: the figure isn't a placeholder, and
+    the message says in words that landfall is under way."""
+    from app.advisory.prompt import LANDFALL_NOW
+
+    facts = with_citations(
+        Citation(key="hours_to_landfall", label="Hours", value=hours, unit="h", source="replay")
+    )
+    assert ("hours_to_landfall" in facts_module.offered_keys(facts.citations)) == offered
+    assert "hours_to_landfall" in {c.key for c in facts.citations}  # still cited
+    message = user_message(facts)
+    assert (LANDFALL_NOW in message) == (not offered)
+    assert ('"hours_to_landfall"' in message) == offered
+
+
+def test_at_landfall_a_draft_using_hours_to_landfall_is_rejected():
+    facts = with_citations(
+        Citation(key="hours_to_landfall", label="Hours", value=0, unit="h", source="replay")
+    )
+    templates = AdvisoryTexts.model_validate(with_en(body="Landfall within {{hours_to_landfall}}."))
+    problems = render.check(templates, facts_module.offered_keys(facts.citations))
+    assert any(p.kind == "unknown_placeholder" and p.text == "hours_to_landfall" for p in problems)
+
+
+def test_landfall_now_and_normal_road_time_rules():
+    prompt_text = " ".join(SYSTEM_PROMPT.split())
+    assert "the cyclone is making landfall now" in prompt_text
+    assert "never write a time to landfall" in prompt_text
+    assert "{{hospital_median_min}}" in prompt_text
+    assert '"remains open"' in prompt_text and '"travel conditions"' in prompt_text
 
 
 @pytest.mark.parametrize(

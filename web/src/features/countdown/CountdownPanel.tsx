@@ -1,9 +1,10 @@
 import { useState } from 'react'
 
-import { REPLAY_TIMESTEPS, relativeLabel } from '../../lib/constants'
+import { type Timeline, useTimeline } from '../../lib/timeline'
 import type { CountdownFacility } from '../../types/contracts'
 import { DEPARTURE_NOTE, DepartureLine, type DepartureLookup } from '../departures'
 import { FORECAST_FRAMING } from '../about'
+import { StatusSwatch } from '../impact'
 import type { CountdownState } from './useCountdown'
 
 const HEADING = 'text-xs font-semibold tracking-wide text-slate-500 uppercase'
@@ -14,22 +15,25 @@ function when(f: CountdownFacility): string {
   return f.hours_remaining === 0 ? 'now' : `in ~${f.hours_remaining} h`
 }
 
-function since(f: CountdownFacility): string {
-  const i = f.since ? REPLAY_TIMESTEPS.indexOf(f.since) : -1
+function since(f: CountdownFacility, timeline: Timeline): string {
+  const i = timeline.indexOf(f.since)
   if (i < 0) return 'cut off'
   // Shelter stand-ins have no departure (hospitals and health centres only): just when.
-  const at = relativeLabel(i)
+  const at = timeline.label(i)
   return f.infra_type === 'shelter' ? `cut off from ${at}` : `cut off since ${at}`
 }
 
 function FacilityList({
   title,
+  expected,
   items,
   detail,
   departures,
   timestepIndex,
 }: {
   title: string
+  /** Expected isolation (dashed ring) or actual (target), as on the map. */
+  expected: boolean
   items: CountdownFacility[]
   detail: (f: CountdownFacility) => string
   departures: DepartureLookup
@@ -40,7 +44,8 @@ function FacilityList({
   const shown = all ? items : items.slice(0, SHOWN)
   return (
     <div className="mt-2">
-      <p className="text-xs font-medium text-slate-700">
+      <p className="flex items-center gap-1.5 text-xs font-medium text-slate-700">
+        <StatusSwatch status="isolated" expected={expected} />
         {title} ({items.length})
       </p>
       <ul className="mt-0.5 space-y-0.5 text-xs">
@@ -87,6 +92,7 @@ export default function CountdownPanel({
   departures: DepartureLookup
   timestepIndex: number
 }) {
+  const timeline = useTimeline()
   return (
     <section className="mt-4">
       <h3 className={HEADING}>Action countdown</h3>
@@ -111,6 +117,7 @@ export default function CountdownPanel({
           <FacilityList
             key={`e|${state.data.timestep}`}
             title="Expected to be cut off"
+            expected
             items={state.data.expected}
             detail={when}
             departures={departures}
@@ -119,8 +126,9 @@ export default function CountdownPanel({
           <FacilityList
             key={`c|${state.data.timestep}`}
             title="Already cut off"
+            expected={false}
             items={state.data.cut_off}
-            detail={since}
+            detail={(f) => since(f, timeline)}
             departures={departures}
             timestepIndex={timestepIndex}
           />

@@ -4,7 +4,7 @@ import type { Layer } from '@deck.gl/core'
 import { GeoJsonLayer } from '@deck.gl/layers'
 import { useMemo } from 'react'
 
-import { REPLAY_TIMESTEPS } from '../../lib/constants'
+import { useTimeline } from '../../lib/timeline'
 import type { InsurancePanelProps } from './InsurancePanel'
 import { useInsuranceSummary, useTriggers } from './useInsurance'
 
@@ -19,7 +19,7 @@ export interface InsuranceMap {
 }
 
 export function useInsuranceMap(timestepIndex: number, riskView: boolean): InsuranceMap {
-  const { state, shown } = useTriggers(REPLAY_TIMESTEPS[timestepIndex])
+  const { state, shown } = useTriggers(useTimeline().timesteps[timestepIndex])
   const summary = useInsuranceSummary()
   const layers = useMemo(() => {
     const paying = shown.filter((f) => f.properties.released_tier > 0)

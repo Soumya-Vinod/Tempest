@@ -6,6 +6,7 @@ import { useEffect, useRef, type CSSProperties } from 'react'
 
 import { AOI_BBOX, BASEMAP_STYLE_URL } from '../lib/constants'
 import { ABOVE_TIMELINE } from '../lib/layout'
+import { mapAlive } from '../lib/mapAlive'
 import { fitAoi } from '../lib/mapFit'
 
 // Production: MapLibre derives the worker URL from import.meta.url at runtime, which Vite
@@ -23,16 +24,25 @@ interface Props {
   onClick?: DeckProps['onClick']
   /** Called once the style has loaded, for features that add MapLibre sources and layers. */
   onMapLoad?: (map: MapLibreMap) => void
+  /** Called when the map is removed (unmount, or a remount after a map error). */
+  onMapRemove?: () => void
 }
 
-export default function MapView({ layers = [], getTooltip, onClick, onMapLoad }: Props) {
+type OverlayProps = Pick<DeckProps, 'layers' | 'getTooltip' | 'onClick'>
+
+export default function MapView({ layers = [], getTooltip, onClick, onMapLoad, onMapRemove }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
+  const mapRef = useRef<MapLibreMap | null>(null)
   const overlayRef = useRef<MapboxOverlay | null>(null)
-  // Latest onMapLoad without re-creating the map when the callback changes.
+  // The latest overlay props, re-applied when a lost WebGL context is restored.
+  const propsRef = useRef<OverlayProps>({ layers: [] })
+  // Latest callbacks without re-creating the map when they change.
   const onMapLoadRef = useRef(onMapLoad)
+  const onMapRemoveRef = useRef(onMapRemove)
   useEffect(() => {
     onMapLoadRef.current = onMapLoad
-  }, [onMapLoad])
+    onMapRemoveRef.current = onMapRemove
+  }, [onMapLoad, onMapRemove])
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -63,23 +73,35 @@ export default function MapView({ layers = [], getTooltip, onClick, onMapLoad }:
     map.on('resize', () => {
       if (loaded && !userMoved) fitAoi(map)
     })
+    // WebGL context loss: MapLibre drops its style until the context is restored, and the deck.gl
+    // overlay sync (setProps -> map.getProjection) would throw meanwhile, so it is skipped then
+    // (see the layers effect) and the latest props are applied again here.
+    map.on('webglcontextrestored', () => {
+      if (mapAlive(map)) overlayRef.current?.setProps(propsRef.current)
+    })
 
     // deck.gl layers render on top of the basemap; features supply them via props.
     const overlay = new MapboxOverlay({ interleaved: false, layers: [] })
     map.addControl(overlay)
+    mapRef.current = map
     overlayRef.current = overlay
 
     return () => {
       overlayRef.current = null
+      mapRef.current = null
       map.removeControl(overlay)
       map.remove()
+      onMapRemoveRef.current?.()
     }
   }, [])
 
   // Runs after the effect above on mount, and whenever a feature changes its layers. deck.gl
-  // diffs layers by id, so unchanged layers keep their GPU buffers.
+  // diffs layers by id, so unchanged layers keep their GPU buffers. Skipped while the WebGL
+  // context is lost; the restore handler applies the latest props.
   useEffect(() => {
-    overlayRef.current?.setProps({ layers, getTooltip, onClick })
+    propsRef.current = { layers, getTooltip, onClick }
+    const map = mapRef.current
+    if (map && mapAlive(map)) overlayRef.current?.setProps(propsRef.current)
   }, [layers, getTooltip, onClick])
 
   // MapLibre adds .maplibregl-map (position: relative) to its container, so positioning

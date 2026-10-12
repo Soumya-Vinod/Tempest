@@ -78,8 +78,9 @@ MODEL_SCORE_KEYS = frozenset(
 
 
 # Trivial figures aren't offered either (the citations table keeps them): a surge under 0.1 m
-# and 0 km of cut roads say nothing worth a sentence.
-TRIVIAL_BELOW = {"peak_surge_m": 0.1, "cut_road_km": 1e-9}
+# and 0 km of cut roads say nothing worth a sentence, and 0 hours to landfall would read
+# "landfall within 0 hours" (at landfall the message says so in words: prompt.LANDFALL_NOW).
+TRIVIAL_BELOW = {"peak_surge_m": 0.1, "cut_road_km": 1e-9, "hours_to_landfall": 0.5}
 
 
 def _trivial(c: Citation) -> bool:
@@ -227,7 +228,7 @@ def build_facts(block_id: str, timestep: str) -> Facts:
         c.append(
             _cite(
                 "hospital_median_min",
-                "Median travel time to a hospital (residents)",
+                "Median normal road time to a hospital for residents (before the storm)",
                 round(breakdown.hospital_travel_min),
                 "min",
                 "risk",

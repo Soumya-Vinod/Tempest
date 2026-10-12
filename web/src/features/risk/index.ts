@@ -1,10 +1,13 @@
 // Risk feature (Dev B): the "Risk by block" choropleth, unscored areas, block card and panel.
 import type { DeckProps, Layer, PickingInfo } from '@deck.gl/core'
 import type { Map as MapLibreMap } from 'maplibre-gl'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
-import { REPLAY_TIMESTEPS, RISK_VIEW_MIN_SCORE } from '../../lib/constants'
+import { RISK_VIEW_MIN_SCORE } from '../../lib/constants'
+import { mapAlive, useMapAlive } from '../../lib/mapAlive'
+import { useTimeline } from '../../lib/timeline'
 import type { Horizon } from '../../types/contracts'
+import type { BlockArea } from '../exposure'
 import type { MapViewMode } from '../hazard'
 import { syncUnscored } from './hatch'
 import { buildRiskLayers, pickedBlock, pickedUnscored } from './layers'
@@ -43,9 +46,12 @@ export interface RiskMap {
   clear: () => void
   /** Selects a block by id (e.g. from the advisory queue); the caller switches to the Risk view. */
   select: (blockId: string) => void
+  /** Every scored block's polygon, for labelling unnamed features by block. */
+  areas: BlockArea[] | null
   /** Every scored block, for pickers. */
   blocks: { block_id: string; block_name: string }[]
-  onMapLoad: (map: MapLibreMap) => void
+  /** The map once loaded; null when it is removed. */
+  onMapLoad: (map: MapLibreMap | null) => void
   panel: { visible: boolean; state: RiskState }
   card: RiskCardProps
   /** District people-in-surge headline (v1.3), for the current horizon. */
@@ -62,7 +68,7 @@ export function useRiskMap(
   chosenView: MapViewMode | null,
   horizon: Horizon = 0,
 ): RiskMap {
-  const timestep = REPLAY_TIMESTEPS[timestepIndex]
+  const timestep = useTimeline().timesteps[timestepIndex]
   // v1.3: at horizon 24 the scores are on the expected hazard (the next 24 h), so the Risk view
   // turns on (automatically) as soon as a block is expected to reach the threshold.
   const { state, shown } = useRisk(timestep, horizon)
@@ -95,9 +101,30 @@ export function useRiskMap(
   )
 
   // Hatched unscored areas live in MapLibre (fill-pattern); keep them in sync with the toggle.
+  // isStyleLoaded() is false while any tile is loading (and style.load fires only once), so an
+  // update then waits for the map's next `idle`. At most one wait is pending: a new toggle or
+  // unmount removes the previous one. The deferred update reads the latest view and data, and is
+  // skipped while the WebGL context is lost. A failure here must not take the panels down.
+  const alive = useMapAlive(map)
+  const latest = useRef({ unscored, visible })
   useEffect(() => {
-    if (map && unscored) syncUnscored(map, unscored, visible)
-  }, [map, unscored, visible])
+    latest.current = { unscored, visible }
+  })
+  useEffect(() => {
+    if (!map || !unscored || !alive) return
+    const apply = () => {
+      const { unscored: data, visible: show } = latest.current
+      if (!data || !mapAlive(map)) return
+      try {
+        syncUnscored(map, data, show)
+      } catch (err) {
+        console.warn('Could not sync the unscored-area hatching.', err)
+      }
+    }
+    if (map.isStyleLoaded()) return apply()
+    map.once('idle', apply)
+    return () => void map.off('idle', apply)
+  }, [map, unscored, visible, alive])
 
   const clear = useCallback(() => setSelectedId(null), [])
   const select = useCallback((blockId: string) => setSelectedId(blockId), [])
@@ -107,6 +134,14 @@ export function useRiskMap(
         block_id: f.properties.block_id,
         block_name: f.properties.block_name,
       })) ?? [],
+    [shown],
+  )
+  const areas = useMemo(
+    () =>
+      shown?.scores.features.map((f) => ({
+        name: f.properties.block_name,
+        geometry: f.geometry,
+      })) ?? null,
     [shown],
   )
   const onClick = useCallback((info: PickingInfo) => {
@@ -134,6 +169,7 @@ export function useRiskMap(
     clear,
     select,
     blocks,
+    areas,
     onMapLoad: setMap,
     panel: { visible, state },
     card: { timestepIndex, selected, breakdown, horizon, onClose: clear },
