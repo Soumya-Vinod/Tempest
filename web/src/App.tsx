@@ -89,8 +89,9 @@ export default function App() {
         )
       : undefined
   const shelterSince = timeline.indexOf(shelterCutOff?.since)
-  // Less noise: health facilities and shelters only where something is happening (affected, or
-  // in a block at risk), unless the user shows them all. The block test is lazy and memoized.
+  // Less noise: health facilities and shelters in full only where something is happening
+  // (affected, or in a block at risk), the rest faint, unless the user highlights all. The block
+  // test is lazy and memoized.
   const { affectedIds } = impact
   const { atRiskBlocks } = risk
   const facilityFilter = useMemo<FacilityFilter>(
@@ -267,8 +268,8 @@ export default function App() {
                     visible={infra.visible}
                     onToggle={infra.toggle}
                     muted={impact.active}
-                    showAllFacilities={infra.showAllFacilities}
-                    onToggleShowAll={infra.toggleShowAllFacilities}
+                    highlightAllFacilities={infra.highlightAllFacilities}
+                    onToggleHighlightAll={infra.toggleHighlightAllFacilities}
                   />
                   <AboutPanel />
                 </>

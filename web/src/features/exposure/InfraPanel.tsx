@@ -11,8 +11,8 @@ interface Props {
   onToggle: (infraType: InfraType) => void
   /** Impact is showing: the map's exposure colours are muted, so the swatches are too. */
   muted?: boolean
-  showAllFacilities: boolean
-  onToggleShowAll: () => void
+  highlightAllFacilities: boolean
+  onToggleHighlightAll: () => void
 }
 
 const count = (fc: InfraFeatureCollection, key: string, value: unknown) =>
@@ -115,8 +115,8 @@ export default function InfraPanel({
   visible,
   onToggle,
   muted = false,
-  showAllFacilities,
-  onToggleShowAll,
+  highlightAllFacilities,
+  onToggleHighlightAll,
 }: Props) {
   return (
     <section className="mt-5">
@@ -155,14 +155,15 @@ export default function InfraPanel({
       <label className="mt-3 flex cursor-pointer items-start gap-2 text-xs text-slate-700">
         <input
           type="checkbox"
-          checked={showAllFacilities}
-          onChange={onToggleShowAll}
+          checked={highlightAllFacilities}
+          onChange={onToggleHighlightAll}
           className="mt-0.5 accent-slate-700"
         />
         <span>
-          Show all health facilities and shelters
+          Highlight all facilities
           <span className="block text-slate-500">
-            Off: only those affected, or in blocks at risk (score ≥ 0.25).
+            Off: health facilities and shelters are highlighted when affected or in a block at risk
+            (score ≥ 0.25); the rest are drawn faint.
           </span>
         </span>
       </label>

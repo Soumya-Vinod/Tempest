@@ -23,32 +23,32 @@ export interface InfraMap {
   state: InfraByType
   visible: Record<InfraType, boolean>
   toggle: (infraType: InfraType) => void
-  /** Show every health facility and shelter, not only those in the affected area. */
-  showAllFacilities: boolean
-  toggleShowAllFacilities: () => void
+  /** Highlight every health facility and shelter, not only those in the affected area. */
+  highlightAllFacilities: boolean
+  toggleHighlightAllFacilities: () => void
 }
 
 /** Infra data and per-type visibility. Layers come from useInfraLayers. */
 export function useInfraMap(): InfraMap {
   const state = useInfra()
   const [visible, setVisible] = useState(ALL_VISIBLE)
-  const [showAllFacilities, setShowAll] = useState(false)
+  const [highlightAllFacilities, setHighlightAll] = useState(false)
   const toggle = useCallback(
     (infraType: InfraType) => setVisible((v) => ({ ...v, [infraType]: !v[infraType] })),
     [],
   )
-  const toggleShowAllFacilities = useCallback(() => setShowAll((v) => !v), [])
-  return { state, visible, toggle, showAllFacilities, toggleShowAllFacilities }
+  const toggleHighlightAllFacilities = useCallback(() => setHighlightAll((v) => !v), [])
+  return { state, visible, toggle, highlightAllFacilities, toggleHighlightAllFacilities }
 }
 
 /**
  * The deck.gl layers for MapView's overlay. `muted` (impact results showing) switches exposure to
- * greys and pale tints so red and orange mean impact only. `facilities` limits the health
- * facility and shelter points (unless the user shows them all).
+ * greys and pale tints so red and orange mean impact only. `facilities` picks the health
+ * facilities and shelters drawn in full; the rest are faint (unless the user highlights all).
  */
 export function useInfraLayers(infra: InfraMap, muted: boolean, facilities: FacilityFilter): Layer[] {
-  const { state, visible, showAllFacilities } = infra
-  const filter = showAllFacilities ? null : facilities
+  const { state, visible, highlightAllFacilities } = infra
+  const filter = highlightAllFacilities ? null : facilities
   return useMemo(
     () => buildInfraLayers(state, visible, muted, filter),
     [state, visible, muted, filter],
