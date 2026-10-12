@@ -2,10 +2,11 @@ import type { PickingInfo } from '@deck.gl/core'
 import type { Map as MapLibreMap } from 'maplibre-gl'
 import { useCallback, useMemo, useState } from 'react'
 
+import Deferred from './components/Deferred'
 import HealthPanel from './components/HealthPanel'
 import MapErrorBoundary from './components/MapErrorBoundary'
 import MapLegend from './components/MapLegend'
-import MapView from './components/MapView'
+import LazyMapView from './components/LazyMapView'
 import PanelTabs from './components/PanelTabs'
 import TimelineScrubber from './components/TimelineScrubber'
 import WakingNotice from './components/WakingNotice'
@@ -210,7 +211,7 @@ export default function App() {
     <main className="relative h-full w-full overflow-hidden">
       {/* Only the map is behind the boundary: if it fails, the panels and timeline stay up. */}
       <MapErrorBoundary>
-        <MapView
+        <LazyMapView
           layers={layers}
           getTooltip={getTooltip}
           onClick={onClick}
@@ -291,7 +292,9 @@ export default function App() {
         shelterCutOffFrom={shelterSince >= 0 ? timeline.label(shelterSince) : null}
       />
       <RiskCard {...risk.card} />
-      <AdvisoryDrawer {...advisory.drawer} />
+      <Deferred when={advisory.drawer.open}>
+        <AdvisoryDrawer {...advisory.drawer} />
+      </Deferred>
       <WakingNotice />
       <TimelineScrubber
         index={timestepIndex}

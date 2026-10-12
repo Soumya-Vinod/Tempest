@@ -1,5 +1,7 @@
 import { type KeyboardEvent, type ReactNode, useId, useRef, useState } from 'react'
 
+import Deferred from './Deferred'
+
 export type TabId = 'act' | 'situation' | 'finance' | 'layers'
 
 export interface PanelTab {
@@ -33,8 +35,8 @@ function storeTab(id: TabId) {
 
 /**
  * The side panel's tabs. Until the user picks one, `automatic` decides (Act once anything is
- * expected to be cut off); a pick is remembered across reloads. Inactive tabs stay mounted
- * (hidden), so lists keep their expanded state.
+ * expected to be cut off); a pick is remembered across reloads. A tab mounts when first shown
+ * (its lazy panels load then) and stays mounted (hidden), so lists keep their expanded state.
  */
 export default function PanelTabs({ tabs, automatic }: { tabs: PanelTab[]; automatic: TabId }) {
   const [chosen, setChosen] = useState<TabId | null>(storedTab)
@@ -104,7 +106,12 @@ export default function PanelTabs({ tabs, automatic }: { tabs: PanelTab[]; autom
           hidden={t.id !== active}
           className="[&>*:first-child]:mt-0"
         >
-          {t.content}
+          <Deferred
+            when={t.id === active}
+            fallback={<p className="text-xs text-slate-500">Loading section…</p>}
+          >
+            {t.content}
+          </Deferred>
         </div>
       ))}
     </>

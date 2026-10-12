@@ -16,6 +16,26 @@ export default defineConfig({
     // Its deps are already bundled into its ESM files, so nothing needs optimizeDeps.include.
     exclude: ['maplibre-gl'],
   },
+  build: {
+    rolldownOptions: {
+      output: {
+        // Named vendor chunks (Rolldown's replacement for manualChunks). MapLibre and deck.gl /
+        // luma.gl are only reached through dynamic imports (components/LazyMapView, lib/deck),
+        // so they stay off the entry's critical path; React is cached apart from app code.
+        // Groups take their dependencies along (earcut, gl-matrix...: no chunk cycles). Vite's
+        // preload helper gets its own tiny chunk first: luma.gl uses dynamic imports, and inside
+        // the deck chunk the helper would make the entry import deck statically.
+        codeSplitting: {
+          groups: [
+            { name: 'preload-helper', test: /vite\/preload-helper/, priority: 4 },
+            { name: 'maplibre', test: /[\\/]node_modules[\\/]maplibre-gl[\\/]/, priority: 3 },
+            { name: 'deck', test: /[\\/]node_modules[\\/]@(deck|luma|loaders|math|probe)\.gl[\\/]/, priority: 2 },
+            { name: 'react', test: /[\\/]node_modules[\\/](react|react-dom|scheduler)[\\/]/, priority: 1 },
+          ],
+        },
+      },
+    },
+  },
   server: {
     // Dev only: the browser calls same-origin /api and /health; Vite forwards to FastAPI.
     proxy: {

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 
 import {
   approveAdvisory,
@@ -344,18 +344,20 @@ export default function AdvisoryDetail(props: {
         />
       )}
       {dialog === 'dispatch' && (
-        <DispatchDialog
-          advisoryId={p.id}
-          blockName={p.block_name}
-          resend={p.status === 'sent'}
-          onClose={(dispatched) => {
-            setDialog(null)
-            if (dispatched) {
-              setDispatches((n) => n + 1)
-              void run(() => getAdvisory(p.id))
-            }
-          }}
-        />
+        <Suspense fallback={null}>
+          <DispatchDialog
+            advisoryId={p.id}
+            blockName={p.block_name}
+            resend={p.status === 'sent'}
+            onClose={(dispatched) => {
+              setDialog(null)
+              if (dispatched) {
+                setDispatches((n) => n + 1)
+                void run(() => getAdvisory(p.id))
+              }
+            }}
+          />
+        </Suspense>
       )}
       {dialog === 'reject' && (
         <RejectDialog

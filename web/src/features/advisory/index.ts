@@ -1,5 +1,5 @@
 // Advisory feature (Dev B): suggested blocks, Gemini drafts and the approval queue.
-import { useCallback, useMemo, useState } from 'react'
+import { lazy, useCallback, useMemo, useState } from 'react'
 
 import { createAdvisory } from '../../lib/api'
 import { useTimeline } from '../../lib/timeline'
@@ -9,7 +9,8 @@ import type { AdvisoryPanelProps } from './AdvisoryPanel'
 import { errorText } from './errors'
 import { useQueue, useSuggestions } from './useAdvisories'
 
-export { default as AdvisoryDrawer } from './AdvisoryDrawer'
+// Code-split: loaded the first time it is shown (see components/Deferred).
+export const AdvisoryDrawer = lazy(() => import('./AdvisoryDrawer'))
 export { default as AdvisoryPanel } from './AdvisoryPanel'
 
 export interface AdvisoryUi {
