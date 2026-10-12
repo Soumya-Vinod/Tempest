@@ -128,7 +128,32 @@ async function queued<T>(run: () => Promise<T>): Promise<T> {
 // foreground request for a key still waiting in the low lane promotes it instead of fetching it
 // twice. Queued prefetches can be dropped (cancelPrefetches) when the user changes direction.
 
-const MEMO_PREFIXES = ['/api/hazard/', '/api/exposure/', '/api/impact/', '/api/risk/', '/api/insurance/']
+// Only replay data is memoized: an explicit allowlist of exact GET paths (fixed for a given URL in
+// a replay). Advisories, dispatch and health change as people act, so they are never memoized.
+const MEMO_PATHS: ReadonlySet<string> = new Set([
+  '/api/hazard/timesteps',
+  '/api/hazard/track',
+  '/api/hazard/layers',
+  '/api/exposure/infra',
+  '/api/impact/results',
+  '/api/impact/countdown',
+  '/api/impact/departures',
+  '/api/impact/critical-links',
+  '/api/risk/scores',
+  '/api/risk/breakdown',
+  '/api/risk/unscored-areas',
+  '/api/insurance/triggers',
+  '/api/insurance/summary',
+])
+const NEVER_MEMO_PREFIXES = ['/api/advisory', '/api/dispatch', '/health']
+if (import.meta.env.DEV) {
+  for (const path of MEMO_PATHS) {
+    console.assert(
+      !NEVER_MEMO_PREFIXES.some((p) => path.startsWith(p)),
+      `api memo: ${path} must never be memoized`,
+    )
+  }
+}
 const MEMO_SIZE = 64
 const memo = new Map<string, Promise<unknown>>()
 
@@ -191,7 +216,10 @@ function request<T>(
   path: string,
   options: RequestOptions = {},
 ): Promise<T> {
-  const memoized = method === 'GET' && MEMO_PREFIXES.some((p) => path.startsWith(p))
+  const memoized = method === 'GET' && MEMO_PATHS.has(path)
+  if (import.meta.env.DEV && memoized && NEVER_MEMO_PREFIXES.some((p) => path.startsWith(p))) {
+    throw new Error(`api memo: ${path} must never be memoized`)
+  }
   if (!memoized) return queued(() => send<T>(method, path, options))
   const key = requestKey(path, options.query)
   const hit = memo.get(key)
