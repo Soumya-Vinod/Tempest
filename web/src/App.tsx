@@ -7,7 +7,7 @@ import HealthPanel from './components/HealthPanel'
 import MapErrorBoundary from './components/MapErrorBoundary'
 import MapLegend from './components/MapLegend'
 import LazyMapView from './components/LazyMapView'
-import PanelTabs from './components/PanelTabs'
+import PanelTabs, { type TabId } from './components/PanelTabs'
 import TimelineScrubber from './components/TimelineScrubber'
 import WakingNotice from './components/WakingNotice'
 import { AboutPanel } from './features/about'
@@ -62,7 +62,10 @@ export default function App() {
   const infraTooltip = useMemo(() => makeInfraTooltip(blockOf), [blockOf])
   const impact = useImpactMap(timestepIndex, infra.state, horizon, blockOf, map)
   const hazard = useHazardMap(timestepIndex, risk.view, setChosenView, map, horizon, setChosenHorizon)
-  const insurance = useInsuranceMap(timestepIndex, risk.view === 'risk')
+  // The payout outline is a Finance detail: drawn only while that tab is open.
+  const [panelTab, setPanelTab] = useState<TabId | null>(null)
+  const financeOpen = panelTab === 'finance'
+  const insurance = useInsuranceMap(timestepIndex, financeOpen)
   // Warm the steps around this one (low priority: never delays the current step or Play).
   usePrefetchAround(timestepIndex, timeline.timesteps, horizon, risk.view === 'hazard')
   const countdown = useCountdown(timeline.timesteps[timestepIndex])
@@ -193,6 +196,7 @@ export default function App() {
     track: !failed(hazard.panel.storm.state),
     surge: !failed(hazard.panel.surge),
     roads: !failed(infra.state.road),
+    power: !failed(infra.state.power_line),
     health: !failed(infra.state.hospital),
     shelters: !failed(infra.state.shelter),
   }
@@ -241,11 +245,18 @@ export default function App() {
       </MapErrorBoundary>
       <StormEdge {...hazard.edge} />
       <KpiStrip {...kpis} />
-      <MapLegend view={risk.view} horizon={horizon} cardOpen={cardOpen} drawn={drawn} />
+      <MapLegend
+        view={risk.view}
+        horizon={horizon}
+        cardOpen={cardOpen}
+        drawn={drawn}
+        payouts={financeOpen}
+      />
       {/* On phones a bottom sheet, which drops back to peek when a card opens on the map. */}
       <HealthPanel collapse={cardOpen}>
         <PanelTabs
           automatic={toAct > 0 ? 'act' : 'situation'}
+          onActive={setPanelTab}
           tabs={[
             {
               id: 'act',

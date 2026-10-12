@@ -142,7 +142,7 @@ export default function TimelineScrubber({ index, onChange, moments = [], marker
             Cut off
           </li>
           <li className="flex items-center gap-1">
-            <span className="block w-3 border-t border-dashed border-amber-600" aria-hidden />
+            <span className="block w-3 border-t border-dashed border-red-900" aria-hidden />
             Expected
           </li>
           <li className="text-slate-400">← → step · Space play · Home/End</li>

@@ -2,6 +2,7 @@ import type { Map as MapLibreMap } from 'maplibre-gl'
 import { useEffect, useState } from 'react'
 
 import { currentLayout } from '../../lib/layout'
+import { STORM_CSS } from './style'
 
 /** Inset of the arrow from the edge of the visible map area, px. */
 const EDGE_INSET = 34
@@ -95,7 +96,7 @@ export default function StormEdge(props: {
         style={{ transform: `rotate(${deg}deg)` }}
         aria-hidden
       >
-        <path d="M3 13 H19 M13 6 L21 13 L13 20" stroke="#dc2626" strokeWidth="3.5" fill="none" />
+        <path d="M3 13 H19 M13 6 L21 13 L13 20" stroke={STORM_CSS.storm} strokeWidth="3.5" fill="none" />
       </svg>
       <span className="mt-0.5 rounded bg-white/90 px-1.5 py-0.5 text-[11px] leading-tight font-medium whitespace-nowrap text-slate-800 shadow">
         {Math.round(placement.km).toLocaleString('en-IN')} km · {props.category}

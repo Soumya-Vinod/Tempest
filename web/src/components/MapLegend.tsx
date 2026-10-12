@@ -1,7 +1,7 @@
 import { type ReactNode, useState } from 'react'
 
 import { COLOR as INFRA } from '../features/exposure/style'
-import { SURGE_RAMP_CSS } from '../features/hazard/style'
+import { STORM_CSS, SURGE_RAMP_CSS } from '../features/hazard/style'
 import type { MapViewMode } from '../features/hazard'
 import { StatusSwatch } from '../features/impact'
 import { cssColor, HATCH_CSS, RAMP_CSS } from '../features/risk/style'
@@ -70,6 +70,7 @@ export interface LegendDrawn {
   track: boolean
   surge: boolean
   roads: boolean
+  power: boolean
   health: boolean
   shelters: boolean
 }
@@ -79,11 +80,14 @@ export default function MapLegend({
   horizon,
   cardOpen,
   drawn,
+  payouts,
 }: {
   view: MapViewMode
   horizon: Horizon
   cardOpen: boolean
   drawn: LegendDrawn
+  /** The payout outline is drawn (Finance tab open). */
+  payouts: boolean
 }) {
   // Folded on short screens, where it would cover much of the map: at first, and again whenever
   // a resize crosses into them (unfolded when it crosses out). The user's toggle holds otherwise.
@@ -101,6 +105,7 @@ export default function MapLegend({
     view === 'hazard' && !drawn.surge && 'storm surge',
     view === 'risk' && !drawn.risk && 'risk by block',
     !drawn.roads && 'roads',
+    !drawn.power && 'power lines',
     !drawn.health && 'health facilities',
     !drawn.shelters && 'shelters',
   ].filter((x): x is string => !!x)
@@ -143,10 +148,10 @@ export default function MapLegend({
           )}
           {drawn.track && (
             <Group title="Storm">
-              <Row symbol={<Line color="rgb(30 41 59)" width={3} />}>Track so far</Row>
-              <Row symbol={<Line color="rgb(217 119 6)" width={4} />}>Track, next 24 h</Row>
-              <Row symbol={<Line color="rgb(30 41 59 / 0.45)" dash="3 2.5" />}>Track, later</Row>
-              <Row symbol={<Dot fill="rgb(220 38 38)" r={5} />}>Storm now</Row>
+              <Row symbol={<Line color={STORM_CSS.track} width={3} />}>Track so far</Row>
+              <Row symbol={<Line color={STORM_CSS.next} width={4} />}>Track, next 24 h</Row>
+              <Row symbol={<Line color={STORM_CSS.later} dash="3 2.5" />}>Track, later</Row>
+              <Row symbol={<Dot fill={STORM_CSS.storm} r={5} />}>Storm now</Row>
             </Group>
           )}
           {view === 'hazard' && drawn.surge && (
@@ -164,15 +169,25 @@ export default function MapLegend({
               >
                 Municipal area, not scored
               </Row>
+            </Group>
+          )}
+          {payouts && (
+            <Group title="Finance">
               <Row symbol={<Line color="rgb(202 138 4)" width={3} />}>Insurance payout released</Row>
             </Group>
           )}
-          <Group title="Network">
-            {drawn.roads && <Row symbol={<Line color={rgb(INFRA.roadMinor)} />}>Roads (orange: major)</Row>}
-            {drawn.roads && <Row symbol={<Line color={rgb(INFRA.ferry)} />}>Ferry routes</Row>}
-            {drawn.health && <Row symbol={<Dot fill={rgb(INFRA.hospital)} />}>Hospital / health centre</Row>}
-            {drawn.shelters && <Row symbol={<Dot fill={rgb(INFRA.shelter)} />}>Shelter (hollow: stand-in)</Row>}
-          </Group>
+          {(drawn.roads || drawn.power || drawn.health || drawn.shelters) && (
+            <Group title="Network">
+              {drawn.roads && <Row symbol={<Line color={rgb(INFRA.roadMajor)} width={3.5} />}>Major roads</Row>}
+              {drawn.roads && <Row symbol={<Line color={rgb(INFRA.roadMinor)} />}>Other roads</Row>}
+              {drawn.roads && <Row symbol={<Line color={rgb(INFRA.ferry)} dash="4 2.5" />}>Ferry routes (dashed)</Row>}
+              {drawn.power && (
+                <Row symbol={<Line color={rgb(INFRA.powerLine)} dash="0.5 2.5" />}>Power lines (dotted)</Row>
+              )}
+              {drawn.health && <Row symbol={<Dot fill={rgb(INFRA.hospital)} />}>Hospital / health centre</Row>}
+              {drawn.shelters && <Row symbol={<Dot fill={rgb(INFRA.shelter)} />}>Shelter (hollow: stand-in)</Row>}
+            </Group>
+          )}
           {missing.length > 0 && (
             <p className="mt-2 text-[10px] text-slate-500">
               Not on the map (data unavailable): {missing.join(', ')}.

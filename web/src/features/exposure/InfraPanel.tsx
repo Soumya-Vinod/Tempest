@@ -25,7 +25,7 @@ function breakdown(infraType: InfraType, fc: InfraFeatureCollection, muted: bool
     case 'road': {
       const ferries = count(fc, 'ferry', true)
       const off = count(fc, 'baseline_reachable_from_main', false)
-      return `${n(ferries)} ferry routes (blue) · ${n(off)} with no mapped mainland link (grey)`
+      return `${n(ferries)} ferry routes (dashed) · ${n(off)} with no mapped mainland link (grey)`
     }
     case 'hospital': {
       const hospitals = count(fc, 'facility_level', 'hospital')
