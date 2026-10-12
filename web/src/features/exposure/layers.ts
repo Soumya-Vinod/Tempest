@@ -159,8 +159,11 @@ function split(fc: InfraFeatureCollection, filter: FacilityFilter): Split {
   return out
 }
 
-const QUIET_OPACITY = 0.3
-const QUIET_PX: readonly [number, number] = [2.5, 4]
+const QUIET_OPACITY = 0.25
+// [floor, full] radius in px. Their 100 m radius is under 1 px at the district view (below about
+// zoom 11), so the floor sets the size there: 1 px keeps dense areas (Kolkata) a faint stipple
+// instead of a dark blob. They grow to full size from about zoom 12.
+const QUIET_PX: readonly [number, number] = [1, 4]
 
 /** Facilities outside the affected area: small, faint, no outline (still hoverable). */
 function quietLayer(
