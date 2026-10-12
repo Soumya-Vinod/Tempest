@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { useCountdownSeries } from '../features/countdown'
 import { above, useLayout } from '../lib/layout'
@@ -16,15 +16,26 @@ interface Props {
   onChange: (index: number) => void
   /** Key moments of the replay (v1.3, from the action countdown), marked on the track. */
   moments?: KeyMoment[]
+  /** The countdown failed, so there are no key moments or sparkline (only Landfall is known). */
+  markersFailed?: boolean
 }
 
 const TICK_EVERY_H = 24 // labelled ticks: T-72, T-48, T-24, T-0
 const PLAY_STEP_MS = 1500
 
-export default function TimelineScrubber({ index, onChange, moments = [] }: Props) {
+export default function TimelineScrubber({ index, onChange, moments = [], markersFailed = false }: Props) {
   const timeline = useTimeline()
   const { landfallIndex, label: relativeLabel } = timeline
   const timestep = timeline.timesteps[index]
+  // Landfall is known from the timesteps: marked even when the countdown's moments are missing.
+  const landfallAt = timeline.timesteps[landfallIndex]
+  const marked = useMemo(
+    () =>
+      moments.some((m) => m.kind === 'landfall')
+        ? moments
+        : [...moments, { kind: 'landfall' as const, timestep: landfallAt, label: 'Landfall' }],
+    [moments, landfallAt],
+  )
   const series = useCountdownSeries(timeline.timesteps)
   const [playing, setPlaying] = useState(false)
   const { busy } = useApiStatus()
@@ -111,7 +122,15 @@ export default function TimelineScrubber({ index, onChange, moments = [] }: Prop
             LANDFALL
           </span>
         )}
-        <ul className="ml-auto hidden items-center gap-3 text-[10px] whitespace-nowrap text-slate-500 xl:flex" aria-label="Timeline legend">
+        {markersFailed && (
+          <span className="ml-auto text-[11px] text-slate-500" role="status">
+            Timeline markers unavailable
+          </span>
+        )}
+        <ul
+          className={`ml-auto hidden items-center gap-3 text-[10px] whitespace-nowrap text-slate-500 ${markersFailed ? '' : 'xl:flex'}`}
+          aria-label="Timeline legend"
+        >
           {MOMENT_ORDER.map((k) => (
             <li key={k} className="flex items-center gap-1">
               <span className="block size-2 rotate-45" style={{ background: MOMENT[k].color }} aria-hidden />
@@ -129,9 +148,9 @@ export default function TimelineScrubber({ index, onChange, moments = [] }: Prop
           <li className="text-slate-400">← → step · Space play · Home/End</li>
         </ul>
       </div>
-      <Markers moments={moments} onJump={onChange} />
+      <Markers moments={marked} onJump={onChange} />
       <div className="relative">
-        {!compactTimeline && <Sparkline points={series} labelOf={relativeLabel} />}
+        {!compactTimeline && !markersFailed && <Sparkline points={series} labelOf={relativeLabel} />}
         <input
           type="range"
           min={0}

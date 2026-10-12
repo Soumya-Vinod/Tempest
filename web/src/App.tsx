@@ -35,6 +35,7 @@ import { InsurancePanel, useInsuranceMap } from './features/insurance'
 import { KpiStrip, useKpis } from './features/kpi'
 import { RiskCard, RiskPanel, useRiskMap } from './features/risk'
 import { useDeck } from './lib/deck'
+import { failed } from './lib/loadState'
 import { usePrefetchAround } from './lib/prefetch'
 import { useTimeline } from './lib/timeline'
 import type { Horizon } from './types/contracts'
@@ -178,8 +179,25 @@ export default function App() {
     horizon,
     countdown: countdown.state,
     insurance: insurance.panel.summary,
-    advisories: { drafts: advisory.panel.drafts, approved: advisory.panel.approved },
+    advisories: {
+      drafts: advisory.panel.drafts,
+      approved: advisory.panel.approved,
+      failed: advisory.drawer.queue.status === 'error',
+    },
   })
+  // What the map actually draws: a group whose data failed (with nothing from an earlier step
+  // still shown) leaves the legend, which says so instead of describing layers that aren't there.
+  const drawn = {
+    impact: !failed(impact.panel.state) || impact.active,
+    risk: !failed(risk.panel.state) || risk.areas !== null,
+    track: !failed(hazard.panel.storm.state),
+    surge: !failed(hazard.panel.surge),
+    roads: !failed(infra.state.road),
+    health: !failed(infra.state.hospital),
+    shelters: !failed(infra.state.shelter),
+  }
+  // The timeline's key moments come with the countdown; without them only Landfall is marked.
+  const markersFailed = failed(countdown.state) && countdown.moments.length === 0
   // A pathway or block card is open in the bottom-left slot.
   const cardOpen = impact.card.selectedId !== null || risk.card.selected !== null
   const getTooltip = useCallback(
@@ -223,7 +241,7 @@ export default function App() {
       </MapErrorBoundary>
       <StormEdge {...hazard.edge} />
       <KpiStrip {...kpis} />
-      <MapLegend view={risk.view} horizon={horizon} cardOpen={cardOpen} />
+      <MapLegend view={risk.view} horizon={horizon} cardOpen={cardOpen} drawn={drawn} />
       {/* On phones a bottom sheet, which drops back to peek when a card opens on the map. */}
       <HealthPanel collapse={cardOpen}>
         <PanelTabs
@@ -299,6 +317,7 @@ export default function App() {
         index={timestepIndex}
         onChange={setTimestepIndex}
         moments={countdown.moments}
+        markersFailed={markersFailed}
       />
     </main>
   )

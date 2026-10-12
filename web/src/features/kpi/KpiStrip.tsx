@@ -25,13 +25,13 @@ export default function KpiStrip({ kpis, previousLabel }: { kpis: Kpi[]; previou
       {kpis.map((k, i) => (
         <div
           key={k.id}
-          title={k.title}
+          title={k.value === null && k.failed ? `Data unavailable. ${k.title ?? ''}`.trim() : k.title}
           className={`flex min-w-max snap-start flex-col justify-center px-3 ${i > 0 ? 'border-l border-slate-100' : ''}`}
         >
           <span className="text-[11px] leading-tight whitespace-nowrap text-slate-500">{k.label}</span>
           <span className="flex items-baseline gap-1.5 whitespace-nowrap">
             <span className={`text-base leading-6 font-semibold tabular-nums ${TONE[k.tone ?? 'neutral']}`}>
-              {k.value ?? '…'}
+              {k.value ?? (k.failed ? '—' : '…')}
             </span>
             {k.delta && previousLabel && (
               <span

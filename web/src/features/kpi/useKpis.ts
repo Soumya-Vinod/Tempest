@@ -2,6 +2,7 @@
 // previous timestep. Everything comes from data the panels already fetch (the previous timestep's
 // countdown and risk breakdown come from the same caches), so the strip adds no endpoint.
 import { formatPeople } from '../../lib/format'
+import { failed } from '../../lib/loadState'
 import { useTimeline } from '../../lib/timeline'
 import type { Horizon, InsuranceSummary } from '../../types/contracts'
 import { type CountdownState, useCountdown } from '../countdown'
@@ -14,8 +15,10 @@ export type KpiTone = 'neutral' | 'warn' | 'alert'
 export interface Kpi {
   id: string
   label: string
-  /** null while loading. */
+  /** null while loading (or when `failed`). */
   value: string | null
+  /** Its data request failed: shown as "—" (Data unavailable), never as loading. */
+  failed?: boolean
   /** Change since the previous timestep, e.g. "+3"; null when there is none to show. */
   delta: string | null
   /** The change as a number (sign decides the colour); null when there is none to show. */
@@ -46,7 +49,8 @@ export function useKpis(args: {
   horizon: Horizon
   countdown: CountdownState
   insurance: Loadable<InsuranceSummary>
-  advisories: { drafts: number; approved: number }
+  /** `failed`: the advisory queue couldn't be loaded (the counts would be a false 0). */
+  advisories: { drafts: number; approved: number; failed: boolean }
 }): { kpis: Kpi[]; previousLabel: string | null } {
   const { timestepIndex: i, horizon } = args
   const timeline = useTimeline()
@@ -59,11 +63,16 @@ export function useKpis(args: {
   const now = counts(args.countdown)
   const before = prevIndex === null ? null : counts(prevCountdown)
 
-  const surge = useSurgeTotal(ts, horizon)
-  const surgePrev = useSurgeTotal(prevTs, horizon)
+  const surgeNow = useSurgeTotal(ts, horizon)
+  const surgeBefore = useSurgeTotal(prevTs, horizon)
+  const surge = typeof surgeNow === 'number' ? surgeNow : null
+  const surgePrev = typeof surgeBefore === 'number' ? surgeBefore : null
+  const countdownFailed = failed(args.countdown)
 
   const district = args.insurance.status === 'ok' ? args.insurance.data.district : null
   const released = district?.find((d) => d.timestep === ts)?.released_payout_inr ?? null
+  // Loaded without this timestep counts as unavailable too: it would never arrive.
+  const releasedFailed = failed(args.insurance) || (district !== null && released === null)
   const releasedPrev =
     prevIndex === null ? null : (district?.find((d) => d.timestep === prevTs)?.released_payout_inr ?? null)
 
@@ -81,6 +90,7 @@ export function useKpis(args: {
       id: 'surge',
       label: horizon === 24 ? 'People in ≥0.3 m surge (24 h)' : 'People in ≥0.3 m surge',
       value: surge === null ? null : formatPeople(surge),
+      failed: surgeNow === 'unavailable',
       delta: surge !== null && surgePrev !== null && prevIndex !== null ? signed(surge - surgePrev, (n) => formatPeople(n).replace('~', '')) : null,
       change: surge !== null && surgePrev !== null && prevIndex !== null ? surge - surgePrev : null,
       upIsWorse: true,
@@ -90,6 +100,7 @@ export function useKpis(args: {
       id: 'expected',
       label: 'Expected to be cut off',
       value: now ? String(now.expected) : null,
+      failed: countdownFailed,
       delta: now && before ? signed(now.expected - before.expected) : null,
       change: now && before ? now.expected - before.expected : null,
       upIsWorse: true,
@@ -100,6 +111,7 @@ export function useKpis(args: {
       id: 'cut-off',
       label: 'Cut off now',
       value: now ? String(now.cutOff) : null,
+      failed: countdownFailed,
       delta: now && before ? signed(now.cutOff - before.cutOff) : null,
       change: now && before ? now.cutOff - before.cutOff : null,
       upIsWorse: true,
@@ -109,7 +121,10 @@ export function useKpis(args: {
     {
       id: 'advisories',
       label: 'Advisories',
-      value: `${args.advisories.drafts} pending · ${args.advisories.approved} approved`,
+      value: args.advisories.failed
+        ? null
+        : `${args.advisories.drafts} pending · ${args.advisories.approved} approved`,
+      failed: args.advisories.failed,
       delta: null,
       title: 'Drafts waiting for approval, and approved advisories, in the queue.',
     },
@@ -117,6 +132,7 @@ export function useKpis(args: {
       id: 'released',
       label: '₹ released so far',
       value: released === null ? null : crore(released),
+      failed: releasedFailed,
       delta: released !== null && releasedPrev !== null ? signed(released - releasedPrev, crore) : null,
       title: 'Illustrative parametric insurance: payouts released so far (never taken back).',
     },
