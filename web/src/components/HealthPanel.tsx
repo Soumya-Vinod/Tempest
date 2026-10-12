@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 
 import { getHealth, type HealthResponse } from '../lib/api'
-import { ABOVE_TIMELINE, PANEL_WIDTH, UI_GAP } from '../lib/layout'
+import { PANEL_WIDTH, UI_GAP, useLayout } from '../lib/layout'
 
 const POLL_MS = 15_000
 
@@ -115,6 +115,7 @@ function useMoreBelow() {
 export default function HealthPanel({ children }: { children?: ReactNode }) {
   const [health, setHealth] = useState<HealthState>({ kind: 'loading' })
   const { ref: scrollRef, more } = useMoreBelow()
+  const { aboveTimeline } = useLayout()
 
   useEffect(() => {
     let cancelled = false
@@ -137,7 +138,7 @@ export default function HealthPanel({ children }: { children?: ReactNode }) {
   return (
     <aside
       className="absolute z-20 overflow-hidden rounded-lg bg-white text-sm text-slate-800 shadow-lg"
-      style={{ top: UI_GAP, right: UI_GAP, bottom: ABOVE_TIMELINE, width: PANEL_WIDTH }}
+      style={{ top: UI_GAP, right: UI_GAP, bottom: aboveTimeline, width: PANEL_WIDTH }}
     >
       <div ref={scrollRef} className="h-full overflow-y-auto p-4 pb-8">
         <header className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-slate-100 pb-2">

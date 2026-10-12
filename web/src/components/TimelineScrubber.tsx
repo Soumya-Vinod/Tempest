@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { useCountdownSeries } from '../features/countdown'
-import { COMPACT_TIMELINE, TIMELINE_HEIGHT, UI_GAP } from '../lib/layout'
+import { UI_GAP, useLayout } from '../lib/layout'
 import { useTimeline } from '../lib/timeline'
 import { useApiStatus } from '../lib/useApiStatus'
 import type { KeyMoment } from '../types/contracts'
@@ -56,6 +56,8 @@ export default function TimelineScrubber({ index, onChange, moments = [] }: Prop
     setPlaying(true)
   }, [playing, index, landfallIndex, onChange])
 
+  const { compactTimeline, timelineHeight } = useLayout()
+
   useTimelineKeys({
     step,
     first: useCallback(() => onChange(0), [onChange]),
@@ -66,7 +68,7 @@ export default function TimelineScrubber({ index, onChange, moments = [] }: Prop
   return (
     <div
       className="absolute z-20 flex flex-col justify-center rounded-lg bg-white px-4 text-sm text-slate-800 shadow-lg"
-      style={{ left: UI_GAP, right: UI_GAP, bottom: UI_GAP, height: TIMELINE_HEIGHT }}
+      style={{ left: UI_GAP, right: UI_GAP, bottom: UI_GAP, height: timelineHeight }}
     >
       <div className="flex items-center gap-3">
         <button
@@ -126,7 +128,7 @@ export default function TimelineScrubber({ index, onChange, moments = [] }: Prop
       </div>
       <Markers moments={moments} onJump={onChange} />
       <div className="relative">
-        {!COMPACT_TIMELINE && <Sparkline points={series} labelOf={relativeLabel} />}
+        {!compactTimeline && <Sparkline points={series} labelOf={relativeLabel} />}
         <input
           type="range"
           min={0}
@@ -134,7 +136,7 @@ export default function TimelineScrubber({ index, onChange, moments = [] }: Prop
           step={1}
           value={index}
           onChange={(e) => onChange(Number(e.target.value))}
-          className={`relative w-full accent-slate-800 ${COMPACT_TIMELINE ? '' : '-mt-2'}`}
+          className={`relative w-full accent-slate-800 ${compactTimeline ? '' : '-mt-2'}`}
           aria-label="Replay timestep"
           aria-valuetext={`${relativeLabel(index)} hours, ${timestep}`}
         />
@@ -152,7 +154,7 @@ export default function TimelineScrubber({ index, onChange, moments = [] }: Prop
           )
         })}
       </div>
-      {!COMPACT_TIMELINE && (
+      {!compactTimeline && (
         <div className="flex justify-between text-xs text-slate-500">
           {timeline.timesteps.flatMap((_, i) =>
             timeline.hoursToLandfall(i) % TICK_EVERY_H === 0

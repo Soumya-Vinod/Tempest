@@ -5,7 +5,7 @@ import maplibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&ur
 import { useEffect, useRef, type CSSProperties } from 'react'
 
 import { AOI_BBOX, BASEMAP_STYLE_URL } from '../lib/constants'
-import { ABOVE_TIMELINE, PANEL_WIDTH, UI_GAP } from '../lib/layout'
+import { PANEL_WIDTH, UI_GAP, useLayout } from '../lib/layout'
 import { mapAlive } from '../lib/mapAlive'
 import { fitAoi } from '../lib/mapFit'
 
@@ -37,6 +37,7 @@ export default function MapView({ layers = [], getTooltip, onClick, onMapLoad, o
   // The latest overlay props, re-applied when a lost WebGL context is restored.
   const propsRef = useRef<OverlayProps>({ layers: [] })
   // Latest callbacks without re-creating the map when they change.
+  const { aboveTimeline } = useLayout()
   const onMapLoadRef = useRef(onMapLoad)
   const onMapRemoveRef = useRef(onMapRemove)
   useEffect(() => {
@@ -112,7 +113,7 @@ export default function MapView({ layers = [], getTooltip, onClick, onMapLoad, o
       className="absolute inset-0 isolate"
       style={
         {
-          '--map-ctrl-bottom': `${ABOVE_TIMELINE}px`,
+          '--map-ctrl-bottom': `${aboveTimeline}px`,
           '--map-ctrl-right': `${PANEL_WIDTH + 2 * UI_GAP}px`,
         } as CSSProperties
       }

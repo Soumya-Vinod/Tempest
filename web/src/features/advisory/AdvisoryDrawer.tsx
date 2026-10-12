@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-import { ABOVE_TIMELINE, PANEL_WIDTH, UI_GAP } from '../../lib/layout'
+import { PANEL_WIDTH, UI_GAP, useLayout } from '../../lib/layout'
 import { useTimeline } from '../../lib/timeline'
 import type { Advisory, AdvisoryStatus } from '../../types/contracts'
 import AdvisoryDetail from './AdvisoryDetail'
@@ -28,6 +28,7 @@ export interface AdvisoryDrawerProps {
 export default function AdvisoryDrawer(props: AdvisoryDrawerProps) {
   const timeline = useTimeline()
   const [filter, setFilter] = useState<AdvisoryStatus | 'all'>('draft')
+  const { aboveTimeline } = useLayout()
   if (!props.open) return null
   const all = props.queue.status === 'ok' ? props.queue.data : []
   const selected = all.find((a) => a.id === props.selectedId) ?? null
@@ -39,7 +40,7 @@ export default function AdvisoryDrawer(props: AdvisoryDrawerProps) {
       style={{
         top: UI_GAP,
         right: 2 * UI_GAP + PANEL_WIDTH,
-        bottom: ABOVE_TIMELINE,
+        bottom: aboveTimeline,
         width: DRAWER_WIDTH,
       }}
       aria-label="Advisory queue"
