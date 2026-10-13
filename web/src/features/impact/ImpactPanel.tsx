@@ -1,3 +1,5 @@
+import About from '../../components/About'
+import { HEADING, SECTION } from '../../lib/panel'
 import { useTimeline } from '../../lib/timeline'
 import type { Horizon, ImpactStatus } from '../../types/contracts'
 import StatusSwatch from './StatusSwatch'
@@ -18,22 +20,24 @@ export default function ImpactPanel(props: Props) {
   const timeline = useTimeline()
   const { state, counts } = props
   return (
-    <section className="mt-5">
-      <h2 className="mb-2 flex items-baseline text-xs font-semibold tracking-wide text-slate-500">
-        <span className="uppercase">Impact</span>
-        <span className="ml-auto font-normal tracking-normal">
+    <section className={SECTION}>
+      <h2 className={`mb-2 flex items-baseline ${HEADING}`}>
+        <span>Impact</span>
+        <span className="ml-auto text-[11px] font-normal text-ink-subtle">
           {timeline.label(props.timestepIndex)}
           {props.horizon === 24 && ', next 24 h'}
         </span>
       </h2>
       {props.horizon === 24 && (
-        <p className="mb-1 flex items-start gap-1.5 text-[11px] text-slate-500">
-          <StatusSwatch status="isolated" expected />
-          <span>
-            Expected within the next 24 h (worst case). Dashed rings: expected to be cut off, not
-            yet ({props.expectedCount}).
-          </span>
-        </p>
+        <About>
+          <p className="flex items-start gap-1.5">
+            <StatusSwatch status="isolated" expected />
+            <span>
+              Expected within the next 24 h (worst case). Dashed rings: expected to be cut off, not
+              yet ({props.expectedCount}).
+            </span>
+          </p>
+        </About>
       )}
 
       {state.status === 'loading' && <p className="text-xs text-slate-500">Loading…</p>}

@@ -1,6 +1,7 @@
 import type { Color } from '@deck.gl/core'
 import type { ReactNode } from 'react'
 
+import { HEADING, SECTION } from '../../lib/panel'
 import type { InfraFeatureCollection, InfraType } from '../../types/contracts'
 import { COLOR, cssColor, INFRA_TYPES, MUTED, STAND_IN, TYPE_LABEL } from './style'
 import type { InfraByType } from './useInfra'
@@ -119,10 +120,8 @@ export default function InfraPanel({
   onToggleHighlightAll,
 }: Props) {
   return (
-    <section className="mt-5">
-      <h2 className="mb-2 text-xs font-semibold tracking-wide text-slate-500 uppercase">
-        Infrastructure
-      </h2>
+    <section className={SECTION}>
+      <h2 className={`${HEADING} mb-2`}>Infrastructure</h2>
       <ul className="space-y-2">
         {INFRA_TYPES.map((infraType) => {
           const s = state[infraType]
@@ -134,7 +133,7 @@ export default function InfraPanel({
                   type="checkbox"
                   checked={visible[infraType]}
                   onChange={() => onToggle(infraType)}
-                  className="accent-slate-700"
+                  className="accent-accent"
                 />
                 <Swatch infraType={infraType} muted={muted} />
                 <span className="font-medium">{TYPE_LABEL[infraType]}</span>
@@ -146,7 +145,7 @@ export default function InfraPanel({
               </label>
               {detail && <div className="mt-0.5 ml-6 text-xs text-slate-500">{detail}</div>}
               {s.status === 'error' && (
-                <p className="mt-0.5 ml-6 text-xs text-red-600">{s.message}</p>
+                <p className="mt-0.5 ml-6 text-xs text-sev-cut">{s.message}</p>
               )}
             </li>
           )
@@ -157,7 +156,7 @@ export default function InfraPanel({
           type="checkbox"
           checked={highlightAllFacilities}
           onChange={onToggleHighlightAll}
-          className="mt-0.5 accent-slate-700"
+          className="mt-0.5 accent-accent"
         />
         <span>
           Highlight all facilities

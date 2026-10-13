@@ -4,10 +4,11 @@ import { type Timeline, useTimeline } from '../../lib/timeline'
 import type { CountdownFacility } from '../../types/contracts'
 import { DEPARTURE_NOTE, DepartureLine, type DepartureLookup } from '../departures'
 import { FORECAST_FRAMING } from '../about'
+import About from '../../components/About'
+import { HEADING, SECTION, SUBHEADING } from '../../lib/panel'
 import { StatusSwatch } from '../impact'
 import type { CountdownState } from './useCountdown'
 
-const HEADING = 'text-xs font-semibold tracking-wide text-slate-500 uppercase'
 const SHOWN = 6 // per quiet group (Later, Already cut off), before "Show all"
 
 type GroupId = 'soon' | 'within12' | 'later' | 'cutOff'
@@ -152,7 +153,7 @@ function Group({
   const shown = all || !collapse ? items : items.slice(0, SHOWN)
   return (
     <div className="mt-3">
-      <p className="mb-0.5 flex items-baseline gap-1.5 text-[11px] font-medium text-ink-subtle">
+      <p className={`mb-0.5 flex items-baseline gap-1.5 ${SUBHEADING}`}>
         {title}
         <span className="tabular-nums">· {items.length}</span>
       </p>
@@ -212,12 +213,12 @@ export default function CountdownPanel({
       ? rows(state.data.expected, state.data.cut_off, departures, timestepIndex, timeline)
       : []
   return (
-    <section className="mt-4">
+    <section className={SECTION}>
       <h3 className={HEADING}>Action countdown</h3>
-      <p className="mt-1 text-[11px] text-slate-500">{FORECAST_FRAMING}</p>
-      <p className="text-[11px] text-slate-500">
-        Leave-by times: {DEPARTURE_NOTE.charAt(0).toLowerCase() + DEPARTURE_NOTE.slice(1)}
-      </p>
+      <About>
+        <p>{FORECAST_FRAMING}</p>
+        <p>Leave-by times: {DEPARTURE_NOTE.charAt(0).toLowerCase() + DEPARTURE_NOTE.slice(1)}</p>
+      </About>
       {state.status === 'loading' && <p className="mt-1 text-xs text-slate-500">Loading…</p>}
       {state.status === 'unavailable' && (
         <p className="mt-1 text-xs text-slate-500">Countdown not available yet</p>

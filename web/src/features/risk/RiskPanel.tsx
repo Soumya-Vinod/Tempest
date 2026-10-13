@@ -1,3 +1,4 @@
+import { HEADING, SECTION } from '../../lib/panel'
 import type { RiskState } from './useRisk'
 import { HATCH_CSS, RAMP_CSS } from './style'
 
@@ -12,10 +13,8 @@ interface Props {
 export default function RiskPanel({ visible, state }: Props) {
   if (!visible) return null
   return (
-    <section className="mt-4">
-      <h3 className="mb-2 text-xs font-semibold tracking-wide text-slate-500 uppercase">
-        Risk by block
-      </h3>
+    <section className={SECTION}>
+      <h3 className={`${HEADING} mb-2`}>Risk by block</h3>
       <div className="h-2.5 w-full rounded" style={{ background: RAMP_CSS }} aria-hidden />
       <div className="mt-0.5 flex text-[11px] text-slate-500 tabular-nums">
         <span className="w-1/4">0</span>

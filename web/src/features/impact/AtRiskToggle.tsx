@@ -1,9 +1,11 @@
+import { HEADING, SECTION } from '../../lib/panel'
 import StatusSwatch from './StatusSwatch'
 
 /** Layers: the watch tier's at-risk roads and lines (off by default, to keep the map quiet). */
 export default function AtRiskToggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
   return (
-    <section>
+    <section className={SECTION}>
+      <h2 className={`${HEADING} mb-2`}>Map detail</h2>
       <label className="flex cursor-pointer items-center gap-2 text-xs text-slate-700">
         <input type="checkbox" checked={on} onChange={onToggle} className="accent-accent" />
         <StatusSwatch status="at_risk" />

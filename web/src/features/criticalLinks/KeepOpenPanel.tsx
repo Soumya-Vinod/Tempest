@@ -1,9 +1,10 @@
+import About from '../../components/About'
+import { HEADING, SECTION, SUBHEADING } from '../../lib/panel'
 import { type Timeline, useTimeline } from '../../lib/timeline'
 import type { Horizon, Timestep } from '../../types/contracts'
 import { entryOf, type LinkEntry, type LinkGroups, ROADS_SHOWN } from './grouping'
 import type { CriticalLinksState } from './useCriticalLinks'
 
-const HEADING = 'text-xs font-semibold tracking-wide text-slate-500 uppercase'
 
 function count(n: number): string {
   return `${n} ${n === 1 ? 'facility' : 'facilities'}`
@@ -37,8 +38,8 @@ function Entry({ entry, pinned, onHover, onPin }: { entry: LinkEntry } & Highlig
         onFocus={() => onHover(entry.key)}
         onBlur={() => onHover(null)}
         onClick={() => onPin(expanded || on ? null : entry.key)}
-        className={`w-full rounded px-1 py-0.5 text-left hover:bg-amber-50 ${
-          on || expanded ? 'bg-amber-100' : ''
+        className={`w-full rounded-control px-1.5 py-1 text-left hover:bg-surface ${
+          on || expanded ? 'bg-accent-wash' : ''
         }`}
       >
         <span className="font-medium">{entry.label}</span>
@@ -55,7 +56,7 @@ function Entry({ entry, pinned, onHover, onPin }: { entry: LinkEntry } & Highlig
         </span>
       </button>
       {expanded && (
-        <ul className="mt-0.5 ml-3 space-y-0.5 border-l border-amber-200 pl-2">
+        <ul className="mt-0.5 ml-3 space-y-0.5 border-l border-line pl-2">
           {entry.segments.map((s) => (
             <li key={s.key}>
               <button
@@ -67,8 +68,8 @@ function Entry({ entry, pinned, onHover, onPin }: { entry: LinkEntry } & Highlig
                 onFocus={() => onHover(s.key)}
                 onBlur={() => onHover(null)}
                 onClick={() => onPin(pinned === s.key ? entry.key : s.key)}
-                className={`w-full rounded px-1 text-left text-[11px] hover:bg-amber-50 ${
-                  pinned === s.key ? 'bg-amber-100 font-medium' : ''
+                className={`w-full rounded-control px-1 text-left text-[11px] hover:bg-surface ${
+                  pinned === s.key ? 'bg-accent-wash font-medium' : ''
                 }`}
               >
                 {s.label} · {count(s.link.facility_count)}
@@ -89,7 +90,7 @@ function EntryList({ title, entries, empty, ...highlight }: {
 } & Highlight) {
   return (
     <div className="mt-2">
-      <p className="text-xs font-medium text-slate-700">{title}</p>
+      <p className={SUBHEADING}>{title}</p>
       {entries.length === 0 ? (
         <p className="text-xs text-slate-500">{empty}</p>
       ) : (
@@ -123,9 +124,9 @@ export default function KeepOpenPanel({
       ? 'Routes of facilities whose last road departure is within the next 24 h.'
       : 'Routes of facilities that can still leave by road.'
   return (
-    <section className="mt-4">
+    <section className={SECTION}>
       <h3 className={HEADING}>Keep these open</h3>
-      <p className="mt-1 text-[11px] text-slate-500">{scope}</p>
+      <p className="mt-1 text-[11px] text-ink-subtle">{scope}</p>
       {state.status === 'loading' && <p className="mt-1 text-xs text-slate-500">Loading…</p>}
       {state.status === 'unavailable' && (
         <p className="mt-1 text-xs text-slate-500">Critical links not available yet</p>
@@ -151,7 +152,9 @@ export default function KeepOpenPanel({
               />
             </>
           )}
-          <p className="mt-1 text-[11px] text-slate-500">{state.data.note}</p>
+          <About>
+            <p>{state.data.note}</p>
+          </About>
         </>
       )}
     </section>

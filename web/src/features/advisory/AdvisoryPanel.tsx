@@ -6,6 +6,8 @@ import type {
   AdvisorySuggestions,
   BlockId,
 } from '../../types/contracts'
+import About from '../../components/About'
+import { HEADING, SECTION } from '../../lib/panel'
 import { BUTTON, CHIP, STATUS_LABEL, STATUS_STYLE, SUGGESTED_STYLE } from './style'
 import type { Loadable } from './useAdvisories'
 
@@ -84,24 +86,24 @@ export default function AdvisoryPanel(props: AdvisoryPanelProps) {
     .sort((a, b) => a.block_name.localeCompare(b.block_name))
 
   return (
-    <section className="mt-5">
-      <h2 className="mb-2 text-xs font-semibold tracking-wide text-slate-500 uppercase">
-        Advisories
-      </h2>
+    <section className={SECTION}>
+      <h2 className={HEADING}>Advisories</h2>
       {suggestions.status === 'loading' && <p className="text-xs text-slate-500">Loading…</p>}
       {suggestions.status === 'error' && (
         <p className="text-xs text-slate-500">{suggestions.message}</p>
       )}
       {suggestions.status === 'ok' && (
         <>
-          <p className="text-[11px] text-slate-500">
-            Suggested at {props.timestepLabel}: risk ≥ {suggestions.data.threshold.toFixed(2)}{' '}
-            within 24 h, or a facility cut off or expected to be cut off within 24 h
-          </p>
+          <About>
+            <p>
+              Suggested at {props.timestepLabel}: risk ≥ {suggestions.data.threshold.toFixed(2)}{' '}
+              within 24 h, or a facility cut off or expected to be cut off within 24 h
+            </p>
+          </About>
           {suggested.length === 0 && (
             <p className="mt-1 text-xs text-slate-500">No block suggested.</p>
           )}
-          <ul className="mt-2 divide-y divide-line">
+          <ul className="mt-3 divide-y divide-line">
             {suggested.map((b, i) => (
               <li key={b.block_id} className="flex items-start gap-2 py-2 text-xs first:pt-0">
                 <div className="min-w-0">

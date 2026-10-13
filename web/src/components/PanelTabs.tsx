@@ -73,7 +73,7 @@ export default function PanelTabs({
       <div
         role="tablist"
         aria-label="Panel sections"
-        className="sticky top-0 z-10 -mx-4 mb-3 flex gap-1 border-b border-slate-200 bg-white px-4 pt-1"
+        className="sticky top-0 z-10 -mx-4 mb-4 flex gap-1 border-b border-line bg-white px-4 pt-1"
       >
         {tabs.map((t, i) => {
           const selected = t.id === active
@@ -91,10 +91,10 @@ export default function PanelTabs({
               tabIndex={selected ? 0 : -1}
               onClick={() => pick(t.id)}
               onKeyDown={(e) => onKeyDown(e, i)}
-              className={`-mb-px flex items-center gap-1 border-b-2 px-2 py-1.5 text-xs font-semibold whitespace-nowrap ${
+              className={`-mb-px flex items-center gap-1.5 border-b-2 px-2.5 py-2 text-xs font-medium whitespace-nowrap ${
                 selected
                   ? 'border-accent text-accent'
-                  : 'border-transparent text-slate-500 hover:text-slate-800'
+                  : 'border-transparent text-ink-subtle hover:text-ink'
               }`}
             >
               {t.label}
@@ -114,11 +114,11 @@ export default function PanelTabs({
           id={`${base}-panel-${t.id}`}
           aria-labelledby={`${base}-tab-${t.id}`}
           hidden={t.id !== active}
-          className="[&>*:first-child]:mt-0"
+          className="[&>*:first-child]:mt-0 [&>*:first-child]:border-t-0 [&>*:first-child]:pt-0"
         >
           <Deferred
             when={t.id === active}
-            fallback={<p className="text-xs text-slate-500">Loading section…</p>}
+            fallback={<p className="text-xs text-ink-subtle">Loading section…</p>}
           >
             {t.content}
           </Deferred>

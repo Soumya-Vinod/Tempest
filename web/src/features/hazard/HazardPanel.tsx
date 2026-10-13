@@ -1,3 +1,5 @@
+import About from '../../components/About'
+import { HEADING, SECTION } from '../../lib/panel'
 import type { CycloneTrackPoint, HazardLayer, Horizon } from '../../types/contracts'
 import { ISOTACH_LEVELS } from './contours'
 import {
@@ -29,7 +31,6 @@ export interface HazardPanelProps {
   }
 }
 
-const HEADING = 'text-xs font-semibold tracking-wide text-slate-500 uppercase'
 
 function Status({ state }: { state: HazardState<unknown> }) {
   if (state.status === 'loading') return <p className="mt-1 text-xs text-slate-500">Loading…</p>
@@ -42,7 +43,7 @@ function Status({ state }: { state: HazardState<unknown> }) {
 function Toggle(props: { label: string; on: boolean; onToggle: () => void }) {
   return (
     <label className="mt-3 flex cursor-pointer items-center gap-2 text-xs text-slate-700">
-      <input type="checkbox" checked={props.on} onChange={props.onToggle} className="accent-violet-700" />
+      <input type="checkbox" checked={props.on} onChange={props.onToggle} className="accent-accent" />
       {props.label}
     </label>
   )
@@ -70,8 +71,8 @@ function Segmented<T extends string | number>(props: {
             onClick={() => props.onChange(v)}
             className={`flex-1 rounded px-2 py-1 text-xs font-medium whitespace-nowrap ${
               props.value === v
-                ? 'bg-white text-violet-800 shadow-sm'
-                : 'text-slate-600 hover:text-slate-800'
+                ? 'bg-white text-accent shadow-sm'
+                : 'text-ink-muted hover:text-ink'
             }`}
           >
             {text}
@@ -87,7 +88,7 @@ function Storm({ storm }: { storm: HazardPanelProps['storm'] }) {
   const kmh = p ? toKmh(p.max_wind_mps) : null
   const category = kmh !== null ? imdCategory(kmh) : null
   return (
-    <section className="mt-5">
+    <section className={SECTION}>
       <h3 className={HEADING}>Storm</h3>
       <Status state={storm.state} />
       {p && kmh !== null && (
@@ -99,7 +100,7 @@ function Storm({ storm }: { storm: HazardPanelProps['storm'] }) {
           <dt className="text-slate-500">Max wind</dt>
           <dd className="tabular-nums">{Math.round(kmh)} km/h</dd>
           <dt className="text-slate-500">IMD category</dt>
-          <dd>{category?.name ?? 'Below depression strength'}</dd>
+          <dd className="text-ink-muted">{category?.name ?? 'Below depression strength'}</dd>
           <dt className="text-slate-500">Landfall</dt>
           <dd className="tabular-nums">
             {storm.hoursToLandfall > 0 ? `in ${storm.hoursToLandfall} h` : 'now (T-0)'}
@@ -110,7 +111,7 @@ function Storm({ storm }: { storm: HazardPanelProps['storm'] }) {
         <button
           type="button"
           onClick={storm.fullTrack ? storm.onBackToAoi : storm.onFullTrack}
-          className="mt-2 rounded border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
+          className="mt-2 rounded-control border border-line px-2.5 py-1 text-xs font-medium text-ink-muted hover:bg-surface"
         >
           {storm.fullTrack ? 'Back to AOI' : 'Show full track'}
         </button>
@@ -124,7 +125,7 @@ export default function HazardPanel(props: HazardPanelProps) {
   const hazard = props.view === 'hazard'
   return (
     <>
-      <section>
+      <section className={SECTION}>
         <h3 className={`${HEADING} mb-2`}>Map view</h3>
         <div className="space-y-1.5">
           <Segmented
@@ -148,21 +149,23 @@ export default function HazardPanel(props: HazardPanelProps) {
             onChange={props.onHorizon}
           />
         </div>
-        {props.horizon === 24 && (
-          <p className="mt-1 rounded bg-sky-50 px-2 py-1 text-[11px] text-sky-900">
-            Forecast: perfect-forecast replay. The worst over the next 24 h (the replay&apos;s own
-            future; operationally, IMD&apos;s forecast track through the same model).
+        <About>
+          {props.horizon === 24 && (
+            <p>
+              Forecast: perfect-forecast replay. The worst over the next 24 h (the replay&apos;s own
+              future; operationally, IMD&apos;s forecast track through the same model).
+            </p>
+          )}
+          <p>
+            {hazard
+              ? 'Hazard: storm surge (and wind, flood if on). Impact and the track show in both.'
+              : 'Risk: the block choropleth. Impact and the track show in both.'}
           </p>
-        )}
-        <p className="mt-1 text-[11px] text-slate-500">
-          {hazard
-            ? 'Hazard: storm surge (and wind, flood if on). Impact and the track show in both.'
-            : 'Risk: the block choropleth. Impact and the track show in both.'}
-        </p>
+        </About>
       </section>
 
       {hazard && (
-        <section className="mt-4">
+        <section className={SECTION}>
           <h3 className={HEADING}>
             Storm surge{props.horizon === 24 && ': max expected in the next 24 h'}
           </h3>

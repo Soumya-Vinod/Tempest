@@ -1,5 +1,7 @@
 import { useEffect } from 'react'
 
+import About from '../../components/About'
+import { HEADING, SECTION } from '../../lib/panel'
 import { useTimeline } from '../../lib/timeline'
 import type { InsuranceSummary, TriggerEvent } from '../../types/contracts'
 import { crore, hoursLabel, METRIC_LABEL, readingLabel, TIER_PERCENT } from './format'
@@ -13,7 +15,6 @@ export interface InsurancePanelProps {
   summary: Loadable<InsuranceSummary>
 }
 
-const HEADING = 'text-xs font-semibold tracking-wide text-slate-500 uppercase'
 
 function Status({ state }: { state: Loadable<unknown> }) {
   if (state.status === 'loading') return <p className="mt-1 text-xs text-slate-500">Loading…</p>
@@ -49,14 +50,14 @@ export default function InsurancePanel(props: InsurancePanelProps) {
   }, [mismatch])
 
   return (
-    <section className="mt-5">
+    <section className={SECTION}>
       <h3 className={HEADING}>Insurance (illustrative)</h3>
-      <p className="mt-1 text-xs text-amber-800">Illustrative: not an actual policy.</p>
+      <p className="mt-1 text-xs text-ink-muted">Illustrative: not an actual policy.</p>
 
       <p className="mt-2 text-xs text-slate-500">
         Released so far, at {timeline.label(props.timestepIndex)}
       </p>
-      <p className="text-lg font-semibold text-slate-800 tabular-nums">{crore(total)}</p>
+      <p className="text-figure font-semibold text-ink tabular-nums">{crore(total)}</p>
       <p className="text-[11px] text-slate-500">
         {rows.length} of {props.shown.length || 29} blocks paid; the amounts below add up to this
         total. Released money is never taken back, so it only goes up.
@@ -68,7 +69,7 @@ export default function InsurancePanel(props: InsurancePanelProps) {
           <p className="text-slate-500">
             Expected in the next 24 h (forecast; payouts follow the observed hazard only):
           </p>
-          <ul className="mt-0.5 space-y-0.5 text-sky-800">
+          <ul className="mt-0.5 space-y-0.5 text-ink-muted">
             {upcoming.map((f) => (
               <li key={f.properties.zone_id}>
                 {f.properties.zone_name}: tier {f.properties.expected_tier_24h} (
@@ -82,7 +83,7 @@ export default function InsurancePanel(props: InsurancePanelProps) {
       {rows.length > 0 && (
         <ul className="mt-2 space-y-1.5 text-xs">
           {rows.map(({ trigger: p, first, keptHigher, toppedUp }) => (
-            <li key={p.zone_id} className="rounded border border-slate-200 px-2 py-1">
+            <li key={p.zone_id} className="rounded-control border border-line px-2.5 py-1.5">
               <p className="flex items-baseline gap-2">
                 <span className="font-medium text-slate-800">{p.zone_name}</span>
                 <span className="ml-auto font-medium text-slate-800 tabular-nums">
@@ -108,7 +109,7 @@ export default function InsurancePanel(props: InsurancePanelProps) {
                   ` · lower than the released tier ${p.released_tier}: released money is never taken back`}
               </p>
               {(p.expected_tier_24h ?? 0) > p.released_tier && (
-                <p className="text-sky-800">
+                <p className="text-ink-muted">
                   Expected tier in the next 24 h: {p.expected_tier_24h} (
                   {TIER_PERCENT[p.expected_tier_24h ?? 0]})
                 </p>
@@ -119,10 +120,12 @@ export default function InsurancePanel(props: InsurancePanelProps) {
       )}
       <Status state={props.summary} />
 
-      <p className="mt-2 text-[11px] text-slate-500">
-        Basis risk: the payout follows the hazard reading (90th-percentile wind or surge on the
-        block&apos;s inhabited land), not assessed losses, so the two can differ.
-      </p>
+      <About>
+        <p>
+          Basis risk: the payout follows the hazard reading (90th-percentile wind or surge on the
+          block&apos;s inhabited land), not assessed losses, so the two can differ.
+        </p>
+      </About>
     </section>
   )
 }
