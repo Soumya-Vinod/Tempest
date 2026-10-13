@@ -291,7 +291,7 @@ export default function AdvisoryDetail(props: {
                 {c.label}
               </td>
               <td className="py-0.5 pr-2">{citationValue(c)}</td>
-              <td className="py-0.5 text-slate-400">{c.source}</td>
+              <td className="py-0.5 text-ink-subtle">{c.source}</td>
             </tr>
           ))}
         </tbody>
@@ -305,7 +305,7 @@ export default function AdvisoryDetail(props: {
       <ul className="mt-1 space-y-0.5 text-xs text-slate-600">
         {audit.map((e) => (
           <li key={e.id}>
-            <span className="tabular-nums text-slate-400">
+            <span className="tabular-nums text-ink-subtle">
               {e.at.slice(0, 16).replace('T', ' ')}
             </span>{' '}
             {e.action.replace(/_/g, ' ')}

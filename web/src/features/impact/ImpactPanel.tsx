@@ -44,7 +44,7 @@ export default function ImpactPanel(props: Props) {
       {state.status === 'unavailable' && (
         <p className="text-slate-500">Hazard data not available yet</p>
       )}
-      {state.status === 'error' && <p className="text-xs text-red-600">{state.message}</p>}
+      {state.status === 'error' && <p className="text-xs text-sev-cut">{state.message}</p>}
       {state.status === 'ok' && counts && (
         <>
           <ul className="space-y-1">

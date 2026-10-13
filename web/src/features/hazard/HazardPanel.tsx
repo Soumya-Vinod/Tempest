@@ -36,7 +36,7 @@ function Status({ state }: { state: HazardState<unknown> }) {
   if (state.status === 'loading') return <p className="mt-1 text-xs text-slate-500">Loading…</p>
   if (state.status === 'unavailable')
     return <p className="mt-1 text-xs text-slate-500">Not available yet</p>
-  if (state.status === 'error') return <p className="mt-1 text-xs text-red-600">{state.message}</p>
+  if (state.status === 'error') return <p className="mt-1 text-xs text-sev-cut">{state.message}</p>
   return null
 }
 

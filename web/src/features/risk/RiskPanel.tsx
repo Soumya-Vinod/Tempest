@@ -36,7 +36,7 @@ export default function RiskPanel({ visible, state }: Props) {
         <p className="mt-1 text-slate-500">Hazard data not available yet</p>
       )}
       {state.status === 'error' && (
-        <p className="mt-1 text-xs text-red-600">{state.message}</p>
+        <p className="mt-1 text-xs text-sev-cut">{state.message}</p>
       )}
       {state.status === 'ok' && (
         <p className="mt-1 text-xs text-slate-500">Click a block for its breakdown.</p>

@@ -4,7 +4,7 @@
 // Calm control room: neutral base, hazard on one cool ramp, and severity colour kept scarce. Three
 // severity tiers only, told apart by lightness and shape as well as hue (deuteranopia-safe):
 //   watch    slate, a small dot            L* 48
-//   act      desaturated amber, dashed ring L* 63 (text: L* 43)
+//   act      desaturated amber, dashed ring L* 57 (text: L* 43)
 //   cut off  one deep red, a target         L* 31
 // Nothing else on the map or in the panels uses red or orange.
 
@@ -23,7 +23,7 @@ export const SEVERITY = {
   /** At risk / watch: slate. */
   watch: [100, 116, 139], // #64748b
   /** Act soon / expected to be cut off: desaturated amber (marker). */
-  act: [194, 145, 58], // #c2913a
+  act: [176, 130, 48], // #b08230 (3.5:1 on white: non-text contrast)
   /** The same amber dark enough for text on white (5.7:1). */
   actInk: [138, 93, 20], // #8a5d14
   /** Cut off: the one deep red (9.1:1 on white). */

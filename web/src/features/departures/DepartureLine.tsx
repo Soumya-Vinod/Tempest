@@ -36,7 +36,7 @@ export default function DepartureLine({
       <p className="font-medium text-sev-act-ink">
         {left === 0 ? 'Last step to leave by road' : `~${left} h left to leave`}
       </p>
-      {!compact && <p className="text-slate-400">{DEPARTURE_NOTE}</p>}
+      {!compact && <p className="text-ink-subtle">{DEPARTURE_NOTE}</p>}
     </div>
   )
 }

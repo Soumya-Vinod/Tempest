@@ -14,7 +14,7 @@
   --color-surface: #f8fafc;
 
   --color-sev-watch: #64748b;
-  --color-sev-act: #c2913a;
+  --color-sev-act: #b08230;
   --color-sev-act-ink: #8a5d14;
   --color-sev-act-wash: #f7efe1;
   --color-sev-cut: #8b1e1e;
@@ -53,6 +53,30 @@ body,
 
 body {
   font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+  color: var(--color-ink);
+}
+
+/* A visible focus ring on every control, keyboard only (WCAG 2.4.7): the accent, offset. */
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+  summary {
+    border-radius: var(--radius-control);
+  }
+}
+
+/* Motion: none by default; under prefers-reduced-motion nothing moves at all. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* Phones: the bottom sheet's height is --sheet-h (lib/sheet.ts); the timeline, the legend and

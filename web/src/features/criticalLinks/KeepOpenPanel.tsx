@@ -131,7 +131,7 @@ export default function KeepOpenPanel({
       {state.status === 'unavailable' && (
         <p className="mt-1 text-xs text-slate-500">Critical links not available yet</p>
       )}
-      {state.status === 'error' && <p className="mt-1 text-xs text-red-600">{state.message}</p>}
+      {state.status === 'error' && <p className="mt-1 text-xs text-sev-cut">{state.message}</p>}
       {state.status === 'ok' && groups && (
         <>
           {state.data.links.length === 0 ? (

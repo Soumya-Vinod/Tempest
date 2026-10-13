@@ -33,7 +33,7 @@ export function Receipt({ receipt }: { receipt: DispatchReceipt }) {
               {STATUS_LABEL[c.status]}
             </span>
             {c.provider_message_id && (
-              <span className="truncate text-slate-400" title={c.provider_message_id}>
+              <span className="truncate text-ink-subtle" title={c.provider_message_id}>
                 id {c.provider_message_id}
               </span>
             )}

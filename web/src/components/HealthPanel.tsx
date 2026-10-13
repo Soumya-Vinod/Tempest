@@ -36,7 +36,7 @@ function BackendStatus({ health }: { health: HealthState }) {
   if (health.kind === 'loading') return <span className="text-xs text-slate-500">Connecting…</span>
   if (health.kind === 'error') {
     return (
-      <span className="text-xs text-red-700" title={health.message}>
+      <span className="text-xs text-sev-cut" title={health.message}>
         ● Can&apos;t reach the server
       </span>
     )

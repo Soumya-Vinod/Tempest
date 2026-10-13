@@ -54,7 +54,7 @@ export default function AdvisoryDrawer(props: AdvisoryDrawerProps) {
         <button
           type="button"
           onClick={props.onClose}
-          className="-mt-1 ml-auto px-1 text-lg leading-none text-slate-400 hover:text-slate-700"
+          className="-mt-1 ml-auto px-1 text-lg leading-none text-ink-subtle hover:text-ink"
           aria-label="Close advisory queue"
         >
           ×

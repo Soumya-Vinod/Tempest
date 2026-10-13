@@ -45,7 +45,7 @@ export default class MapErrorBoundary extends Component<{ children: ReactNode },
           <button
             type="button"
             onClick={network ? () => window.location.reload() : this.reload}
-            className="mt-3 rounded bg-violet-700 px-3 py-1 text-xs font-medium text-white hover:bg-violet-800"
+            className="mt-3 rounded-control bg-accent px-3 py-1 text-xs font-medium text-white hover:bg-accent-strong"
           >
             {network ? 'Reload page' : 'Reload map'}
           </button>

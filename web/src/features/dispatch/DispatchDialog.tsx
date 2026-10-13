@@ -121,7 +121,7 @@ export default function DispatchDialog(props: {
                     </span>
                   </span>
                 </label>
-                <p className="text-slate-400">Recipients are set in api/.env only.</p>
+                <p className="text-ink-subtle">Recipients are set in api/.env only.</p>
               </fieldset>
             )}
 
