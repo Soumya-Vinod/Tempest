@@ -154,7 +154,7 @@ if (import.meta.env.DEV) {
     )
   }
 }
-const MEMO_SIZE = 64
+const MEMO_SIZE = 160
 const memo = new Map<string, Promise<unknown>>()
 
 interface LowEntry {
