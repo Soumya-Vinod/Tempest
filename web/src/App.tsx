@@ -30,7 +30,7 @@ import {
   useInfraMap,
 } from './features/exposure'
 import { HazardPanel, type MapViewMode, StormEdge, useHazardMap } from './features/hazard'
-import { ImpactPanel, PathwayCard, useImpactMap } from './features/impact'
+import { AtRiskToggle, ImpactPanel, PathwayCard, useImpactMap } from './features/impact'
 import { InsurancePanel, useInsuranceMap } from './features/insurance'
 import { KpiStrip, useKpis } from './features/kpi'
 import { RiskCard, RiskPanel, useRiskMap } from './features/risk'
@@ -60,7 +60,7 @@ export default function App() {
   // Unnamed features are labelled by block ("Road segment · Kultali"), looked up on hover.
   const blockOf = useBlockOf(risk.areas)
   const infraTooltip = useMemo(() => makeInfraTooltip(blockOf), [blockOf])
-  const impact = useImpactMap(timestepIndex, infra.state, horizon, blockOf, map)
+  const impact = useImpactMap(timestepIndex, infra.state, horizon, blockOf, risk.view)
   const hazard = useHazardMap(timestepIndex, risk.view, setChosenView, map, horizon, setChosenHorizon)
   // The payout outline is a Finance detail: drawn only while that tab is open.
   const [panelTab, setPanelTab] = useState<TabId | null>(null)
@@ -298,6 +298,7 @@ export default function App() {
               label: 'Layers',
               content: (
                 <>
+                  <AtRiskToggle {...impact.atRisk} />
                   <InfraPanel
                     state={infra.state}
                     visible={infra.visible}

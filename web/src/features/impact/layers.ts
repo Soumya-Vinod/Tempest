@@ -10,7 +10,7 @@ import type {
   ImpactStatus,
   InfraGeometry,
 } from '../../types/contracts'
-import { IMPACT_COLOR, PULSE_MS, RADIUS, STATUS_RANK, WIDTH } from './style'
+import { IMPACT_COLOR, RADIUS, STATUS_RANK, WIDTH } from './style'
 
 /** One affected infra feature: its worst status and every non-ok row (one per hazard). */
 export interface Affected {
@@ -57,20 +57,16 @@ function lineWidth(f: AffectedFeature): number {
   return a.worst === 'cut' ? WIDTH.roadCut : WIDTH.roadAtRisk
 }
 
-const pointFill = (f: AffectedFeature): Color =>
-  f.properties.affected.worst === 'cut' ? IMPACT_COLOR.cut : IMPACT_COLOR.atRisk
+const isCut = (f: AffectedFeature) => f.properties.affected.worst === 'cut'
+const pointFill = (f: AffectedFeature): Color => (isCut(f) ? IMPACT_COLOR.cut : IMPACT_COLOR.atRisk)
+const pointRadius = (f: AffectedFeature) => (isCut(f) ? RADIUS.cut : RADIUS.atRisk)
 
 const position = (a: Affected) => a.geometry.coordinates as [number, number]
-const haloMax = () => RADIUS.haloMax
-const haloMin = () => RADIUS.haloMin
-
-/** The halo: 'grow' / 'shrink' while pulsing (animated), 'static' when motion is off. */
-export type HaloState = 'grow' | 'shrink' | 'static'
 
 export interface ImpactLayerData {
   lines: AffectedFeature[]
   points: AffectedFeature[] // at_risk / cut points (substations, facilities)
-  isolated: Affected[] // cut off now: target (core + thick ring) in a pulsing halo
+  isolated: Affected[] // cut off now: a static target (core + ring)
   expected: Affected[] // expected within 24 h, not yet (v1.3): dashed ring
 }
 
@@ -96,23 +92,38 @@ export function layerData(
   return { lines, points, isolated, expected }
 }
 
-// A dashed ring (deck.gl circles can't be dashed): an SVG icon in the isolated colour.
-const [ir, ig, ib] = IMPACT_COLOR.isolated
+/**
+ * What is drawn of the watch tier: at-risk roads and lines only when asked for (Layers), at-risk
+ * facilities and substations also in the Risk view. Cut and cut-off features always show.
+ */
+export function visibleData(
+  data: ImpactLayerData,
+  show: { atRiskLines: boolean; atRiskPoints: boolean },
+): ImpactLayerData {
+  return {
+    ...data,
+    lines: show.atRiskLines ? data.lines : data.lines.filter(isCut),
+    points: show.atRiskPoints ? data.points : data.points.filter(isCut),
+  }
+}
+
+// A dashed ring (deck.gl circles can't be dashed): an SVG icon in the expected (act soon) colour.
+const [ir, ig, ib] = IMPACT_COLOR.expected
 const DASHED_RING = {
   id: 'expected-ring',
   url:
     'data:image/svg+xml;charset=utf-8,' +
     encodeURIComponent(
       `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">` +
-        `<circle cx="32" cy="32" r="26" fill="rgba(255,255,255,0.75)" ` +
-        `stroke="rgb(${ir},${ig},${ib})" stroke-width="6" stroke-dasharray="9 7"/></svg>`,
+        `<circle cx="32" cy="32" r="26" fill="rgba(255,255,255,0.7)" ` +
+        `stroke="rgb(${ir},${ig},${ib})" stroke-width="7" stroke-dasharray="10 7"/></svg>`,
     ),
   width: 64,
   height: 64,
 }
 
 const HIGHLIGHT_LINE: Color = [...IMPACT_COLOR.highlight, 230]
-const AUTO_HIGHLIGHT: number[] = [250, 204, 21, 200]
+const AUTO_HIGHLIGHT: number[] = [...IMPACT_COLOR.highlight, 160]
 
 /**
  * Impact layers, bottom to top: lines, points, isolated rings; and, separately, the highlight
@@ -122,7 +133,6 @@ export function buildImpactLayers(
   deck: Deck,
   data: ImpactLayerData,
   highlight: InfraGeometry | null,
-  halo: HaloState,
 ): { layers: Layer[]; highlight: Layer[] } {
   const { GeoJsonLayer, IconLayer, ScatterplotLayer } = deck
   const layers: Layer[] = [
@@ -144,7 +154,7 @@ export function buildImpactLayers(
       highlightColor: AUTO_HIGHLIGHT,
       pointType: 'circle',
       pointRadiusUnits: 'pixels',
-      getPointRadius: RADIUS.atRisk,
+      getPointRadius: pointRadius,
       getFillColor: pointFill,
       stroked: true,
       lineWidthUnits: 'pixels',
@@ -167,23 +177,7 @@ export function buildImpactLayers(
     )
   if (data.isolated.length > 0)
     layers.push(
-      // Halo: while pulsing only its target radius changes and deck.gl animates the transition on
-      // the GPU (no per-frame React work); between pulses and when static nothing redraws.
-      new ScatterplotLayer<Affected>({
-        id: 'impact-isolated-halo',
-        data: data.isolated,
-        pickable: false,
-        getPosition: position,
-        radiusUnits: 'pixels',
-        // An accessor (not a constant) so the radius is a buffer that transitions can interpolate.
-        getRadius: halo === 'grow' ? haloMax : halo === 'shrink' ? haloMin : RADIUS.haloStatic,
-        updateTriggers: { getRadius: halo },
-        filled: true,
-        stroked: false,
-        getFillColor: IMPACT_COLOR.isolatedHalo,
-        transitions: halo === 'static' ? {} : { getRadius: { duration: PULSE_MS } },
-      }),
-      // The ring (filled white inside, so the whole target is clickable), then its core.
+      // Static (no pulse): the ring (filled white inside, so the whole target is clickable), then its core.
       new ScatterplotLayer<Affected>({
         id: 'impact-isolated',
         data: data.isolated,
