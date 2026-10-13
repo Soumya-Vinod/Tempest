@@ -2,9 +2,9 @@ import { KPI_HEIGHT, useLayout } from '../../lib/layout'
 import type { Kpi, KpiTone } from './useKpis'
 
 const TONE: Record<KpiTone, string> = {
-  neutral: 'text-slate-900',
-  warn: 'text-amber-800',
-  alert: 'text-red-800',
+  neutral: 'text-ink',
+  warn: 'text-sev-act-ink',
+  alert: 'text-sev-cut',
 }
 
 /**

@@ -93,13 +93,13 @@ export default function PanelTabs({
               onKeyDown={(e) => onKeyDown(e, i)}
               className={`-mb-px flex items-center gap-1 border-b-2 px-2 py-1.5 text-xs font-semibold whitespace-nowrap ${
                 selected
-                  ? 'border-violet-700 text-violet-800'
+                  ? 'border-accent text-accent'
                   : 'border-transparent text-slate-500 hover:text-slate-800'
               }`}
             >
               {t.label}
               {!!t.badge && (
-                <span className="rounded-full bg-red-100 px-1.5 text-[10px] text-red-800 tabular-nums">
+                <span className="rounded-full bg-sev-cut-wash px-1.5 text-[10px] text-sev-cut tabular-nums">
                   {t.badge}
                 </span>
               )}

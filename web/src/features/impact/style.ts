@@ -1,6 +1,7 @@
 // Colours, sizes and plain words for the impact layers and panel.
 import type { Color } from '@deck.gl/core'
 
+import { SELECTION, SEVERITY } from '../../lib/tokens'
 import type { HazardType, ImpactStatus } from '../../types/contracts'
 
 /**
@@ -10,12 +11,12 @@ import type { HazardType, ImpactStatus } from '../../types/contracts'
  */
 export const IMPACT_COLOR = {
   cut: [220, 38, 38], // red-600
-  atRisk: [245, 158, 11], // amber-500
-  isolated: [127, 29, 29], // red-900
+  atRisk: [...SEVERITY.act], // act soon: desaturated amber
+  isolated: [...SEVERITY.cutOff], // cut off: the one deep red
   isolatedGap: [255, 255, 255, 220], // the ring's inside: keeps the target readable on red roads
-  isolatedHalo: [127, 29, 29, 60],
+  isolatedHalo: [...SEVERITY.cutOff, 60],
   outline: [255, 255, 255],
-  highlight: [6, 182, 212], // cyan-500
+  highlight: [...SELECTION],
 } satisfies Record<string, Color>
 
 /** Line widths (px) for affected lines. */
