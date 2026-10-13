@@ -111,7 +111,7 @@ export default function App() {
     [affectedIds, atRiskBlocks, blockOf],
   )
   // Red and orange mean impact only: exposure mutes its colours while impact results show.
-  const infraLayers = useInfraLayers(infra, impact.active, facilityFilter)
+  const infraLayers = useInfraLayers(infra, impact.active, facilityFilter, map)
 
   // Bottom to top: hazard fills or the risk choropleth (one view at a time: both are area
   // fills; in Risk view, gold outlines on blocks with an insurance payout released), muted
