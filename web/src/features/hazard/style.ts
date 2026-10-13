@@ -2,6 +2,8 @@
 // flood susceptibility (muted, static). Colours are [r, g, b, a] for deck.gl.
 import type { Color } from '@deck.gl/core'
 
+import { HAZARD_RAMP, NEUTRAL } from '../../lib/tokens'
+
 export const MS_TO_KMH = 3.6
 export const toKmh = (ms: number) => ms * MS_TO_KMH
 
@@ -11,14 +13,9 @@ export const toKmh = (ms: number) => ms * MS_TO_KMH
 export const SURGE_MIN_M = 0.05
 /** Fixed scale, comparable across timesteps: the hazard model's physical ceiling (6 m). */
 export const SURGE_MAX_M = 6
-/** Blues, light to dark. */
-const SURGE_STOPS: [number, number, number][] = [
-  [198, 219, 239],
-  [107, 174, 214],
-  [33, 113, 181],
-  [8, 48, 107],
-]
-const SURGE_ALPHA = [70, 205] as const // opacity rises with depth
+/** The hazard ramp (design tokens): light blue to deep indigo. */
+const SURGE_STOPS: [number, number, number][] = HAZARD_RAMP.map(([r, g, b]) => [r, g, b])
+const SURGE_ALPHA = [60, 175] as const // modest opacity, rising with depth
 
 function lerp(a: number, b: number, t: number) {
   return a + (b - a) * t
@@ -74,20 +71,21 @@ export function imdCategory(kmh: number): ImdCategory | null {
 // Wind is drawn as isotachs (contours.ts): dark slate lines at the category boundaries, heavier
 // for higher categories. No fill colour: red and orange are reserved for impact, and a fill
 // would hide the surge underneath.
-export const ISOTACH_COLOR: Color = [51, 65, 85, 230]
-export const ISOTACH_CSS = 'rgb(51 65 85)'
-export const ISOTACH_LABEL_BG: Color = [255, 255, 255, 210]
-/** Line width in px for isotach level 0 (50 km/h) … 5 (221 km/h). */
-export const isotachWidth = (level: number) => 1 + 0.5 * level
+export const ISOTACH_COLOR: Color = [...NEUTRAL.muted, 190]
+export const ISOTACH_CSS = 'rgb(71 85 105)'
+export const ISOTACH_LABEL_BG: Color = [255, 255, 255, 200]
+/** Line width in px for isotach level 0 (50 km/h) … 5 (221 km/h): thin, a little heavier higher. */
+export const isotachWidth = (level: number) => 0.75 + 0.3 * level
 
 // --- Flood susceptibility (static, muted) --------------------------------------------------------
 
+// A quiet neutral wash, low opacity: context under the surge, never a warning colour.
 const FLOOD_STOPS: [number, number, number][] = [
   [226, 232, 240],
-  [148, 163, 184],
-  [71, 104, 116],
+  [176, 186, 200],
+  [128, 140, 158],
 ]
-const FLOOD_ALPHA = [25, 115] as const
+const FLOOD_ALPHA = [12, 70] as const
 
 export function floodColor(severity: number): Color {
   return [...ramp(FLOOD_STOPS, severity), Math.round(lerp(FLOOD_ALPHA[0], FLOOD_ALPHA[1], severity))]

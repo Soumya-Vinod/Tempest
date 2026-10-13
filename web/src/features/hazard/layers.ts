@@ -166,7 +166,7 @@ export function buildHazardFills(
         getText: (d) => `${d.kmh} km/h`,
         getSize: 11,
         getColor: ISOTACH_COLOR,
-        fontWeight: 600,
+        fontWeight: 500,
         background: true,
         getBackgroundColor: ISOTACH_LABEL_BG,
         backgroundPadding: [3, 1],
