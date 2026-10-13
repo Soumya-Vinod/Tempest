@@ -246,6 +246,7 @@ export default function App() {
         cardOpen={cardOpen}
         drawn={drawn}
         payouts={financeOpen}
+        atRisk={impact.atRisk.on}
       />
       {/* On phones a bottom sheet, which drops back to peek when a card opens on the map. */}
       <HealthPanel collapse={cardOpen}>

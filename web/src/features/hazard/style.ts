@@ -97,27 +97,28 @@ export const FLOOD_RAMP_CSS = `linear-gradient(to right, ${FLOOD_STOPS.map(
 ).join(', ')})`
 
 // --- Storm track ---------------------------------------------------------------------------------
-// The storm is pink, a hue no other symbol uses: red / amber are impact, violet is risk, blue is
-// surge, slate is the network.
+// The storm is a muted plum, soft and thin: a hue no other symbol uses (deep red / amber are
+// severity, slate-violet the risk fill, blue the surge, slate the network).
 
-export const TRACK_COLOR: Color = [157, 23, 77, 220] // pink-800
-export const TRACK_FUTURE_COLOR: Color = [157, 23, 77, 110]
+export const TRACK_COLOR: Color = [122, 74, 126, 200] // #7a4a7e
+export const TRACK_FUTURE_COLOR: Color = [122, 74, 126, 95]
 /** The next 24 h of track: where the storm will be while today's decisions play out. */
-export const TRACK_NEXT_COLOR: Color = [236, 72, 153, 235] // pink-500
+export const TRACK_NEXT_COLOR: Color = [146, 88, 150, 225] // #925896
 export const TRACK_NEXT_H = 24
-export const STORM_HALO: Color = [219, 39, 119, 60]
-export const STORM_FILL: Color = [219, 39, 119, 235] // pink-600
+export const TRACK_WIDTH = { past: 2, next: 2.75, later: 1.5 }
+export const STORM_HALO: Color = [146, 88, 150, 45]
+export const STORM_FILL: Color = [122, 74, 126, 235]
 /** The same colours for the legend and the off-screen arrow. */
 export const STORM_CSS = {
-  track: 'rgb(157 23 77)',
-  next: 'rgb(236 72 153)',
-  later: 'rgb(157 23 77 / 0.45)',
-  storm: 'rgb(219 39 119)',
+  track: 'rgb(122 74 126 / 0.8)',
+  next: 'rgb(146 88 150 / 0.9)',
+  later: 'rgb(122 74 126 / 0.4)',
+  storm: 'rgb(122 74 126)',
 } as const
 export const STORM_OUTLINE: Color = [255, 255, 255, 255]
 /** White casing each side of every track segment (keeps it apart from roads). */
-export const TRACK_CASING: Color = [255, 255, 255, 230]
-export const TRACK_CASING_PX = 1.5
+export const TRACK_CASING: Color = [255, 255, 255, 200]
+export const TRACK_CASING_PX = 1
 
 // --- Smoothed images (raster.ts): the same scales, per pixel ------------------------------------
 // Module-level functions: raster.ts caches images per function, so they must stay stable.

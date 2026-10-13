@@ -6,6 +6,7 @@ import type { MapViewMode } from '../features/hazard'
 import { StatusSwatch } from '../features/impact'
 import { cssColor, HATCH_CSS, RAMP_CSS } from '../features/risk/style'
 import { above, CARD_TOP_CLEARANCE, cssLength, useLayout } from '../lib/layout'
+import { css, SELECTION, SEVERITY } from '../lib/tokens'
 import type { Horizon } from '../types/contracts'
 
 const rgb = (c: readonly number[]) => cssColor([c[0], c[1], c[2], c[3] ?? 255])
@@ -40,19 +41,17 @@ function Row({ symbol, children }: { symbol: ReactNode; children: ReactNode }) {
 
 function Group({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <div>
-      <p className="mt-2 mb-0.5 text-[10px] font-semibold tracking-wide text-slate-500 uppercase first:mt-0">
-        {title}
-      </p>
-      <ul className="space-y-0.5">{children}</ul>
+    <div className="mt-2.5 first:mt-0">
+      <p className="mb-1 font-medium text-ink-subtle">{title}</p>
+      <ul className="space-y-1">{children}</ul>
     </div>
   )
 }
 
 const Ramp = ({ css, from, to }: { css: string; from: string; to: string }) => (
   <li>
-    <div className="h-2 w-full rounded" style={{ background: css }} aria-hidden />
-    <div className="flex justify-between text-[10px] text-slate-500">
+    <div className="h-2 w-full rounded-sm" style={{ background: css }} aria-hidden />
+    <div className="flex justify-between text-ink-subtle">
       <span>{from}</span>
       <span>{to}</span>
     </div>
@@ -81,6 +80,7 @@ export default function MapLegend({
   cardOpen,
   drawn,
   payouts,
+  atRisk = false,
 }: {
   view: MapViewMode
   horizon: Horizon
@@ -88,6 +88,8 @@ export default function MapLegend({
   drawn: LegendDrawn
   /** The payout outline is drawn (Finance tab open). */
   payouts: boolean
+  /** At-risk roads and lines are on (Layers); at-risk facilities show in the Risk view too. */
+  atRisk?: boolean
 }) {
   // Folded on short screens, where it would cover much of the map: at first, and again whenever
   // a resize crosses into them (unfolded when it crosses out). The user's toggle holds otherwise.
@@ -112,7 +114,7 @@ export default function MapLegend({
   return (
     <section
       aria-label="Map legend"
-      className={`absolute z-10 w-56 overflow-y-auto rounded-lg bg-white/95 text-[11px] text-slate-700 shadow-lg ${
+      className={`absolute z-10 w-52 overflow-y-auto rounded-panel border border-line bg-white/95 text-[11px] text-ink-muted shadow-sm ${
         phone ? 'sheet-rides sheet-hides' : ''
       }`}
       style={{
@@ -126,7 +128,7 @@ export default function MapLegend({
         onClick={() => setOpen((o) => !o)}
         aria-expanded={expanded}
         disabled={cardOpen}
-        className="flex w-full items-center justify-between px-3 py-1.5 text-xs font-semibold text-slate-700 disabled:text-slate-400"
+        className="flex w-full items-center justify-between px-3 py-1.5 text-xs font-medium text-ink disabled:text-ink-subtle"
       >
         Legend · {view === 'hazard' ? 'Hazard' : 'Risk'}, {horizon === 24 ? 'next 24 h' : 'now'}
         <span aria-hidden>{expanded ? '▾' : '▸'}</span>
@@ -134,28 +136,33 @@ export default function MapLegend({
       {expanded && (
         <div className="px-3 pb-2">
           {drawn.impact && (
-            <Group title="Impact">
-              <Row symbol={<StatusSwatch status="isolated" />}>Cut off now (isolated facility)</Row>
+            <Group title="Facilities">
+              <Row symbol={<StatusSwatch status="isolated" />}>Cut off</Row>
               {horizon === 24 && (
-                <Row symbol={<StatusSwatch status="isolated" expected />}>
-                  Expected to be cut off within 24 h
-                </Row>
+                <Row symbol={<StatusSwatch status="isolated" expected />}>Expected to be cut off (24 h)</Row>
               )}
-              <Row symbol={<StatusSwatch status="cut" />}>Road, line or substation cut</Row>
-              <Row symbol={<StatusSwatch status="at_risk" />}>At risk</Row>
-              <Row symbol={<Line color="rgb(6 182 212)" width={4} />}>Selected (cyan outline)</Row>
+              {(view === 'risk' || atRisk) && (
+                <Row symbol={<Dot fill={css(SEVERITY.watch)} r={3} />}>At risk</Row>
+              )}
+            </Group>
+          )}
+          {drawn.impact && (
+            <Group title="Roads and lines">
+              <Row symbol={<StatusSwatch status="cut" />}>Cut</Row>
+              {atRisk && <Row symbol={<StatusSwatch status="at_risk" />}>At risk</Row>}
+              <Row symbol={<Line color={css(SELECTION)} width={3} />}>Selected</Row>
             </Group>
           )}
           {drawn.track && (
             <Group title="Storm">
-              <Row symbol={<Line color={STORM_CSS.track} width={3} />}>Track so far</Row>
-              <Row symbol={<Line color={STORM_CSS.next} width={4} />}>Track, next 24 h</Row>
-              <Row symbol={<Line color={STORM_CSS.later} dash="3 2.5" />}>Track, later</Row>
-              <Row symbol={<Dot fill={STORM_CSS.storm} r={5} />}>Storm now</Row>
+              <Row symbol={<Line color={STORM_CSS.track} width={2} />}>Track so far</Row>
+              <Row symbol={<Line color={STORM_CSS.next} width={2.75} />}>Next 24 h</Row>
+              <Row symbol={<Line color={STORM_CSS.later} width={1.5} dash="3 2.5" />}>Later</Row>
+              <Row symbol={<Dot fill={STORM_CSS.storm} r={4} />}>Storm now</Row>
             </Group>
           )}
           {view === 'hazard' && drawn.surge && (
-            <Group title={horizon === 24 ? 'Storm surge (max, next 24 h)' : 'Storm surge depth'}>
+            <Group title={horizon === 24 ? 'Storm surge, max next 24 h' : 'Storm surge depth'}>
               <Ramp css={SURGE_RAMP_CSS} from="0 m" to="6 m" />
             </Group>
           )}
@@ -173,7 +180,7 @@ export default function MapLegend({
           )}
           {payouts && (
             <Group title="Finance">
-              <Row symbol={<Line color="rgb(202 138 4)" width={3} />}>Insurance payout released</Row>
+              <Row symbol={<Line color="rgb(202 138 4)" width={2} />}>Insurance payout released</Row>
             </Group>
           )}
           {(drawn.roads || drawn.power || drawn.health || drawn.shelters) && (
@@ -189,7 +196,7 @@ export default function MapLegend({
             </Group>
           )}
           {missing.length > 0 && (
-            <p className="mt-2 text-[10px] text-slate-500">
+            <p className="mt-2 text-ink-subtle">
               Not on the map (data unavailable): {missing.join(', ')}.
             </p>
           )}

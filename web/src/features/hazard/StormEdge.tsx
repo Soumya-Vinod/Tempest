@@ -96,10 +96,13 @@ export default function StormEdge(props: {
         style={{ transform: `rotate(${deg}deg)` }}
         aria-hidden
       >
-        <path d="M3 13 H19 M13 6 L21 13 L13 20" stroke={STORM_CSS.storm} strokeWidth="3.5" fill="none" />
+        <path d="M5 13 H19 M14 8 L20 13 L14 18" stroke={STORM_CSS.storm} strokeWidth="2" fill="none" />
       </svg>
-      <span className="mt-0.5 rounded bg-white/90 px-1.5 py-0.5 text-[11px] leading-tight font-medium whitespace-nowrap text-slate-800 shadow">
-        {Math.round(placement.km).toLocaleString('en-IN')} km · {props.category}
+      <span
+        className="rounded-full bg-white/90 px-2 text-[11px] leading-4 whitespace-nowrap text-ink-muted shadow-sm tabular-nums"
+        title={`Storm out of view: ${props.category}`}
+      >
+        Storm {Math.round(placement.km).toLocaleString('en-IN')} km
       </span>
     </div>
   )
