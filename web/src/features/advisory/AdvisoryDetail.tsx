@@ -168,7 +168,7 @@ export default function AdvisoryDetail(props: {
   return (
     <div>
       <button type="button" onClick={props.onBack} className="text-xs text-accent hover:underline">
-        ← Queue
+        ← Back to queue
       </button>
       <div className="mt-1 flex items-center gap-2">
         <p className="font-medium">{p.block_name}</p>
@@ -280,7 +280,7 @@ export default function AdvisoryDetail(props: {
         )}
       </div>
 
-      <h3 className="mt-4 text-xs font-semibold tracking-wide text-slate-500 uppercase">
+      <h3 className="mt-5 text-xs font-semibold text-ink">
         Where the figures come from
       </h3>
       <table className="mt-1 w-full text-xs">
@@ -301,7 +301,7 @@ export default function AdvisoryDetail(props: {
         <ReceiptList advisoryId={p.id} version={`${p.status}|${dispatches}`} />
       )}
 
-      <h3 className="mt-4 text-xs font-semibold tracking-wide text-slate-500 uppercase">Audit</h3>
+      <h3 className="mt-5 text-xs font-semibold text-ink">Audit trail</h3>
       <ul className="mt-1 space-y-0.5 text-xs text-slate-600">
         {audit.map((e) => (
           <li key={e.id}>

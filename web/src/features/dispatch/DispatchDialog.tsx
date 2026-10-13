@@ -60,7 +60,7 @@ export default function DispatchDialog(props: {
       >
         <p className="mb-2 font-medium">{title}</p>
         <p className="rounded-control border border-line bg-surface px-2 py-1 text-xs text-ink-muted">
-          EXERCISE: Cyclone Amphan 2020 replay. Messages are real (Telegram, e-mail) but marked as an
+          Exercise: Cyclone Amphan 2020 replay. Messages are real (Telegram, e-mail) but marked as an
           exercise, and the CAP alert has status Exercise.
         </p>
 

@@ -63,7 +63,7 @@ function GenerateButton(props: {
       disabled={props.disabled}
       className={`ml-auto shrink-0 ${props.primary ? BUTTON.primary : BUTTON.secondary}`}
     >
-      {props.busy ? 'Generating…' : 'Generate'}
+      {props.busy ? 'Drafting…' : 'Generate draft'}
     </button>
   )
 }
@@ -101,7 +101,7 @@ export default function AdvisoryPanel(props: AdvisoryPanelProps) {
             </p>
           </About>
           {suggested.length === 0 && (
-            <p className="mt-1 text-xs text-slate-500">No block suggested.</p>
+            <p className="mt-2 text-xs text-ink-subtle">No block suggested at this step.</p>
           )}
           <ul className="mt-3 divide-y divide-line">
             {suggested.map((b, i) => (
@@ -131,7 +131,7 @@ export default function AdvisoryPanel(props: AdvisoryPanelProps) {
           className="min-w-0 flex-1 rounded-control border border-line bg-white px-1.5 py-1 text-ink-muted"
           aria-label="Another block"
         >
-          <option value="">Add another block…</option>
+          <option value="">Draft for another block…</option>
           {others.map((b) => (
             <option key={b.block_id} value={b.block_id}>
               {b.block_name}
@@ -150,7 +150,7 @@ export default function AdvisoryPanel(props: AdvisoryPanelProps) {
         onClick={props.onOpenQueue}
         className="mt-3 text-xs text-accent hover:underline"
       >
-        Open queue ({props.drafts} draft{props.drafts === 1 ? '' : 's'}, {props.approved} approved)
+        Review queue ({props.drafts} draft{props.drafts === 1 ? '' : 's'}, {props.approved} approved)
       </button>
     </section>
   )

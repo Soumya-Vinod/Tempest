@@ -48,7 +48,7 @@ export default function AdvisoryDrawer(props: AdvisoryDrawerProps) {
       aria-label="Advisory queue"
     >
       <div className="mb-2 flex items-center">
-        <h2 className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
+        <h2 className="text-title font-semibold text-ink">
           Advisory queue
         </h2>
         <button
@@ -89,7 +89,7 @@ export default function AdvisoryDrawer(props: AdvisoryDrawerProps) {
             <p className="text-xs text-sev-cut">{props.queue.message}</p>
           )}
           {props.queue.status === 'ok' && shown.length === 0 && (
-            <p className="text-xs text-slate-500">Nothing here yet.</p>
+            <p className="text-xs text-ink-subtle">No advisories here yet.</p>
           )}
           <ul className="divide-y divide-slate-100">
             {shown.map((a) => {

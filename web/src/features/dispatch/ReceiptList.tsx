@@ -70,7 +70,7 @@ export default function ReceiptList({
   return (
     <section>
       <div className="mt-4 flex items-baseline justify-between">
-        <h3 className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
+        <h3 className="text-xs font-semibold text-ink">
           Dispatch receipts
         </h3>
         <DownloadCap advisoryId={advisoryId} />

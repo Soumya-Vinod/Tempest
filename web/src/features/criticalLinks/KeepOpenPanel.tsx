@@ -135,7 +135,7 @@ export default function KeepOpenPanel({
       {state.status === 'ok' && groups && (
         <>
           {state.data.links.length === 0 ? (
-            <p className="mt-1 text-xs text-slate-600">No road departures left to protect.</p>
+            <p className="mt-2 text-xs text-ink-muted">No road departures left to protect.</p>
           ) : (
             <>
               <EntryList

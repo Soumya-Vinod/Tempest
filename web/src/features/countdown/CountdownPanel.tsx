@@ -219,15 +219,15 @@ export default function CountdownPanel({
         <p>{FORECAST_FRAMING}</p>
         <p>Leave-by times: {DEPARTURE_NOTE.charAt(0).toLowerCase() + DEPARTURE_NOTE.slice(1)}</p>
       </About>
-      {state.status === 'loading' && <p className="mt-1 text-xs text-slate-500">Loading…</p>}
+      {state.status === 'loading' && <p className="mt-1 text-xs text-ink-subtle">Loading…</p>}
       {state.status === 'unavailable' && (
-        <p className="mt-1 text-xs text-slate-500">Countdown not available yet</p>
+        <p className="mt-1 text-xs text-ink-subtle">The countdown is not available yet.</p>
       )}
       {state.status === 'error' && <p className="mt-1 text-xs text-sev-cut">{state.message}</p>}
       {state.status === 'ok' && (
         <>
           {all.length === 0 && (
-            <p className="mt-1 text-xs text-slate-600">
+            <p className="mt-2 text-xs text-ink-muted">
               No facility expected to be cut off in the next 24 h.
             </p>
           )}

@@ -113,7 +113,7 @@ function Storm({ storm }: { storm: HazardPanelProps['storm'] }) {
           onClick={storm.fullTrack ? storm.onBackToAoi : storm.onFullTrack}
           className="mt-2 rounded-control border border-line px-2.5 py-1 text-xs font-medium text-ink-muted hover:bg-surface"
         >
-          {storm.fullTrack ? 'Back to AOI' : 'Show full track'}
+          {storm.fullTrack ? 'Back to the district' : 'Show full track'}
         </button>
       )}
     </section>
