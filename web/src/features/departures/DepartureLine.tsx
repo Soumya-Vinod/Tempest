@@ -22,7 +22,7 @@ export default function DepartureLine({
     return <p className="text-[11px] text-slate-500">{d.note ?? 'No road route to a safe hospital'}</p>
   }
   if (timestepIndex > deadline) {
-    return <p className="text-[11px] font-medium text-red-700">Road route closed; boat only</p>
+    return <p className="text-[11px] font-medium text-sev-cut">Road route closed; boat only</p>
   }
   const by = d.uses_ferry ? 'by road and ferry' : 'by road'
   const left = timeline.hoursToLandfall(timestepIndex) - timeline.hoursToLandfall(deadline)
@@ -33,7 +33,7 @@ export default function DepartureLine({
         {d.destination_name}, ~{formatDuration(d.travel_time_s)} {by} (normal conditions)
         {d.at_risk ? ' · route at risk' : ''}
       </p>
-      <p className="font-medium text-amber-800">
+      <p className="font-medium text-sev-act-ink">
         {left === 0 ? 'Last step to leave by road' : `~${left} h left to leave`}
       </p>
       {!compact && <p className="text-slate-400">{DEPARTURE_NOTE}</p>}

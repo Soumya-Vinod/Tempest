@@ -47,6 +47,8 @@ export interface ImpactMap {
   clear: () => void
   panel: PanelProps
   card: PathwayCardProps
+  /** Highlight one feature (e.g. a facility from the Act panel) on the map; null: none. */
+  highlight: (id: string | null) => void
   /** The watch tier's roads and lines on the map (Layers): off by default. */
   atRisk: { on: boolean; onToggle: () => void }
 }
@@ -160,6 +162,7 @@ export function useImpactMap(
       onHighlight: setHighlightId,
       onClose: clear,
     },
+    highlight: setHighlightId,
     atRisk: { on: atRiskOn, onToggle: toggleAtRisk },
   }
 }

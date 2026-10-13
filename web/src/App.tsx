@@ -263,6 +263,7 @@ export default function App() {
                     state={countdown.state}
                     departures={departures}
                     timestepIndex={timestepIndex}
+                    onHighlight={impact.highlight}
                   />
                   <KeepOpenPanel
                     state={criticalLinks}
