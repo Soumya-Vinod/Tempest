@@ -1,15 +1,14 @@
 // Insurance feature (Dev B): illustrative parametric triggers per CD block. The panel section,
 // and, while the Finance tab is open, a gold outline on blocks with a payout released.
 import type { Layer } from '@deck.gl/core'
-import { lazy, useMemo } from 'react'
+import { useMemo } from 'react'
 
 import { useDeck } from '../../lib/deck'
 import { useTimeline } from '../../lib/timeline'
 import type { InsurancePanelProps } from './InsurancePanel'
 import { useInsuranceSummary, useTriggers } from './useInsurance'
 
-// Code-split: loaded the first time it is shown (see components/Deferred).
-export const InsurancePanel = lazy(() => import('./InsurancePanel'))
+export { default as InsurancePanel } from './InsurancePanel'
 
 const GOLD: [number, number, number, number] = [202, 138, 4, 255]
 
