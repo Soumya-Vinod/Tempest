@@ -4,7 +4,7 @@ import { PANEL_WIDTH, useLayout } from '../../lib/layout'
 import { useTimeline } from '../../lib/timeline'
 import type { Advisory, AdvisoryStatus } from '../../types/contracts'
 import AdvisoryDetail from './AdvisoryDetail'
-import { STATUS_STYLE, timestepLabel } from './style'
+import { CHIP, STATUS_LABEL, STATUS_STYLE, timestepLabel } from './style'
 import type { Loadable } from './useAdvisories'
 
 const DRAWER_WIDTH = 420
@@ -77,7 +77,7 @@ export default function AdvisoryDrawer(props: AdvisoryDrawerProps) {
                 type="button"
                 onClick={() => setFilter(f.id)}
                 className={`rounded px-2 py-0.5 text-xs ${
-                  filter === f.id ? 'bg-violet-100 text-violet-800' : 'text-slate-500'
+                  filter === f.id ? 'bg-accent-wash text-accent' : 'text-ink-subtle hover:text-ink'
                 }`}
               >
                 {f.label}
@@ -86,7 +86,7 @@ export default function AdvisoryDrawer(props: AdvisoryDrawerProps) {
           </div>
           {props.queue.status === 'loading' && <p className="text-xs text-slate-500">Loading…</p>}
           {props.queue.status === 'error' && (
-            <p className="text-xs text-red-600">{props.queue.message}</p>
+            <p className="text-xs text-sev-cut">{props.queue.message}</p>
           )}
           {props.queue.status === 'ok' && shown.length === 0 && (
             <p className="text-xs text-slate-500">Nothing here yet.</p>
@@ -104,8 +104,8 @@ export default function AdvisoryDrawer(props: AdvisoryDrawerProps) {
                     <span className="flex items-center gap-2">
                       <span className="font-medium">{p.block_name}</span>
                       <span className="text-xs text-slate-500">{timestepLabel(timeline, p.timestep)}</span>
-                      <span className={`ml-auto rounded px-2 py-0.5 text-xs ${STATUS_STYLE[p.status]}`}>
-                        {p.status}
+                      <span className={`ml-auto ${CHIP} ${STATUS_STYLE[p.status]}`}>
+                        {STATUS_LABEL[p.status]}
                       </span>
                     </span>
                     <span className="mt-0.5 block truncate text-xs text-slate-600">

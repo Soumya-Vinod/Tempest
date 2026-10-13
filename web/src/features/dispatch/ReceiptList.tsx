@@ -4,9 +4,9 @@ import { useReceipts } from './useDispatch'
 
 const CHANNEL_LABEL = { telegram: 'Telegram', email: 'E-mail' } as const
 const STATUS_STYLE: Record<ChannelResult['status'], string> = {
-  sent: 'bg-emerald-100 text-emerald-800',
-  failed: 'bg-red-100 text-red-800',
-  dry_run: 'bg-slate-100 text-slate-700',
+  sent: 'bg-emerald-50 text-emerald-800',
+  failed: 'bg-sev-cut-wash text-sev-cut',
+  dry_run: 'bg-surface text-ink-muted',
 }
 const STATUS_LABEL: Record<ChannelResult['status'], string> = {
   sent: 'sent',
@@ -37,7 +37,7 @@ export function Receipt({ receipt }: { receipt: DispatchReceipt }) {
                 id {c.provider_message_id}
               </span>
             )}
-            {c.error && <span className="w-full text-red-700">{c.error}</span>}
+            {c.error && <span className="w-full text-sev-cut">{c.error}</span>}
           </li>
         ))}
       </ul>
@@ -47,7 +47,7 @@ export function Receipt({ receipt }: { receipt: DispatchReceipt }) {
 
 export function DownloadCap({ advisoryId }: { advisoryId: string }) {
   return (
-    <a href={capXmlUrl(advisoryId)} download className="text-xs text-violet-700 underline">
+    <a href={capXmlUrl(advisoryId)} download className="text-xs text-accent underline">
       Download CAP
     </a>
   )
@@ -64,7 +64,7 @@ export default function ReceiptList({
   const receipts = useReceipts(advisoryId, version)
   if (receipts.status === 'loading') return null
   if (receipts.status === 'error') {
-    return <p className="mt-1 text-xs text-red-700">{receipts.message}</p>
+    return <p className="mt-1 text-xs text-sev-cut">{receipts.message}</p>
   }
   if (receipts.data.length === 0) return null
   return (

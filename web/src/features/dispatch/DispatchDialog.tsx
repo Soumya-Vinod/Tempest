@@ -6,7 +6,7 @@ import { actionErrorText } from '../../lib/errors'
 import { DownloadCap, Receipt } from './ReceiptList'
 import { useRecipients } from './useDispatch'
 
-const INPUT = 'mt-1 w-full rounded border border-slate-300 px-2 py-1'
+const INPUT = 'mt-1 w-full rounded-control border border-line px-2 py-1 text-ink'
 
 /** Channels, masked recipients (from api/.env only), PIN and dry run; then the receipt. */
 export default function DispatchDialog(props: {
@@ -59,7 +59,7 @@ export default function DispatchDialog(props: {
         className="w-96 rounded-lg bg-white p-4 text-sm text-slate-800 shadow-xl"
       >
         <p className="mb-2 font-medium">{title}</p>
-        <p className="rounded bg-amber-50 px-2 py-1 text-xs text-amber-900">
+        <p className="rounded-control border border-line bg-surface px-2 py-1 text-xs text-ink-muted">
           EXERCISE: Cyclone Amphan 2020 replay. Messages are real (Telegram, e-mail) but marked as an
           exercise, and the CAP alert has status Exercise.
         </p>
@@ -72,7 +72,7 @@ export default function DispatchDialog(props: {
               <button
                 type="button"
                 onClick={() => props.onClose(!receipt.dry_run)}
-                className="rounded bg-violet-700 px-3 py-1 font-medium text-white hover:bg-violet-800"
+                className="rounded-control bg-accent px-3 py-1 font-medium text-white hover:bg-accent-strong"
               >
                 Close
               </button>
@@ -88,7 +88,7 @@ export default function DispatchDialog(props: {
           >
             {recipients.status === 'loading' && <p className="text-xs text-slate-500">Loading…</p>}
             {recipients.status === 'error' && (
-              <p className="text-xs text-red-700">{recipients.message}</p>
+              <p className="text-xs text-sev-cut">{recipients.message}</p>
             )}
             {r && (
               <fieldset className="space-y-1 text-xs">
@@ -141,12 +141,12 @@ export default function DispatchDialog(props: {
                   autoFocus
                 />
                 {r && !r.pin_configured && (
-                  <span className="text-red-700">DISPATCH_PIN is not set in api/.env.</span>
+                  <span className="text-sev-cut">DISPATCH_PIN is not set in api/.env.</span>
                 )}
               </label>
             )}
 
-            {error && <p className="mt-2 text-xs text-red-700">{error}</p>}
+            {error && <p className="mt-2 text-xs text-sev-cut">{error}</p>}
             <div className="mt-4 flex justify-end gap-2">
               <button
                 type="button"
@@ -158,7 +158,7 @@ export default function DispatchDialog(props: {
               <button
                 type="submit"
                 disabled={!valid || busy}
-                className="rounded bg-violet-700 px-3 py-1 font-medium text-white hover:bg-violet-800 disabled:bg-slate-300"
+                className="rounded-control bg-accent px-3 py-1 font-medium text-white hover:bg-accent-strong disabled:bg-slate-300"
               >
                 {busy ? '…' : dryRun ? 'Dry run' : props.resend ? 'Resend' : 'Send'}
               </button>

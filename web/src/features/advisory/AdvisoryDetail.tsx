@@ -18,7 +18,7 @@ import { actionErrorText } from '../../lib/errors'
 import { useTimeline } from '../../lib/timeline'
 import { DispatchDialog, ReceiptList } from '../dispatch'
 import { ApproveDialog, RejectDialog } from './Dialogs'
-import { STATUS_STYLE, timestepLabel } from './style'
+import { BUTTON, CHIP, STATUS_LABEL, STATUS_STYLE, timestepLabel } from './style'
 import { useAudit } from './useAdvisories'
 
 const LANGUAGES: { id: Language; label: string }[] = [
@@ -112,7 +112,7 @@ function Editor(props: {
             <button
               type="button"
               onClick={() => props.onChange({ ...t, actions: t.actions.filter((_, j) => j !== i) })}
-              className="px-1 text-slate-400 hover:text-red-600"
+              className="px-1 text-ink-subtle hover:text-ink"
               aria-label={`Remove action ${i + 1}`}
             >
               ×
@@ -124,7 +124,7 @@ function Editor(props: {
         <button
           type="button"
           onClick={() => props.onChange({ ...t, actions: [...t.actions, ''] })}
-          className="text-xs text-violet-700 hover:underline"
+          className="text-xs text-accent hover:underline"
         >
           + Add action
         </button>
@@ -133,7 +133,6 @@ function Editor(props: {
   )
 }
 
-const BUTTON = 'rounded border px-2 py-1 text-xs font-medium disabled:opacity-50'
 
 /** One advisory: language tabs, citations, the approval actions and the audit trail. */
 export default function AdvisoryDetail(props: {
@@ -168,22 +167,16 @@ export default function AdvisoryDetail(props: {
   const isDraft = p.status === 'draft'
   return (
     <div>
-      <button type="button" onClick={props.onBack} className="text-xs text-violet-700">
+      <button type="button" onClick={props.onBack} className="text-xs text-accent hover:underline">
         ← Queue
       </button>
       <div className="mt-1 flex items-center gap-2">
         <p className="font-medium">{p.block_name}</p>
         <span className="text-xs text-slate-500">{timestepLabel(timeline, p.timestep)}</span>
-        <span className={`ml-auto rounded px-2 py-0.5 text-xs ${STATUS_STYLE[p.status]}`}>
-          {p.status}
-        </span>
+        <span className={`ml-auto ${CHIP} ${STATUS_STYLE[p.status]}`}>{STATUS_LABEL[p.status]}</span>
       </div>
       {p.generated_by && (
-        <p
-          className={`text-xs ${p.generated_by.provider === 'groq' ? 'text-amber-700' : 'text-slate-500'}`}
-        >
-          Drafted by {generatedByLabel(p.generated_by)}
-        </p>
+        <p className="text-[11px] text-ink-subtle">Drafted by {generatedByLabel(p.generated_by)}</p>
       )}
       {p.approved_by && (
         <p className="text-xs text-slate-500">Approved by {p.approved_by}</p>
@@ -203,7 +196,7 @@ export default function AdvisoryDetail(props: {
             onClick={() => setLanguage(l.id)}
             className={`px-3 py-1 text-xs ${
               language === l.id
-                ? 'border-b-2 border-violet-700 font-semibold text-violet-800'
+                ? 'border-b-2 border-accent font-semibold text-accent'
                 : 'text-slate-500 disabled:opacity-40'
             }`}
           >
@@ -219,14 +212,14 @@ export default function AdvisoryDetail(props: {
         )}
       </div>
 
-      {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
-      <div className="mt-3 flex flex-wrap gap-2">
+      {error && <p className="mt-2 text-xs text-sev-cut">{error}</p>}
+      <div className="mt-4 flex flex-wrap items-center gap-2">
         {isDraft && editing && (
           <>
             <button
               type="button"
               disabled={busy}
-              className={`${BUTTON} border-violet-700 bg-violet-700 text-white`}
+              className={BUTTON.primary}
               onClick={() =>
                 run(
                   () => updateAdvisory(p.id, { templates: { ...p.templates, [language]: editing } }),
@@ -238,7 +231,7 @@ export default function AdvisoryDetail(props: {
             </button>
             <button
               type="button"
-              className={`${BUTTON} border-slate-300`}
+              className={BUTTON.secondary}
               onClick={() => {
                 setEditing(null)
                 setError(null)
@@ -250,25 +243,17 @@ export default function AdvisoryDetail(props: {
         )}
         {isDraft && !editing && (
           <>
-            <button
-              type="button"
-              className={`${BUTTON} border-slate-300`}
-              onClick={() => setEditing(p.templates[language])}
-            >
-              Edit {LANGUAGES.find((l) => l.id === language)?.label}
-            </button>
-            <button
-              type="button"
-              className={`${BUTTON} border-emerald-600 bg-emerald-600 text-white`}
-              onClick={() => setDialog('approve')}
-            >
+            <button type="button" className={BUTTON.primary} onClick={() => setDialog('approve')}>
               Approve
             </button>
             <button
               type="button"
-              className={`${BUTTON} border-red-300 text-red-700`}
-              onClick={() => setDialog('reject')}
+              className={BUTTON.secondary}
+              onClick={() => setEditing(p.templates[language])}
             >
+              Edit {LANGUAGES.find((l) => l.id === language)?.label}
+            </button>
+            <button type="button" className={`${BUTTON.quiet} ml-auto`} onClick={() => setDialog('reject')}>
               Reject
             </button>
           </>
@@ -277,7 +262,7 @@ export default function AdvisoryDetail(props: {
           <button
             type="button"
             disabled={busy}
-            className={`${BUTTON} border-violet-700 bg-violet-700 text-white`}
+            className={BUTTON.primary}
             onClick={() => setDialog('dispatch')}
           >
             {p.status === 'sent' ? 'Resend' : 'Dispatch'}
@@ -287,7 +272,7 @@ export default function AdvisoryDetail(props: {
           <button
             type="button"
             disabled={busy}
-            className={`${BUTTON} border-slate-300`}
+            className={BUTTON.secondary}
             onClick={() => run(() => newDraftFrom(p.id))}
           >
             New draft from this

@@ -1,6 +1,12 @@
 import { useState } from 'react'
 
-import type { AdvisorySuggestion, AdvisorySuggestions, BlockId } from '../../types/contracts'
+import type {
+  AdvisoryStatus,
+  AdvisorySuggestion,
+  AdvisorySuggestions,
+  BlockId,
+} from '../../types/contracts'
+import { BUTTON, CHIP, STATUS_LABEL, STATUS_STYLE, SUGGESTED_STYLE } from './style'
 import type { Loadable } from './useAdvisories'
 
 export interface AdvisoryPanelProps {
@@ -18,6 +24,8 @@ export interface AdvisoryPanelProps {
   error: string | null
   drafts: number
   approved: number
+  /** The newest advisory's status per block at this timestep (none: just suggested). */
+  statusByBlock: Map<BlockId, AdvisoryStatus>
   onGenerate: (blockId: BlockId) => void
   onOpenQueue: () => void
 }
@@ -40,16 +48,29 @@ function why(s: AdvisorySuggestion, cutOff: AdvisoryPanelProps['cutOff']): strin
   return [...risk, ...named].join(' · ')
 }
 
-function GenerateButton(props: { busy: boolean; disabled: boolean; onClick: () => void }) {
+function GenerateButton(props: {
+  busy: boolean
+  disabled: boolean
+  onClick: () => void
+  primary?: boolean
+}) {
   return (
     <button
       type="button"
       onClick={props.onClick}
       disabled={props.disabled}
-      className="ml-auto rounded bg-violet-700 px-2 py-0.5 text-xs font-medium text-white hover:bg-violet-800 disabled:bg-slate-300"
+      className={`ml-auto shrink-0 ${props.primary ? BUTTON.primary : BUTTON.secondary}`}
     >
       {props.busy ? 'Generating…' : 'Generate'}
     </button>
+  )
+}
+
+function StatusChip({ status }: { status: AdvisoryStatus | undefined }) {
+  return (
+    <span className={`${CHIP} ${status ? STATUS_STYLE[status] : SUGGESTED_STYLE}`}>
+      {status ? STATUS_LABEL[status] : 'Suggested'}
+    </span>
   )
 }
 
@@ -80,17 +101,21 @@ export default function AdvisoryPanel(props: AdvisoryPanelProps) {
           {suggested.length === 0 && (
             <p className="mt-1 text-xs text-slate-500">No block suggested.</p>
           )}
-          <ul className="mt-1 space-y-1">
-            {suggested.map((b) => (
-              <li key={b.block_id} className="flex items-center gap-2 text-xs">
+          <ul className="mt-2 divide-y divide-line">
+            {suggested.map((b, i) => (
+              <li key={b.block_id} className="flex items-start gap-2 py-2 text-xs first:pt-0">
                 <div className="min-w-0">
-                  <span>{b.block_name}</span>
-                  <p className="text-[11px] text-slate-500">{why(b, props.cutOff)}</p>
+                  <p className="flex items-center gap-2">
+                    <span className="font-medium text-ink">{b.block_name}</span>
+                    <StatusChip status={props.statusByBlock.get(b.block_id)} />
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-ink-subtle">{why(b, props.cutOff)}</p>
                 </div>
                 <GenerateButton
                   busy={generating === b.block_id}
                   disabled={generating !== null}
                   onClick={() => props.onGenerate(b.block_id)}
+                  primary={i === 0}
                 />
               </li>
             ))}
@@ -101,7 +126,7 @@ export default function AdvisoryPanel(props: AdvisoryPanelProps) {
         <select
           value={other}
           onChange={(e) => setOther(e.target.value)}
-          className="min-w-0 flex-1 rounded border border-slate-300 px-1 py-0.5"
+          className="min-w-0 flex-1 rounded-control border border-line bg-white px-1.5 py-1 text-ink-muted"
           aria-label="Another block"
         >
           <option value="">Add another block…</option>
@@ -117,11 +142,11 @@ export default function AdvisoryPanel(props: AdvisoryPanelProps) {
           onClick={() => props.onGenerate(other)}
         />
       </div>
-      {props.error && <p className="mt-1 text-xs text-red-600">{props.error}</p>}
+      {props.error && <p className="mt-1 text-xs text-sev-cut">{props.error}</p>}
       <button
         type="button"
         onClick={props.onOpenQueue}
-        className="mt-2 text-xs text-violet-700 hover:underline"
+        className="mt-3 text-xs text-accent hover:underline"
       >
         Open queue ({props.drafts} draft{props.drafts === 1 ? '' : 's'}, {props.approved} approved)
       </button>

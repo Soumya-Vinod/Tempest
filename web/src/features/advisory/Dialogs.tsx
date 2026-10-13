@@ -37,7 +37,7 @@ function Buttons(props: { ok: string; disabled: boolean; busy: boolean; onCancel
       <button
         type="submit"
         disabled={props.disabled || props.busy}
-        className="rounded bg-violet-700 px-3 py-1 font-medium text-white hover:bg-violet-800 disabled:bg-slate-300"
+        className="rounded-control bg-accent px-3 py-1 font-medium text-white hover:bg-accent-strong disabled:bg-slate-300"
       >
         {props.busy ? '…' : props.ok}
       </button>
@@ -45,7 +45,7 @@ function Buttons(props: { ok: string; disabled: boolean; busy: boolean; onCancel
   )
 }
 
-const INPUT = 'mt-1 w-full rounded border border-slate-300 px-2 py-1'
+const INPUT = 'mt-1 w-full rounded-control border border-line px-2 py-1 text-ink'
 
 /** Name plus designation; the last values are remembered in this browser. */
 export function ApproveDialog(props: {
@@ -98,7 +98,7 @@ export function ApproveDialog(props: {
           </label>
         )}
         {valid && <p className="mt-2 text-xs text-slate-500">Recorded as: {approverLabel(a)}</p>}
-        {props.error && <p className="mt-2 text-xs text-red-600">{props.error}</p>}
+        {props.error && <p className="mt-2 text-xs text-sev-cut">{props.error}</p>}
         <Buttons ok="Approve" disabled={!valid} busy={props.busy} onCancel={props.onCancel} />
       </form>
     </Modal>
@@ -129,7 +129,7 @@ export function RejectDialog(props: {
             autoFocus
           />
         </label>
-        {props.error && <p className="mt-2 text-xs text-red-600">{props.error}</p>}
+        {props.error && <p className="mt-2 text-xs text-sev-cut">{props.error}</p>}
         <Buttons
           ok="Reject"
           disabled={!reason.trim()}

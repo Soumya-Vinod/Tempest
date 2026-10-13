@@ -4,7 +4,7 @@ import { useCallback, useMemo, useState } from 'react'
 import { createAdvisory } from '../../lib/api'
 import { actionErrorText } from '../../lib/errors'
 import { useTimeline } from '../../lib/timeline'
-import type { Advisory, BlockId } from '../../types/contracts'
+import type { Advisory, AdvisoryStatus, BlockId } from '../../types/contracts'
 import type { AdvisoryDrawerProps } from './AdvisoryDrawer'
 import type { AdvisoryPanelProps } from './AdvisoryPanel'
 import { useQueue, useSuggestions } from './useAdvisories'
@@ -70,6 +70,17 @@ export function useAdvisories(
     [reload],
   )
 
+  // The newest advisory per block at this timestep (the queue is newest first), for its chip.
+  const statusByBlock = useMemo(() => {
+    const out = new Map<BlockId, AdvisoryStatus>()
+    if (queue.status !== 'ok') return out
+    for (const a of queue.data) {
+      const p = a.properties
+      if (p.timestep === timestep && !out.has(p.block_id)) out.set(p.block_id, p.status)
+    }
+    return out
+  }, [queue, timestep])
+
   const counts = useMemo(() => {
     const list = queue.status === 'ok' ? queue.data : []
     return {
@@ -87,6 +98,7 @@ export function useAdvisories(
       generating,
       error,
       ...counts,
+      statusByBlock,
       onGenerate: (blockId) => void onGenerate(blockId),
       onOpenQueue: () => setOpen(true),
     },
