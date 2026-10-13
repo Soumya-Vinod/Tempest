@@ -19,22 +19,28 @@ export interface Kpi {
   value: string | null
   /** Its data request failed: shown as "—" (Data unavailable), never as loading. */
   failed?: boolean
-  /** Change since the previous timestep, e.g. "+3"; null when there is none to show. */
-  delta: string | null
-  /** The change as a number (sign decides the colour); null when there is none to show. */
-  change?: number | null
   /**
-   * A rise is bad news (people in surge, facilities cut off): a positive change shows in red.
-   * Unset (released money, advisories, landfall): changes stay neutral.
+   * Change since the previous timestep, e.g. "+3"; null when there is none to show: no change, or
+   * a rise from zero (the delta would only repeat the value). Always neutral grey.
    */
-  upIsWorse?: boolean
+  delta: string | null
+  /** Severity colour, used sparingly: only "cut off now" when above zero. */
   tone?: KpiTone
+  /** The landfall countdown: first, prominent but calm. */
+  lead?: boolean
   /** Tooltip: caveats and definitions. */
   title?: string
 }
 
-function signed(n: number, format: (abs: number) => string = String): string | null {
-  if (n === 0) return '±0'
+/** "+3" / "−2" from `before` to `now`; null for no change or a rise from zero (just the value). */
+function delta(
+  now: number | null,
+  before: number | null,
+  format: (abs: number) => string = String,
+): string | null {
+  if (now === null || before === null) return null
+  const n = now - before
+  if (n === 0 || before === 0) return null
   return `${n > 0 ? '+' : '−'}${format(Math.abs(n))}`
 }
 
@@ -49,8 +55,6 @@ export function useKpis(args: {
   horizon: Horizon
   countdown: CountdownState
   insurance: Loadable<InsuranceSummary>
-  /** `failed`: the advisory queue couldn't be loaded (the counts would be a false 0). */
-  advisories: { drafts: number; approved: number; failed: boolean }
 }): { kpis: Kpi[]; previousLabel: string | null } {
   const { timestepIndex: i, horizon } = args
   const timeline = useTimeline()
@@ -83,7 +87,7 @@ export function useKpis(args: {
       label: 'Landfall',
       value: hours > 0 ? `in ${hours} h` : 'now',
       delta: null,
-      tone: hours <= 12 ? 'alert' : hours <= 24 ? 'warn' : 'neutral',
+      lead: true,
       title: 'Hours until Cyclone Amphan makes landfall (replay).',
     },
     {
@@ -91,9 +95,7 @@ export function useKpis(args: {
       label: horizon === 24 ? 'People in ≥0.3 m surge (24 h)' : 'People in ≥0.3 m surge',
       value: surge === null ? null : formatPeople(surge),
       failed: surgeNow === 'unavailable',
-      delta: surge !== null && surgePrev !== null && prevIndex !== null ? signed(surge - surgePrev, (n) => formatPeople(n).replace('~', '')) : null,
-      change: surge !== null && surgePrev !== null && prevIndex !== null ? surge - surgePrev : null,
-      upIsWorse: true,
+      delta: prevIndex === null ? null : delta(surge, surgePrev, (n) => formatPeople(n).replace('~', '')),
       title: `Residents of areas with at least 0.3 m of storm surge (${surgeWhen(horizon)}). ${SURGE_ESTIMATE_NOTE}`,
     },
     {
@@ -101,10 +103,7 @@ export function useKpis(args: {
       label: 'Expected to be cut off',
       value: now ? String(now.expected) : null,
       failed: countdownFailed,
-      delta: now && before ? signed(now.expected - before.expected) : null,
-      change: now && before ? now.expected - before.expected : null,
-      upIsWorse: true,
-      tone: now && now.expected > 0 ? 'warn' : 'neutral',
+      delta: now && before ? delta(now.expected, before.expected) : null,
       title: 'Hospitals, health centres and shelters expected to be cut off within the next 24 h (not yet).',
     },
     {
@@ -112,28 +111,16 @@ export function useKpis(args: {
       label: 'Cut off now',
       value: now ? String(now.cutOff) : null,
       failed: countdownFailed,
-      delta: now && before ? signed(now.cutOff - before.cutOff) : null,
-      change: now && before ? now.cutOff - before.cutOff : null,
-      upIsWorse: true,
+      delta: now && before ? delta(now.cutOff, before.cutOff) : null,
       tone: now && now.cutOff > 0 ? 'alert' : 'neutral',
       title: 'Hospitals, health centres and shelters already cut off from the road network.',
-    },
-    {
-      id: 'advisories',
-      label: 'Advisories',
-      value: args.advisories.failed
-        ? null
-        : `${args.advisories.drafts} pending · ${args.advisories.approved} approved`,
-      failed: args.advisories.failed,
-      delta: null,
-      title: 'Drafts waiting for approval, and approved advisories, in the queue.',
     },
     {
       id: 'released',
       label: '₹ released so far',
       value: released === null ? null : crore(released),
       failed: releasedFailed,
-      delta: released !== null && releasedPrev !== null ? signed(released - releasedPrev, crore) : null,
+      delta: delta(released, releasedPrev, crore),
       title: 'Illustrative parametric insurance: payouts released so far (never taken back).',
     },
   ]

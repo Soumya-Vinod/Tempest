@@ -182,11 +182,6 @@ export default function App() {
     horizon,
     countdown: countdown.state,
     insurance: insurance.panel.summary,
-    advisories: {
-      drafts: advisory.panel.drafts,
-      approved: advisory.panel.approved,
-      failed: advisory.drawer.queue.status === 'error',
-    },
   })
   // What the map actually draws: a group whose data failed (with nothing from an earlier step
   // still shown) leaves the legend, which says so instead of describing layers that aren't there.
