@@ -25,7 +25,7 @@ function Bar({ label, value, strong }: { label: string; value: number; strong?: 
       </div>
       <div className={`${strong ? 'h-2' : 'h-1'} w-full rounded-full bg-slate-100`}>
         <div
-          className={`h-full rounded-full ${strong ? 'bg-[rgb(118_106_168)]' : 'bg-[rgb(214_210_232)]'}`}
+          className={`h-full rounded-full ${strong ? 'bg-[rgb(92_84_128)]' : 'bg-[rgb(204_200_218)]'}`}
           style={{ width: `${Math.round(value * 100)}%` }}
         />
       </div>

@@ -15,7 +15,7 @@ export const SURGE_MIN_M = 0.05
 export const SURGE_MAX_M = 6
 /** The hazard ramp (design tokens): light blue to deep indigo. */
 const SURGE_STOPS: [number, number, number][] = HAZARD_RAMP.map(([r, g, b]) => [r, g, b])
-const SURGE_ALPHA = [60, 175] as const // modest opacity, rising with depth
+const SURGE_ALPHA = [90, 215] as const // light when shallow, clear at depth (reads on a projector)
 
 function lerp(a: number, b: number, t: number) {
   return a + (b - a) * t
