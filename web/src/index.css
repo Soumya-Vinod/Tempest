@@ -77,6 +77,64 @@ body {
   }
 }
 
+/* The replay scrubber: a thin, calm track (filled up to --pct) and a white handle. The thumb is
+   16 px wide to match THUMB_PX (components/timeline/track.ts), which aligns the markers. */
+@layer components {
+  .timeline-range {
+    appearance: none;
+    height: 16px;
+    background: transparent;
+    cursor: pointer;
+  }
+  .timeline-range::-webkit-slider-runnable-track {
+    height: 4px;
+    border-radius: 9999px;
+    background: linear-gradient(
+      to right,
+      var(--color-ink-subtle) 0 var(--pct, 0%),
+      var(--color-line) var(--pct, 0%) 100%
+    );
+  }
+  .timeline-range::-webkit-slider-thumb {
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    margin-top: -6px;
+    border-radius: 9999px;
+    background: white;
+    border: 2px solid var(--color-accent);
+    box-shadow: 0 1px 2px rgb(15 23 42 / 0.2);
+  }
+  .timeline-range::-moz-range-track {
+    height: 4px;
+    border-radius: 9999px;
+    background: var(--color-line);
+  }
+  .timeline-range::-moz-range-progress {
+    height: 4px;
+    border-radius: 9999px;
+    background: var(--color-ink-subtle);
+  }
+  .timeline-range::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    border-radius: 9999px;
+    background: white;
+    border: 2px solid var(--color-accent);
+  }
+  .timeline-range:focus-visible {
+    outline: none;
+  }
+  .timeline-range:focus-visible::-webkit-slider-thumb {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+  .timeline-range:focus-visible::-moz-range-thumb {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+}
+
 /* MapLibre's attribution (bottom-right): above the timeline bar and left of the side panel.
    --map-ctrl-bottom and --map-ctrl-right are set by MapView from lib/layout.ts. */
 @layer components {

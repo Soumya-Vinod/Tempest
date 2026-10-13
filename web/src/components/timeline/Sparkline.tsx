@@ -1,4 +1,5 @@
 import type { CountdownPoint } from '../../features/countdown'
+import { css, SEVERITY } from '../../lib/tokens'
 import { THUMB_PX } from './track'
 
 const H = 22
@@ -21,8 +22,8 @@ export default function Sparkline({ points, labelOf }: { points: CountdownPoint[
   return (
     <div style={{ height: H, paddingLeft: THUMB_PX / 2, paddingRight: THUMB_PX / 2 }} title={summary}>
       <svg viewBox={`0 0 1000 ${H}`} preserveAspectRatio="none" className="h-full w-full" role="img" aria-label={summary}>
-        <path d={area} fill="rgb(127 29 29 / 0.22)" stroke="rgb(127 29 29 / 0.8)" strokeWidth="1.2" vectorEffect="non-scaling-stroke" />
-        <path d={line} fill="none" stroke="rgb(127 29 29)" strokeWidth="1.2" strokeDasharray="4 3" vectorEffect="non-scaling-stroke" />
+        <path d={area} fill={css(SEVERITY.cutOff, 0.12)} stroke={css(SEVERITY.cutOff, 0.6)} strokeWidth="1" vectorEffect="non-scaling-stroke" />
+        <path d={line} fill="none" stroke={css(SEVERITY.act)} strokeWidth="1" strokeDasharray="4 3" vectorEffect="non-scaling-stroke" />
       </svg>
     </div>
   )

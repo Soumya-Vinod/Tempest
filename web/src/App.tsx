@@ -327,6 +327,7 @@ export default function App() {
         onChange={setTimestepIndex}
         moments={countdown.moments}
         markersFailed={markersFailed}
+        storm={hazard.edge.category}
       />
     </main>
   )
