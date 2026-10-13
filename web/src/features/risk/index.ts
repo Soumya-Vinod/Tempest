@@ -19,7 +19,7 @@ import { type RiskState, useRisk, useUnscoredAreas } from './useRisk'
 export { default as RiskCard } from './RiskCard'
 export { default as RiskPanel } from './RiskPanel'
 export { SURGE_ESTIMATE_NOTE, surgeWhen } from './surge'
-export { useSurgeTotal } from './useRisk'
+export { type SurgeTotal, useSurgeTotal } from './useRisk'
 
 type TooltipContent = ReturnType<NonNullable<DeckProps['getTooltip']>>
 

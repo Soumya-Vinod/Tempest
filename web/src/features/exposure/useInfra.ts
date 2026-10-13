@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 
 import { getInfra } from '../../lib/api'
+import { unavailableText } from '../../lib/errors'
 import type { InfraFeatureCollection, InfraType } from '../../types/contracts'
 import { INFRA_TYPES } from './style'
 
@@ -32,7 +33,7 @@ export function useInfra(): InfraByType {
         },
         (err: unknown) => {
           if (!cancelled) {
-            const message = err instanceof Error ? err.message : String(err)
+            const message = unavailableText('This layer', err)
             setState((s) => ({ ...s, [infraType]: { status: 'error', message } }))
           }
         },

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 
 import { ApiError, getCountdown } from '../../lib/api'
+import { unavailableText } from '../../lib/errors'
 import type { ActionCountdown, KeyMoment, Timestep } from '../../types/contracts'
 
 export type CountdownState =
@@ -45,7 +46,7 @@ export function useCountdown(timestep: Timestep): {
       },
       (err: unknown) => {
         if (!live) return
-        const message = err instanceof Error ? err.message : String(err)
+        const message = unavailableText('The countdown', err)
         const state: CountdownState =
           err instanceof ApiError && err.status === 501
             ? { status: 'unavailable', message }

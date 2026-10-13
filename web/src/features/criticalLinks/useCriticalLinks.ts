@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 
 import { ApiError, getCriticalLinks } from '../../lib/api'
+import { unavailableText } from '../../lib/errors'
 import type { CriticalLinks, Horizon, Timestep } from '../../types/contracts'
 
 export type CriticalLinksState =
@@ -34,7 +35,7 @@ export function useCriticalLinks(timestep: Timestep, horizon: Horizon): Critical
       (data) => live && setResult({ key, state: { status: 'ok', data } }),
       (err: unknown) => {
         if (!live) return
-        const message = err instanceof Error ? err.message : String(err)
+        const message = unavailableText('Critical-link data', err)
         const state: CriticalLinksState =
           err instanceof ApiError && err.status === 501
             ? { status: 'unavailable', message }

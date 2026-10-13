@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 
 import { ApiError, getHazardLayer, getHazardTrack } from '../../lib/api'
+import { unavailableText } from '../../lib/errors'
 import { useTimeline } from '../../lib/timeline'
 import type { CycloneTrack, HazardLayer, HazardType, Timestep } from '../../types/contracts'
 
@@ -40,7 +41,7 @@ function load(type: HazardType, timestep: Timestep, floodTimestep: Timestep): Pr
 }
 
 function failure<T>(err: unknown): HazardState<T> {
-  const message = err instanceof Error ? err.message : String(err)
+  const message = unavailableText('Hazard data', err)
   return err instanceof ApiError && [404, 501, 503].includes(err.status)
     ? { status: 'unavailable', message }
     : { status: 'error', message }

@@ -2,6 +2,7 @@
 // so rebuilding a layer (e.g. a visibility toggle) never makes deck.gl recompute attributes:
 // only `visible` changes and the GPU buffers are reused, which keeps panning smooth.
 import type { Color, Layer } from '@deck.gl/core'
+import type { PathStyleExtensionProps } from '@deck.gl/extensions'
 import type { GeoJsonLayerProps } from '@deck.gl/layers'
 import type { Feature, Geometry } from 'geojson'
 
@@ -49,6 +50,12 @@ function mutedRoadColor(f: InfraGeoFeature): Color {
   if (MAJOR_ROADS.has(hw)) return MUTED.roadMajor
   return hw === 'secondary' || hw === 'tertiary' ? MUTED.roadMid : MUTED.roadMinor
 }
+
+// Dash patterns, in line widths: ferries dashed, power lines dotted, everything else solid.
+const SOLID: [number, number] = [0, 0]
+const FERRY_DASH: [number, number] = [3, 2]
+const POWER_DOTS: [number, number] = [1, 2]
+const roadDash = (f: InfraGeoFeature): [number, number] => (isFerry(f) ? FERRY_DASH : SOLID)
 
 function roadWidth(f: InfraGeoFeature): number {
   if (isFerry(f)) return FERRY_WIDTH
@@ -152,8 +159,11 @@ function split(fc: InfraFeatureCollection, filter: FacilityFilter): Split {
   return out
 }
 
-const QUIET_OPACITY = 0.3
-const QUIET_PX: readonly [number, number] = [2.5, 4]
+const QUIET_OPACITY = 0.25
+// [floor, full] radius in px. Their 100 m radius is under 1 px at the district view (below about
+// zoom 11), so the floor sets the size there: 1 px keeps dense areas (Kolkata) a faint stipple
+// instead of a dark blob. They grow to full size from about zoom 12.
+const QUIET_PX: readonly [number, number] = [1, 4]
 
 /** Facilities outside the affected area: small, faint, no outline (still hoverable). */
 function quietLayer(
@@ -189,7 +199,8 @@ export function buildInfraLayers(
   // Colour accessors are fixed functions; updateTriggers make deck.gl recolour only when `muted`
   // flips, never on other rebuilds.
   const colours = { getLineColor: muted, getFillColor: muted }
-  const { GeoJsonLayer } = deck
+  const { GeoJsonLayer, PathStyleExtension } = deck
+  const dashed = { extensions: [new PathStyleExtension({ dash: true })], dashJustified: true }
   const palette = muted ? MUTED : COLOR
   const data = (t: InfraType) => {
     const s = state[t]
@@ -205,7 +216,7 @@ export function buildInfraLayers(
     getLineWidth: OUTLINE_PX,
   })
   return [
-    new GeoJsonLayer<InfraFeatureProperties>({
+    new GeoJsonLayer<InfraFeatureProperties, PathStyleExtensionProps<InfraGeoFeature>>({
       id: 'infra-road',
       data: data('road'),
       visible: visible.road,
@@ -215,8 +226,10 @@ export function buildInfraLayers(
       getLineWidth: roadWidth,
       lineWidthMinPixels: 1,
       opacity: ROAD_OPACITY,
+      getDashArray: roadDash,
+      ...dashed,
     }),
-    new GeoJsonLayer<InfraFeatureProperties>({
+    new GeoJsonLayer<InfraFeatureProperties, PathStyleExtensionProps<InfraGeoFeature>>({
       id: 'infra-power_line',
       data: data('power_line'),
       visible: visible.power_line,
@@ -224,6 +237,8 @@ export function buildInfraLayers(
       getLineColor: palette.powerLine,
       getLineWidth: 1.2,
       opacity: POWER_LINE_OPACITY,
+      getDashArray: POWER_DOTS,
+      ...dashed,
     }),
     pointLayer(
       deck,

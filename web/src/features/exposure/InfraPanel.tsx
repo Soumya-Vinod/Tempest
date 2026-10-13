@@ -25,7 +25,7 @@ function breakdown(infraType: InfraType, fc: InfraFeatureCollection, muted: bool
     case 'road': {
       const ferries = count(fc, 'ferry', true)
       const off = count(fc, 'baseline_reachable_from_main', false)
-      return `${n(ferries)} ferry routes (blue) · ${n(off)} with no mapped mainland link (grey)`
+      return `${n(ferries)} ferry routes (dashed) · ${n(off)} with no mapped mainland link (grey)`
     }
     case 'hospital': {
       const hospitals = count(fc, 'facility_level', 'hospital')
@@ -141,7 +141,7 @@ export default function InfraPanel({
                 <span className="ml-auto text-xs text-slate-500 tabular-nums">
                   {s.status === 'loading' && 'loading…'}
                   {s.status === 'ok' && s.data.features.length.toLocaleString()}
-                  {s.status === 'error' && <span className="text-red-600">error</span>}
+                  {s.status === 'error' && <span title="Data unavailable">—</span>}
                 </span>
               </label>
               {detail && <div className="mt-0.5 ml-6 text-xs text-slate-500">{detail}</div>}

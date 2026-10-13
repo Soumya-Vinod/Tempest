@@ -1,5 +1,5 @@
 // Insurance feature (Dev B): illustrative parametric triggers per CD block. The panel section,
-// and in the Risk view a gold outline on blocks with a payout released.
+// and, while the Finance tab is open, a gold outline on blocks with a payout released.
 import type { Layer } from '@deck.gl/core'
 import { lazy, useMemo } from 'react'
 
@@ -14,12 +14,12 @@ export const InsurancePanel = lazy(() => import('./InsurancePanel'))
 const GOLD: [number, number, number, number] = [202, 138, 4, 255]
 
 export interface InsuranceMap {
-  /** Gold outlines on paying blocks (Risk view only), above the choropleth. */
+  /** Gold outlines on paying blocks (while the Finance tab is open), above the choropleth. */
   layers: Layer[]
   panel: InsurancePanelProps
 }
 
-export function useInsuranceMap(timestepIndex: number, riskView: boolean): InsuranceMap {
+export function useInsuranceMap(timestepIndex: number, outlined: boolean): InsuranceMap {
   const { state, shown } = useTriggers(useTimeline().timesteps[timestepIndex])
   const summary = useInsuranceSummary()
   const deck = useDeck()
@@ -30,7 +30,7 @@ export function useInsuranceMap(timestepIndex: number, riskView: boolean): Insur
       new deck.GeoJsonLayer({
         id: 'insurance-paying',
         data: { type: 'FeatureCollection', features: paying },
-        visible: riskView,
+        visible: outlined,
         pickable: false,
         filled: false,
         stroked: true,
@@ -39,6 +39,6 @@ export function useInsuranceMap(timestepIndex: number, riskView: boolean): Insur
         getLineColor: GOLD,
       }),
     ]
-  }, [deck, shown, riskView])
+  }, [deck, shown, outlined])
   return { layers, panel: { timestepIndex, triggers: state, shown, summary } }
 }

@@ -1,14 +1,13 @@
 import { useEffect, useState } from 'react'
 
 import { getDispatchReceipts, getDispatchRecipients } from '../../lib/api'
+import { unavailableText } from '../../lib/errors'
 import type { DispatchReceipt, DispatchRecipients } from '../../types/contracts'
 
 export type Loadable<T> =
   | { status: 'loading' }
   | { status: 'ok'; data: T }
   | { status: 'error'; message: string }
-
-const message = (err: unknown) => (err instanceof Error ? err.message : String(err))
 
 /** Who a dispatch would reach (from api/.env), masked. */
 export function useRecipients(): Loadable<DispatchRecipients> {
@@ -17,7 +16,7 @@ export function useRecipients(): Loadable<DispatchRecipients> {
     let cancelled = false
     getDispatchRecipients().then(
       (data) => !cancelled && setState({ status: 'ok', data }),
-      (err: unknown) => !cancelled && setState({ status: 'error', message: message(err) }),
+      (err: unknown) => !cancelled && setState({ status: 'error', message: unavailableText('The recipient list', err) }),
     )
     return () => {
       cancelled = true
@@ -35,7 +34,7 @@ export function useReceipts(advisoryId: string, version: string): Loadable<Dispa
     getDispatchReceipts(advisoryId).then(
       (data) => !cancelled && setState({ key, value: { status: 'ok', data: data.receipts } }),
       (err: unknown) =>
-        !cancelled && setState({ key, value: { status: 'error', message: message(err) } }),
+        !cancelled && setState({ key, value: { status: 'error', message: unavailableText('The receipt list', err) } }),
     )
     return () => {
       cancelled = true

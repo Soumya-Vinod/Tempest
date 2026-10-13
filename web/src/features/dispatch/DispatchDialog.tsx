@@ -2,7 +2,7 @@ import { useState } from 'react'
 
 import { dispatchAdvisory } from '../../lib/api'
 import type { Channel, DispatchReceipt } from '../../types/contracts'
-import { errorText } from '../advisory/errors'
+import { actionErrorText } from '../../lib/errors'
 import { DownloadCap, Receipt } from './ReceiptList'
 import { useRecipients } from './useDispatch'
 
@@ -44,7 +44,7 @@ export default function DispatchDialog(props: {
         }),
       )
     } catch (err) {
-      setError(errorText(err))
+      setError(actionErrorText(err))
     } finally {
       setBusy(false)
     }
@@ -88,7 +88,7 @@ export default function DispatchDialog(props: {
           >
             {recipients.status === 'loading' && <p className="text-xs text-slate-500">Loading…</p>}
             {recipients.status === 'error' && (
-              <p className="text-xs text-red-700">Recipients: {recipients.message}</p>
+              <p className="text-xs text-red-700">{recipients.message}</p>
             )}
             {r && (
               <fieldset className="space-y-1 text-xs">

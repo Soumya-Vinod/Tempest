@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 
 import { ApiError, getRiskBreakdown, getRiskScores, getUnscoredAreas } from '../../lib/api'
+import { unavailableText } from '../../lib/errors'
 import type {
   Horizon,
   RiskBreakdown,
@@ -43,7 +44,7 @@ function load(timestep: Timestep, horizon: Horizon): Promise<RiskData> {
 }
 
 function failure(err: unknown): RiskState {
-  const message = err instanceof Error ? err.message : String(err)
+  const message = unavailableText('Risk data', err)
   return err instanceof ApiError && err.status === 501
     ? { status: 'unavailable', message }
     : { status: 'error', message }
@@ -102,18 +103,23 @@ export function useUnscoredAreas(): UnscoredAreaCollection | null {
   return data
 }
 
+/** People in surge: null while loading, 'unavailable' when the request or the figure failed. */
+export type SurgeTotal = number | 'unavailable' | null
+
 /**
  * The district people-in-surge total (v1.3) for a timestep and horizon, from the same cache as
  * useRisk (the KPI strip's current and previous values). null while loading or unavailable.
  */
-export function useSurgeTotal(timestep: Timestep, horizon: Horizon): number | null {
+export function useSurgeTotal(timestep: Timestep, horizon: Horizon): SurgeTotal {
   const key = `${horizon}|${timestep}`
-  const [result, setResult] = useState<{ key: string; total: number | null } | null>(null)
+  const [result, setResult] = useState<{ key: string; total: SurgeTotal } | null>(null)
   useEffect(() => {
     let cancelled = false
     load(timestep, horizon).then(
-      (data) => !cancelled && setResult({ key, total: data.breakdown?.surge_population_total ?? null }),
-      () => !cancelled && setResult({ key, total: null }),
+      (data) =>
+        !cancelled &&
+        setResult({ key, total: data.breakdown?.surge_population_total ?? 'unavailable' }),
+      () => !cancelled && setResult({ key, total: 'unavailable' }),
     )
     return () => {
       cancelled = true

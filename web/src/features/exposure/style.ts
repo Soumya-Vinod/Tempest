@@ -20,13 +20,18 @@ export const TYPE_LABEL: Record<InfraType, string> = {
   shelter: 'Shelters',
 }
 
+/**
+ * The network is slate, told apart by shape (major roads thicker, ferries dashed, power lines
+ * dotted), so no hue is shared with a symbol that means something else: red / amber are impact,
+ * gold the payout, blue surge, violet risk, pink the storm.
+ */
 export const COLOR = {
-  roadMajor: [194, 65, 12], // orange-700: motorway, trunk, primary
-  roadMinor: [71, 85, 105], // slate-600
-  ferry: [37, 99, 235], // blue-600
+  roadMajor: [30, 41, 59], // slate-800, thicker: motorway, trunk, primary
+  roadMinor: [100, 116, 139], // slate-500
+  ferry: [71, 85, 105], // slate-600, dashed
   noMainland: [148, 163, 184, 120], // slate-400, translucent: muted
-  powerLine: [147, 51, 234], // purple-600
-  substation: [202, 138, 4], // yellow-600
+  powerLine: [100, 116, 139], // slate-500, dotted
+  substation: [51, 65, 85], // slate-700
   hospital: [13, 148, 136], // teal-600 (red and orange are reserved for impact)
   healthCentre: [45, 212, 191], // teal-400
   shelter: [22, 163, 74], // green-600
@@ -43,9 +48,9 @@ export const MUTED = {
   roadMajor: [100, 116, 139], // slate-500: motorway, trunk, primary
   roadMid: [148, 163, 184], // slate-400: secondary, tertiary
   roadMinor: [203, 213, 225], // slate-300: unclassified, links
-  ferry: [147, 197, 253], // blue-300
+  ferry: [148, 163, 184], // slate-400, dashed
   noMainland: [226, 232, 240, 140], // slate-200, translucent
-  powerLine: [216, 180, 254], // purple-300, light lavender
+  powerLine: [203, 213, 225], // slate-300, dotted
   substation: [168, 162, 158], // stone-400
   hospital: [120, 113, 108], // stone-500
   healthCentre: [168, 162, 158], // stone-400
@@ -59,9 +64,9 @@ export const ROAD_OPACITY = 0.5
 export const POWER_LINE_OPACITY = 0.6
 
 export const ROAD_WIDTH: Record<string, number> = {
-  motorway: 3.5,
-  trunk: 3.5,
-  primary: 3,
+  motorway: 4.5,
+  trunk: 4.5,
+  primary: 4,
   secondary: 2.5,
   tertiary: 2,
   unclassified: 1.2,
