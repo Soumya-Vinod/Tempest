@@ -17,3 +17,5 @@ export const MOMENT: Record<KeyMomentKind, { color: string; caption: string; leg
   landfall: { color: 'rgb(122 74 126)', caption: 'Landfall', legend: 'Landfall' },
 }
 export const MOMENT_ORDER: KeyMomentKind[] = ['first_alert', 'first_expected_isolation', 'first_actual_isolation', 'landfall']
+/** Always captioned on the track (the demo's three beats); other markers only on hover. */
+export const ALWAYS_CAPTIONED: KeyMomentKind[] = ['first_alert', 'first_actual_isolation', 'landfall']

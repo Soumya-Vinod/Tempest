@@ -26,6 +26,8 @@ interface Row {
   group: GroupId
   /** The short right-hand label: "leave by T-6", "since T-3", "in ~9 h". */
   when: string
+  /** "Leave by T-6 → Basanti Rural Hospital" while a road departure is still open; else null. */
+  leaveTo: string | null
 }
 
 /**
@@ -51,6 +53,13 @@ function expectedWhen(f: CountdownFacility, departures: DepartureLookup, i: numb
   return f.hours_remaining === 0 ? 'now' : `in ~${f.hours_remaining} h`
 }
 
+function leaveTo(f: CountdownFacility, departures: DepartureLookup, i: number, timeline: Timeline) {
+  const d = departures.get(f.infra_id)
+  const deadline = d ? timeline.indexOf(d.deadline) : -1
+  if (deadline < 0 || i > deadline || !d?.destination_name || d.travel_time_s == null) return null
+  return `Leave by ${timeline.label(deadline)} → ${d.destination_name}`
+}
+
 function since(f: CountdownFacility, timeline: Timeline): string {
   const i = timeline.indexOf(f.since)
   return i < 0 ? 'cut off' : `since ${timeline.label(i)}`
@@ -71,11 +80,19 @@ function rows(
       cutOff: false,
       group: left === null ? 'later' : left <= 3 ? 'soon' : left <= 12 ? 'within12' : 'later',
       when: expectedWhen(f, departures, i, timeline),
+      leaveTo: leaveTo(f, departures, i, timeline),
     }))
-  return [...ahead, ...cutOff.map((f): Row => ({ f, cutOff: true, group: 'cutOff', when: since(f, timeline) }))]
+  return [
+    ...ahead,
+    ...cutOff.map((f): Row => ({ f, cutOff: true, group: 'cutOff', when: since(f, timeline), leaveTo: null })),
+  ]
 }
 
-/** One facility: a one-line button (status · name · cause · when); details when expanded. */
+/**
+ * One facility: a one-line button (status · name · cause · when); in the "Leave within 3 h" group a
+ * second line says where to go ("Leave by T-6 → Basanti Rural Hospital", cut short with … if
+ * needed). Travel time and route are in the details, when expanded.
+ */
 function FacilityRow({
   row,
   open,
@@ -94,23 +111,29 @@ function FacilityRow({
   const { f, cutOff } = row
   const departure = departures.get(f.infra_id)
   const whenTone = cutOff ? 'text-sev-cut' : urgent ? 'font-medium text-sev-act-ink' : 'text-ink-muted'
+  const destination = urgent ? row.leaveTo : null
   return (
     <li>
       <button
         type="button"
         aria-expanded={open}
         onClick={onToggle}
-        title={`${f.name} · ${f.cause}`}
-        className={`flex w-full items-center gap-2 rounded-control px-1.5 py-1 text-left text-xs hover:bg-surface ${
+        title={destination ? `${f.name} · ${f.cause}\n${destination}` : `${f.name} · ${f.cause}`}
+        className={`block w-full rounded-control px-1.5 py-1 text-left text-xs hover:bg-surface ${
           open ? 'bg-surface' : ''
         }`}
       >
-        <StatusSwatch status="isolated" expected={!cutOff} />
-        <span className="min-w-0 flex-1 truncate">
-          <span className="font-medium text-ink">{f.name}</span>
-          <span className="text-ink-subtle"> · {f.cause}</span>
+        <span className="flex items-center gap-2">
+          <StatusSwatch status="isolated" expected={!cutOff} />
+          <span className="min-w-0 flex-1 truncate">
+            <span className="font-medium text-ink">{f.name}</span>
+            <span className="text-ink-subtle"> · {f.cause}</span>
+          </span>
+          {!destination && <span className={`shrink-0 tabular-nums ${whenTone}`}>{row.when}</span>}
         </span>
-        <span className={`shrink-0 tabular-nums ${whenTone}`}>{row.when}</span>
+        {destination && (
+          <span className="mt-0.5 ml-6 block truncate font-medium text-sev-act-ink">{destination}</span>
+        )}
       </button>
       {open && (
         <div className="mt-0.5 mb-1.5 ml-7 space-y-0.5 text-[11px] text-ink-muted">

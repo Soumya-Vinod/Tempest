@@ -10,10 +10,10 @@ import type { RiskDriver } from '../../types/contracts'
  * second class starts at the advisory threshold (0.25).
  */
 export const RISK_CLASSES: readonly (readonly [number, readonly [number, number, number]])[] = [
-  [0, [241, 240, 246]], // #f1f0f6
-  [0.25, [214, 210, 232]], // #d6d2e8
-  [0.5, [170, 162, 206]], // #aaa2ce
-  [0.75, [118, 106, 168]], // #766aa8
+  [0, [244, 243, 248]], // #f4f3f8 L* 96
+  [0.25, [204, 200, 218]], // #ccc8da L* 81
+  [0.5, [149, 144, 179]], // #9590b3 L* 61
+  [0.75, [92, 84, 128]], // #5c5480 L* 38
 ]
 export const FILL_ALPHA = Math.round(0.5 * 255) // half-transparent, so impact reads on top
 export const OUTLINE: Color = [255, 255, 255, 200] // thin white edges between blocks
