@@ -1,0 +1,44 @@
+{
+ "en": {
+  "headline": "Cyclone warning: {{block_name}} faces storm surge and cut road routes",
+  "body": "Cyclone landfall is expected in {{hours_to_landfall}} with peak winds of {{peak_wind_ms}} and a storm surge of {{peak_surge_m}}. In {{block_name}}, {{cut_road_km}} of roads are cut by flooding. {{isolated_1_name}} is already cut off, and {{expected_isolated_count}} further facilities face isolation as surge water spreads.",
+  "actions": [
+   "Support the isolated staff and patients at {{isolated_1_name}} by boat, as road routes to it are cut.",
+   "Evacuate patients from {{expected_2_name}} by road to {{expected_2_destination}} within {{expected_2_leave_by_hours}} before access is flooded.",
+   "Evacuate patients from {{expected_1_name}} by road to {{expected_1_destination}} within {{expected_1_leave_by_hours}} before roads flood.",
+   "Deploy emergency clearance teams and barricades across the {{cut_road_km}} of flooded road stretches."
+  ]
+ },
+ "bn": {
+  "headline": "ঘূর্ণিঝড় সতর্কতা: {{block_name}} ব্লকে জলোচ্ছ্বাস এবং সড়ক বিচ্ছিন্নতার আশঙ্কা",
+  "body": "আর {{hours_to_landfall}} পর ঘূর্ণিঝড় আছড়ে পড়তে পারে, যেখানে ঝোড়ো বাতাসের গতি {{peak_wind_ms}} এবং জলোচ্ছ্বাসের উচ্চতা {{peak_surge_m}} পর্যন্ত হতে পারে। {{block_name}} ব্লকে ইতিমধ্যে {{cut_road_km}} সড়ক প্লাবিত হয়ে যোগাযোগ বিচ্ছিন্ন হয়েছে। {{isolated_1_name}} এখন পুরোপুরি বিচ্ছিন্ন, এবং আরও {{expected_isolated_count}} স্বাস্থ্যকেন্দ্র প্লাবিত হওয়ার ঝুঁকিতে রয়েছে।",
+  "actions": [
+   "বিচ্ছিন্ন হয়ে পড়া {{isolated_1_name}}-এ নৌকার মাধ্যমে জরুরি সহায়তা এবং প্রয়োজনীয় সামগ্রী পাঠান।",
+   "সড়ক প্লাবিত হওয়ার আগেই {{expected_2_leave_by_hours}}-এর মধ্যে {{expected_2_name}} থেকে রোগীদের সড়কপথে {{expected_2_destination}}-এ সরিয়ে নিন।",
+   "পথ বন্ধ হওয়ার আগেই {{expected_1_leave_by_hours}}-এর মধ্যে {{expected_1_name}} থেকে রোগীদের সড়কপথে {{expected_1_destination}}-এ স্থানান্তরিত করুন।",
+   "প্লাবিত {{cut_road_km}} সড়কে যান চলাচল নিয়ন্ত্রণে দল পাঠান এবং বিপদসংকেত জারি করুন।"
+  ]
+ },
+ "hi": {
+  "headline": "चक्रवात चेतावनी: {{block_name}} में तूफानी लहरों और कटी सड़कों का खतरा",
+  "body": "चक्रवात के तट पर पहुंचने में {{hours_to_landfall}} शेष हैं, जिसमें {{peak_wind_ms}} की रफ्तार से हवाएं और {{peak_surge_m}} तक तूफानी लहरें उठ सकती हैं। {{block_name}} में {{cut_road_km}} सड़कें पानी में डूब चुकी हैं। {{isolated_1_name}} पहले ही कट चुका है, और {{expected_isolated_count}} अन्य स्वास्थ्य केंद्रों के मार्ग बंद होने का खतरा है।",
+  "actions": [
+   "मार्ग कट जाने के कारण {{isolated_1_name}} में नाव के जरिए राहत और चिकित्सा सहायता पहुंचाएं।",
+   "सड़क संपर्क टूटने से पहले {{expected_2_leave_by_hours}} के भीतर {{expected_2_name}} से मरीजों को सड़क मार्ग द्वारा {{expected_2_destination}} भेजें।",
+   "जलभराव से पहले {{expected_1_leave_by_hours}} के भीतर {{expected_1_name}} से मरीजों को सड़क मार्ग द्वारा {{expected_1_destination}} स्थानांतरित करें।",
+   "जलमग्न हो चुकी {{cut_road_km}} सड़कों पर बैरिकेडिंग और निगरानी दल तैनात करें।"
+  ]
+ },
+ "_cited_text": {
+  "block_name": "Namkhana",
+  "expected_1_destination": "Kulpi Rural Hospital",
+  "expected_1_name": "Dwariknagar Rural Hospital",
+  "expected_2_destination": "Kulpi Rural Hospital",
+  "expected_2_name": "Maharajganj PHC",
+  "isolated_1_name": "Frasergunj PHC"
+ },
+ "_generated_by": {
+  "provider": "gemini",
+  "model": "gemini-3.7-flash"
+ }
+}
