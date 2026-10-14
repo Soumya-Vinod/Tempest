@@ -1,50 +1,44 @@
 // Colours and plain words for the risk choropleth, card and panel.
 import type { Color } from '@deck.gl/core'
 
+import { SELECTION } from '../../lib/tokens'
 import type { RiskDriver } from '../../types/contracts'
 
 /**
- * Fixed 0-1 scale (never rescaled per timestep), so colours compare across the replay. Violet,
- * because red and orange mean impact only.
+ * Fixed 0-1 scale (never rescaled per timestep), so colours compare across the replay. Four muted
+ * classes, a quiet slate-violet (red and orange mean impact only; blue is the hazard view's): the
+ * second class starts at the advisory threshold (0.25).
  */
-export const RISK_RAMP: readonly (readonly [number, readonly [number, number, number]])[] = [
-  [0, [250, 245, 255]],
-  [0.25, [221, 190, 254]],
-  [0.5, [167, 113, 238]],
-  [0.75, [112, 56, 190]],
-  [1, [59, 16, 110]],
+export const RISK_CLASSES: readonly (readonly [number, readonly [number, number, number]])[] = [
+  [0, [241, 240, 246]], // #f1f0f6
+  [0.25, [214, 210, 232]], // #d6d2e8
+  [0.5, [170, 162, 206]], // #aaa2ce
+  [0.75, [118, 106, 168]], // #766aa8
 ]
-export const FILL_ALPHA = Math.round(0.45 * 255) // 45 % fill, so impact reads on top; outlines stay full strength
-export const OUTLINE: Color = [71, 85, 105, 200] // slate-600
-export const SELECTED_OUTLINE: Color = [6, 182, 212] // cyan-500, as the impact highlight
+export const FILL_ALPHA = Math.round(0.5 * 255) // half-transparent, so impact reads on top
+export const OUTLINE: Color = [255, 255, 255, 200] // thin white edges between blocks
+export const SELECTED_OUTLINE: Color = [...SELECTION]
 export const UNSCORED_PICK: Color = [0, 0, 0, 1] // invisible, but pickable for the tooltip
-export const HATCH = { line: 'rgba(100, 116, 139, 0.8)', size: 8 } // slate-500
+export const HATCH = { line: 'rgba(100, 116, 139, 0.4)', size: 8 } // slate-500, faint
 
-/** Linear interpolation along RISK_RAMP; `alpha` 0-255. */
+/** The class colour for a score; `alpha` 0-255. */
 export function riskColor(score: number, alpha = 255): Color {
   const s = Math.min(1, Math.max(0, score))
-  for (let i = 1; i < RISK_RAMP.length; i++) {
-    const [x1, c1] = RISK_RAMP[i]
-    const [x0, c0] = RISK_RAMP[i - 1]
-    if (s <= x1) {
-      const t = (s - x0) / (x1 - x0)
-      const mix = (k: number) => Math.round(c0[k] + t * (c1[k] - c0[k]))
-      return [mix(0), mix(1), mix(2), alpha]
-    }
-  }
-  const last = RISK_RAMP[RISK_RAMP.length - 1][1]
-  return [last[0], last[1], last[2], alpha]
+  let c = RISK_CLASSES[0][1]
+  for (const [from, colour] of RISK_CLASSES) if (s >= from) c = colour
+  return [c[0], c[1], c[2], alpha]
 }
 
 export const cssColor = ([r, g, b, a = 255]: Color) => `rgb(${r} ${g} ${b} / ${a / 255})`
 
-/** CSS gradient for the legend, from the same ramp. */
 /** The unscored-area hatching as a CSS background, for swatches. */
 export const HATCH_CSS = `repeating-linear-gradient(-45deg, ${HATCH.line} 0 1.5px, transparent 1.5px 5px)`
 
-export const RAMP_CSS = `linear-gradient(to right, ${RISK_RAMP.map(
-  ([x, c]) => `${cssColor([...c])} ${x * 100}%`,
-).join(', ')})`
+/** Stepped CSS gradient for the legend, one band per class. */
+export const RAMP_CSS = `linear-gradient(to right, ${RISK_CLASSES.map(([from, c], i) => {
+  const to = i + 1 < RISK_CLASSES.length ? RISK_CLASSES[i + 1][0] : 1
+  return `${cssColor([...c])} ${from * 100}% ${to * 100}%`
+}).join(', ')})`
 
 export const DRIVER_LABEL: Record<RiskDriver, string> = {
   surge: 'Storm surge on the land',

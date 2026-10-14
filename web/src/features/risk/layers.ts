@@ -37,7 +37,7 @@ export function buildRiskLayers(
       stroked: true,
       lineWidthUnits: 'pixels',
       getLineColor: OUTLINE,
-      getLineWidth: 1,
+      getLineWidth: 0.75,
     }),
     new GeoJsonLayer<UnscoredAreaProperties>({
       id: 'risk-unscored',
@@ -60,7 +60,7 @@ export function buildRiskLayers(
         stroked: true,
         lineWidthUnits: 'pixels',
         getLineColor: SELECTED_OUTLINE,
-        getLineWidth: 3,
+        getLineWidth: 2.5,
       }),
     )
   }

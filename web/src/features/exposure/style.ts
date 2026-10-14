@@ -26,8 +26,8 @@ export const TYPE_LABEL: Record<InfraType, string> = {
  * gold the payout, blue surge, violet risk, pink the storm.
  */
 export const COLOR = {
-  roadMajor: [30, 41, 59], // slate-800, thicker: motorway, trunk, primary
-  roadMinor: [100, 116, 139], // slate-500
+  roadMajor: [71, 85, 105], // slate-600, thicker: motorway, trunk, primary
+  roadMinor: [148, 163, 184], // slate-400
   ferry: [71, 85, 105], // slate-600, dashed
   noMainland: [148, 163, 184, 120], // slate-400, translucent: muted
   powerLine: [100, 116, 139], // slate-500, dotted
@@ -58,22 +58,27 @@ export const MUTED = {
   standInRing: [161, 161, 170], // zinc-400 (hollow)
 } satisfies Record<string, Color>
 
-/** Road line width (px) by OSM highway class; `_link` roads use LINK_WIDTH. */
-/** Layer opacity of the baseline network: context, not the story. */
-export const ROAD_OPACITY = 0.5
-export const POWER_LINE_OPACITY = 0.6
+/** Layer opacity of the baseline network: quiet context, not the story. */
+export const ROAD_OPACITY = 0.4
+export const POWER_LINE_OPACITY = 0.5
 
+/** Road line width (px, at zoom 10-12) by OSM highway class; `_link` roads use LINK_WIDTH. */
 export const ROAD_WIDTH: Record<string, number> = {
-  motorway: 4.5,
-  trunk: 4.5,
-  primary: 4,
-  secondary: 2.5,
-  tertiary: 2,
-  unclassified: 1.2,
+  motorway: 3,
+  trunk: 3,
+  primary: 2.6,
+  secondary: 1.8,
+  tertiary: 1.4,
+  unclassified: 1,
 }
-export const LINK_WIDTH = 1.5
-export const FERRY_WIDTH = 2
+export const LINK_WIDTH = 1
+export const FERRY_WIDTH = 1.4
 export const MAJOR_ROADS = new Set(['motorway', 'trunk', 'primary'])
+/** Drawn at every zoom; the other classes only from DETAIL_ZOOM (the district view stays clear). */
+export const OVERVIEW_ROADS = new Set(['motorway', 'trunk', 'primary', 'secondary'])
+export const DETAIL_ZOOM = 10
+/** Road widths scale with zoom: thin at the district view, fuller when zoomed in. */
+export const roadWidthScale = (zoom: number) => (zoom < DETAIL_ZOOM ? 0.6 : zoom < 12 ? 0.8 : 1.1)
 
 /** Plain words for OSM highway classes. */
 export const HIGHWAY_LABEL: Record<string, string> = {

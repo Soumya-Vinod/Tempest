@@ -25,7 +25,7 @@ function Bar({ label, value, strong }: { label: string; value: number; strong?: 
       </div>
       <div className={`${strong ? 'h-2' : 'h-1'} w-full rounded-full bg-slate-100`}>
         <div
-          className={`h-full rounded-full ${strong ? 'bg-violet-600' : 'bg-violet-300'}`}
+          className={`h-full rounded-full ${strong ? 'bg-[rgb(118_106_168)]' : 'bg-[rgb(214_210_232)]'}`}
           style={{ width: `${Math.round(value * 100)}%` }}
         />
       </div>
@@ -94,7 +94,7 @@ export default function RiskCard({
         <button
           type="button"
           onClick={onClose}
-          className="-mt-1 ml-auto px-1 text-lg leading-none text-slate-400 hover:text-slate-700"
+          className="-mt-1 ml-auto px-1 text-lg leading-none text-ink-subtle hover:text-ink"
           aria-label="Close block risk"
         >
           ×
@@ -132,7 +132,7 @@ export default function RiskCard({
       <Bar label="Vulnerability" value={p.components.vulnerability} strong />
       {bd && <Parts parts={bd.vulnerability} skip={['low_literacy']} />}
       {bd && (
-        <p className="mt-0.5 ml-3 text-[11px] text-slate-400">
+        <p className="mt-0.5 ml-3 text-[11px] text-ink-subtle">
           Low literacy: not used (no primary source yet)
         </p>
       )}
@@ -149,7 +149,7 @@ export default function RiskCard({
             </dt>
             <dd className="ml-auto tabular-nums">{formatPeople(bd.surge_population)}</dd>
           </div>
-          <p className="text-[11px] text-slate-400">{SURGE_ESTIMATE_NOTE}</p>
+          <p className="text-[11px] text-ink-subtle">{SURGE_ESTIMATE_NOTE}</p>
           <div className="flex">
             <dt className="text-slate-500">Median travel time to a hospital (residents)</dt>
             <dd className="ml-auto">{travel(bd.hospital_travel_min)}</dd>

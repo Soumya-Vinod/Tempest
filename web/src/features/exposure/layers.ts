@@ -15,16 +15,19 @@ import type {
 import type { InfraByType } from './useInfra'
 import {
   COLOR,
+  DETAIL_ZOOM,
   FERRY_WIDTH,
   FULL_SIZE_M_PER_PX,
   LINK_WIDTH,
   MAJOR_ROADS,
   MUTED,
   OUTLINE_PX,
+  OVERVIEW_ROADS,
   POINT_PX,
   POWER_LINE_OPACITY,
   ROAD_OPACITY,
   ROAD_WIDTH,
+  roadWidthScale,
   STAND_IN,
   STAND_IN_RING_PX,
 } from './style'
@@ -62,6 +65,25 @@ function roadWidth(f: InfraGeoFeature): number {
   const hw = highway(f)
   if (hw.endsWith('_link')) return LINK_WIDTH
   return ROAD_WIDTH[hw] ?? ROAD_WIDTH.unclassified
+}
+
+// Roads split once per loaded collection: the overview classes (and ferries) at every zoom, the
+// rest only from DETAIL_ZOOM, so the district view isn't a dense web (around Kolkata).
+type RoadPair = [overview: InfraFeatureCollection, detail: InfraFeatureCollection]
+const roadSplit = new WeakMap<InfraFeatureCollection, RoadPair>()
+
+function splitRoads(fc: InfraFeatureCollection): RoadPair {
+  let pair = roadSplit.get(fc)
+  if (!pair) {
+    const overview = (f: InfraFeatureCollection['features'][number]) =>
+      isFerry(f as InfraGeoFeature) || OVERVIEW_ROADS.has(highway(f as InfraGeoFeature))
+    pair = [
+      { type: 'FeatureCollection', features: fc.features.filter(overview) },
+      { type: 'FeatureCollection', features: fc.features.filter((f) => !overview(f)) },
+    ]
+    roadSplit.set(fc, pair)
+  }
+  return pair
 }
 
 /** The stand-in style for a *_proxy shelter_kind, or undefined for a real shelter. */
@@ -195,6 +217,7 @@ export function buildInfraLayers(
   visible: Record<InfraType, boolean>,
   muted = false,
   facilities: FacilityFilter = null,
+  zoom = DETAIL_ZOOM,
 ): Layer[] {
   // Colour accessors are fixed functions; updateTriggers make deck.gl recolour only when `muted`
   // flips, never on other rebuilds.
@@ -210,32 +233,37 @@ export function buildInfraLayers(
   const hospitals = split(allHospitals, facilities)
   const healthCentres = split(allHealthCentres, facilities)
   const shelters = split(data('shelter'), facilities)
+  const [overviewRoads, detailRoads] = splitRoads(data('road'))
+  const road = (id: string, fc: InfraFeatureCollection, show: boolean) =>
+    new GeoJsonLayer<InfraFeatureProperties, PathStyleExtensionProps<InfraGeoFeature>>({
+      id,
+      data: fc,
+      visible: show,
+      ...COMMON,
+      getLineColor: muted ? mutedRoadColor : roadColor,
+      updateTriggers: colours,
+      getLineWidth: roadWidth,
+      lineWidthScale: roadWidthScale(zoom),
+      lineWidthMinPixels: 0.75,
+      opacity: ROAD_OPACITY,
+      getDashArray: roadDash,
+      ...dashed,
+    })
   const outlined = (fill: Color): PointStyle => ({
     getFillColor: fill,
     getLineColor: COLOR.outline,
     getLineWidth: OUTLINE_PX,
   })
   return [
-    new GeoJsonLayer<InfraFeatureProperties, PathStyleExtensionProps<InfraGeoFeature>>({
-      id: 'infra-road',
-      data: data('road'),
-      visible: visible.road,
-      ...COMMON,
-      getLineColor: muted ? mutedRoadColor : roadColor,
-      updateTriggers: colours,
-      getLineWidth: roadWidth,
-      lineWidthMinPixels: 1,
-      opacity: ROAD_OPACITY,
-      getDashArray: roadDash,
-      ...dashed,
-    }),
+    road('infra-road-detail', detailRoads, visible.road && zoom >= DETAIL_ZOOM),
+    road('infra-road', overviewRoads, visible.road),
     new GeoJsonLayer<InfraFeatureProperties, PathStyleExtensionProps<InfraGeoFeature>>({
       id: 'infra-power_line',
       data: data('power_line'),
       visible: visible.power_line,
       ...COMMON,
       getLineColor: palette.powerLine,
-      getLineWidth: 1.2,
+      getLineWidth: 1,
       opacity: POWER_LINE_OPACITY,
       getDashArray: POWER_DOTS,
       ...dashed,

@@ -1,44 +1,40 @@
 // Colours, sizes and plain words for the impact layers and panel.
 import type { Color } from '@deck.gl/core'
 
+import { SELECTION, SEVERITY } from '../../lib/tokens'
 import type { HazardType, ImpactStatus } from '../../types/contracts'
 
 /**
- * Isolated differs from cut by shape as well as colour (colour-blind safe): cut and at risk are
- * lines and plain dots; an isolated facility is a target (dark-red core, white gap, thick dark-red
- * ring) inside a pulsing halo. Expected isolation is the same ring, dashed.
+ * The three severity tiers, told apart by shape and lightness as well as hue (colour-blind safe):
+ * cut off is a static deep-red target (core, white gap, ring), expected to be cut off an amber
+ * dashed ring, at risk a small slate dot or line. Cut roads and lines are thin deep red.
  */
 export const IMPACT_COLOR = {
-  cut: [220, 38, 38], // red-600
-  atRisk: [245, 158, 11], // amber-500
-  isolated: [127, 29, 29], // red-900
-  isolatedGap: [255, 255, 255, 220], // the ring's inside: keeps the target readable on red roads
-  isolatedHalo: [127, 29, 29, 60],
+  cut: [...SEVERITY.cutOff], // cut roads, lines, substations: the one deep red
+  atRisk: [...SEVERITY.watch], // watch: slate
+  expected: [...SEVERITY.act], // act soon: desaturated amber
+  isolated: [...SEVERITY.cutOff], // cut off: the one deep red
+  isolatedGap: [255, 255, 255, 230], // the ring's inside: keeps the target readable on red roads
   outline: [255, 255, 255],
-  highlight: [6, 182, 212], // cyan-500
+  highlight: [...SELECTION],
 } satisfies Record<string, Color>
 
 /** Line widths (px) for affected lines. */
 export const WIDTH = {
-  roadCut: 5,
-  roadAtRisk: 3.5,
-  powerLineAtRisk: 2.5,
-  highlight: 8,
-  isolatedRing: 4,
+  roadCut: 2.5,
+  roadAtRisk: 1.75,
+  powerLineAtRisk: 1.25,
+  highlight: 6,
+  isolatedRing: 2.5,
 }
 /** Point radii (px): at AOI zoom the rings must stand out, so these don't scale with zoom. */
 export const RADIUS = {
-  atRisk: 5,
-  isolatedCore: 4,
-  isolatedRing: 10,
-  haloMin: 13,
-  haloMax: 19,
-  haloStatic: 16, // prefers-reduced-motion
-  highlight: 15,
+  atRisk: 3,
+  cut: 3.5,
+  isolatedCore: 3,
+  isolatedRing: 8,
+  highlight: 13,
 }
-export const PULSE_MS = 900
-/** Pause between halo pulses, with nothing animating. */
-export const PULSE_REST_MS = 3000
 
 /** Worst first. */
 export const STATUS_RANK: Record<ImpactStatus, number> = { ok: 0, at_risk: 1, cut: 2, isolated: 3 }

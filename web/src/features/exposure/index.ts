@@ -1,8 +1,10 @@
 // Exposure feature (Dev B): OSM infrastructure on the map and in the side panel.
 import type { Layer } from '@deck.gl/core'
+import type { Map as MapLibreMap } from 'maplibre-gl'
 import { useCallback, useMemo, useState } from 'react'
 
 import { useDeck } from '../../lib/deck'
+import { useZoom } from '../../lib/useZoom'
 import type { InfraType } from '../../types/contracts'
 import { type BlockArea, type BlockOf, createBlockOf } from './blocks'
 import { buildInfraLayers, type FacilityFilter } from './layers'
@@ -47,13 +49,20 @@ export function useInfraMap(): InfraMap {
  * greys and pale tints so red and orange mean impact only. `facilities` picks the health
  * facilities and shelters drawn in full; the rest are faint (unless the user highlights all).
  */
-export function useInfraLayers(infra: InfraMap, muted: boolean, facilities: FacilityFilter): Layer[] {
+export function useInfraLayers(
+  infra: InfraMap,
+  muted: boolean,
+  facilities: FacilityFilter,
+  map: MapLibreMap | null = null,
+): Layer[] {
   const { state, visible, highlightAllFacilities } = infra
   const filter = highlightAllFacilities ? null : facilities
   const deck = useDeck()
+  // Road detail and widths follow the zoom (half steps: re-rendered only when one is crossed).
+  const zoom = useZoom(map)
   return useMemo(
-    () => (deck ? buildInfraLayers(deck, state, visible, muted, filter) : []),
-    [deck, state, visible, muted, filter],
+    () => (deck ? buildInfraLayers(deck, state, visible, muted, filter, zoom) : []),
+    [deck, state, visible, muted, filter, zoom],
   )
 }
 

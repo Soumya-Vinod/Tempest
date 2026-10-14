@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { useCountdownSeries } from '../features/countdown'
 import { above, useLayout } from '../lib/layout'
@@ -6,7 +6,6 @@ import { useTimeline } from '../lib/timeline'
 import { useApiStatus } from '../lib/useApiStatus'
 import type { KeyMoment } from '../types/contracts'
 import Markers from './timeline/Markers'
-import { MOMENT, MOMENT_ORDER } from './timeline/moments'
 import Sparkline from './timeline/Sparkline'
 import { trackLeft } from './timeline/track'
 import { useTimelineKeys } from './timeline/useTimelineKeys'
@@ -18,12 +17,33 @@ interface Props {
   moments?: KeyMoment[]
   /** The countdown failed, so there are no key moments or sparkline (only Landfall is known). */
   markersFailed?: boolean
+  /** The storm's IMD category at this timestep, shown quietly beside the time. */
+  storm?: string
 }
 
 const TICK_EVERY_H = 24 // labelled ticks: T-72, T-48, T-24, T-0
 const PLAY_STEP_MS = 1500
+const KEYS = 'Keyboard: ← → step, Space play or pause, Home / End first or last step'
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+const pad = (n: number) => String(n).padStart(2, '0')
 
-export default function TimelineScrubber({ index, onChange, moments = [], markersFailed = false }: Props) {
+/** "20 May, 06:00 UTC" from an ISO timestep. */
+function readable(ts: string): string {
+  const d = new Date(ts)
+  if (Number.isNaN(d.getTime())) return ts
+  return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}, ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())} UTC`
+}
+
+const BUTTON =
+  'rounded-control border border-line px-2 py-0.5 text-ink-muted hover:bg-surface disabled:opacity-40'
+
+export default function TimelineScrubber({
+  index,
+  onChange,
+  moments = [],
+  markersFailed = false,
+  storm,
+}: Props) {
   const timeline = useTimeline()
   const { landfallIndex, label: relativeLabel } = timeline
   const timestep = timeline.timesteps[index]
@@ -77,19 +97,20 @@ export default function TimelineScrubber({ index, onChange, moments = [], marker
     togglePlay,
   })
 
+  const sparkline = !compactTimeline && !markersFailed
   return (
     <div
-      className={`absolute z-20 flex flex-col justify-center rounded-lg bg-white text-sm text-slate-800 shadow-lg ${
+      className={`absolute z-20 flex flex-col justify-center rounded-panel border border-line bg-white text-sm text-ink shadow-sm ${
         phone ? 'sheet-rides px-3' : 'px-4'
       }`}
       style={{ left: gap, right: gap, bottom: above(layout, gap), height: timelineHeight }}
     >
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
         <button
           type="button"
           onClick={() => step(-1)}
           disabled={index === 0}
-          className="rounded border border-slate-300 px-2 py-0.5 disabled:opacity-40"
+          className={BUTTON}
           aria-label="Previous timestep"
           aria-keyshortcuts="ArrowLeft"
         >
@@ -99,7 +120,7 @@ export default function TimelineScrubber({ index, onChange, moments = [], marker
           type="button"
           onClick={() => step(1)}
           disabled={index === landfallIndex}
-          className="rounded border border-slate-300 px-2 py-0.5 disabled:opacity-40"
+          className={BUTTON}
           aria-label="Next timestep"
           aria-keyshortcuts="ArrowRight"
         >
@@ -108,49 +129,56 @@ export default function TimelineScrubber({ index, onChange, moments = [], marker
         <button
           type="button"
           onClick={togglePlay}
-          className="rounded border border-slate-300 px-2 py-0.5 text-xs"
+          className={`${BUTTON} text-xs`}
           aria-label={playing ? 'Pause replay' : 'Play replay'}
           aria-pressed={playing}
           aria-keyshortcuts="Space"
+          title={KEYS}
         >
           {playing ? '❚❚ Pause' : '▶ Play'}
         </button>
-        <span className="font-semibold whitespace-nowrap">{relativeLabel(index)}h</span>
-        <span className="hidden font-mono text-xs text-slate-600 sm:inline">{timestep}</span>
+        <span className="ml-2 text-figure font-semibold whitespace-nowrap tabular-nums">
+          {relativeLabel(index)} h
+        </span>
+        <span className="hidden text-xs whitespace-nowrap text-ink-subtle tabular-nums sm:inline" title={timestep}>
+          {readable(timestep)}
+        </span>
         {index === landfallIndex && (
-          <span className="rounded bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-800">
-            LANDFALL
+          <span className="rounded-full border border-line bg-surface px-2 text-[11px] whitespace-nowrap text-ink-muted">
+            Landfall
+          </span>
+        )}
+        {storm && !phone && (
+          <span className="hidden truncate text-[11px] text-ink-subtle md:inline" title="IMD category at this step">
+            · {storm}
           </span>
         )}
         {markersFailed && (
-          <span className="ml-auto text-[11px] text-slate-500" role="status">
+          <span className="ml-auto text-[11px] text-ink-subtle" role="status">
             Timeline markers unavailable
           </span>
         )}
-        <ul
-          className={`ml-auto hidden items-center gap-3 text-[10px] whitespace-nowrap text-slate-500 ${markersFailed ? '' : 'xl:flex'}`}
-          aria-label="Timeline legend"
-        >
-          {MOMENT_ORDER.map((k) => (
-            <li key={k} className="flex items-center gap-1">
-              <span className="block size-2 rotate-45" style={{ background: MOMENT[k].color }} aria-hidden />
-              {MOMENT[k].legend}
-            </li>
-          ))}
-          <li className="flex items-center gap-1">
-            <span className="block h-2 w-3 rounded-sm bg-red-900/25 ring-1 ring-red-900/70" aria-hidden />
-            Cut off
-          </li>
-          <li className="flex items-center gap-1">
-            <span className="block w-3 border-t border-dashed border-red-900" aria-hidden />
-            Expected
-          </li>
-          <li className="text-slate-400">← → step · Space play · Home/End</li>
-        </ul>
+        <div className={`flex items-center gap-3 text-[11px] whitespace-nowrap text-ink-subtle ${markersFailed ? '' : 'ml-auto'}`}>
+          {sparkline && (
+            <ul className="hidden items-center gap-3 lg:flex" aria-label="Timeline legend">
+              <li className="flex items-center gap-1">
+                <span className="block h-2 w-3 rounded-sm bg-sev-cut-wash ring-1 ring-sev-cut/60" aria-hidden />
+                Cut off
+              </li>
+              <li className="flex items-center gap-1">
+                <span className="block w-3 border-t border-dashed border-sev-act" aria-hidden />
+                Expected
+              </li>
+            </ul>
+          )}
+          <span className="cursor-help rounded-full border border-line px-1.5 leading-4" title={KEYS} role="note" aria-label={KEYS}>
+            Keys
+          </span>
+        </div>
       </div>
-      <Markers moments={marked} onJump={onChange} />
+      <Markers moments={marked} onJump={onChange} current={index} />
       <div className="relative">
-        {!compactTimeline && !markersFailed && <Sparkline points={series} labelOf={relativeLabel} />}
+        {sparkline && <Sparkline points={series} labelOf={relativeLabel} />}
         <input
           type="range"
           min={0}
@@ -158,7 +186,8 @@ export default function TimelineScrubber({ index, onChange, moments = [], marker
           step={1}
           value={index}
           onChange={(e) => onChange(Number(e.target.value))}
-          className={`relative w-full accent-slate-800 ${compactTimeline ? '' : '-mt-2'}`}
+          className={`timeline-range relative w-full ${compactTimeline ? '' : '-mt-2'}`}
+          style={{ '--pct': `${(index / Math.max(1, landfallIndex)) * 100}%` } as CSSProperties}
           aria-label="Replay timestep"
           aria-valuetext={`${relativeLabel(index)} hours, ${timestep}`}
         />
@@ -170,14 +199,14 @@ export default function TimelineScrubber({ index, onChange, moments = [], marker
           return (
             <span
               key={i}
-              className={`absolute top-0 w-px -translate-x-1/2 ${major ? 'h-1.5 bg-slate-500' : 'h-1 bg-slate-300'}`}
+              className={`absolute top-0 w-px -translate-x-1/2 ${major ? 'h-1.5 bg-ink-subtle/60' : 'h-1 bg-line'}`}
               style={{ left: trackLeft(i / landfallIndex) }}
             />
           )
         })}
       </div>
       {!compactTimeline && (
-        <div className="flex justify-between text-xs text-slate-500">
+        <div className="flex justify-between text-[11px] text-ink-subtle">
           {timeline.timesteps.flatMap((_, i) =>
             timeline.hoursToLandfall(i) % TICK_EVERY_H === 0
               ? [<span key={i}>{i === landfallIndex ? 'T-0 landfall' : relativeLabel(i)}</span>]

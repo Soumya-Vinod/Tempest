@@ -30,7 +30,7 @@ import {
   useInfraMap,
 } from './features/exposure'
 import { HazardPanel, type MapViewMode, StormEdge, useHazardMap } from './features/hazard'
-import { ImpactPanel, PathwayCard, useImpactMap } from './features/impact'
+import { AtRiskToggle, ImpactPanel, PathwayCard, useImpactMap } from './features/impact'
 import { InsurancePanel, useInsuranceMap } from './features/insurance'
 import { KpiStrip, useKpis } from './features/kpi'
 import { RiskCard, RiskPanel, useRiskMap } from './features/risk'
@@ -60,7 +60,7 @@ export default function App() {
   // Unnamed features are labelled by block ("Road segment · Kultali"), looked up on hover.
   const blockOf = useBlockOf(risk.areas)
   const infraTooltip = useMemo(() => makeInfraTooltip(blockOf), [blockOf])
-  const impact = useImpactMap(timestepIndex, infra.state, horizon, blockOf, map)
+  const impact = useImpactMap(timestepIndex, infra.state, horizon, blockOf, risk.view)
   const hazard = useHazardMap(timestepIndex, risk.view, setChosenView, map, horizon, setChosenHorizon)
   // The payout outline is a Finance detail: drawn only while that tab is open.
   const [panelTab, setPanelTab] = useState<TabId | null>(null)
@@ -111,7 +111,7 @@ export default function App() {
     [affectedIds, atRiskBlocks, blockOf],
   )
   // Red and orange mean impact only: exposure mutes its colours while impact results show.
-  const infraLayers = useInfraLayers(infra, impact.active, facilityFilter)
+  const infraLayers = useInfraLayers(infra, impact.active, facilityFilter, map)
 
   // Bottom to top: hazard fills or the risk choropleth (one view at a time: both are area
   // fills; in Risk view, gold outlines on blocks with an insurance payout released), muted
@@ -182,11 +182,6 @@ export default function App() {
     horizon,
     countdown: countdown.state,
     insurance: insurance.panel.summary,
-    advisories: {
-      drafts: advisory.panel.drafts,
-      approved: advisory.panel.approved,
-      failed: advisory.drawer.queue.status === 'error',
-    },
   })
   // What the map actually draws: a group whose data failed (with nothing from an earlier step
   // still shown) leaves the legend, which says so instead of describing layers that aren't there.
@@ -251,6 +246,7 @@ export default function App() {
         cardOpen={cardOpen}
         drawn={drawn}
         payouts={financeOpen}
+        atRisk={impact.atRisk.on}
       />
       {/* On phones a bottom sheet, which drops back to peek when a card opens on the map. */}
       <HealthPanel collapse={cardOpen}>
@@ -268,6 +264,7 @@ export default function App() {
                     state={countdown.state}
                     departures={departures}
                     timestepIndex={timestepIndex}
+                    onHighlight={impact.highlight}
                   />
                   <KeepOpenPanel
                     state={criticalLinks}
@@ -298,6 +295,7 @@ export default function App() {
               label: 'Layers',
               content: (
                 <>
+                  <AtRiskToggle {...impact.atRisk} />
                   <InfraPanel
                     state={infra.state}
                     visible={infra.visible}
@@ -329,6 +327,7 @@ export default function App() {
         onChange={setTimestepIndex}
         moments={countdown.moments}
         markersFailed={markersFailed}
+        storm={hazard.edge.category}
       />
     </main>
   )

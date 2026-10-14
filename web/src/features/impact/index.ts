@@ -1,6 +1,5 @@
 // Impact feature (Dev B): affected infrastructure on the map, counts and pathways in the panel.
 import type { DeckProps, Layer, PickingInfo } from '@deck.gl/core'
-import type { Map as MapLibreMap } from 'maplibre-gl'
 import { useCallback, useMemo, useState } from 'react'
 
 import { useDeck } from '../../lib/deck'
@@ -9,15 +8,15 @@ import type { Horizon, ImpactStatus } from '../../types/contracts'
 import type { BlockOf, InfraByType } from '../exposure'
 import type { default as ImpactPanelComponent } from './ImpactPanel'
 import type { PathwayCardProps } from './PathwayCard'
-import { aggregate, buildImpactLayers, type HaloState, layerData, pickedAffected } from './layers'
+import { aggregate, buildImpactLayers, layerData, pickedAffected, visibleData } from './layers'
 import { featureName, infraLookup } from './labels'
-import { useAnyInView, usePageVisible, usePulse, useReducedMotion } from './motion'
-import { HAZARD_LABEL, PULSE_MS, PULSE_REST_MS, STATUS_LABEL } from './style'
+import { HAZARD_LABEL, STATUS_LABEL } from './style'
 import { useImpacts } from './useImpacts'
 
 export { default as ImpactPanel } from './ImpactPanel'
 export { default as PathwayCard } from './PathwayCard'
 export { default as StatusSwatch } from './StatusSwatch'
+export { default as AtRiskToggle } from './AtRiskToggle'
 
 type TooltipContent = ReturnType<NonNullable<DeckProps['getTooltip']>>
 type PanelProps = Parameters<typeof ImpactPanelComponent>[0]
@@ -48,6 +47,10 @@ export interface ImpactMap {
   clear: () => void
   panel: PanelProps
   card: PathwayCardProps
+  /** Highlight one feature (e.g. a facility from the Act panel) on the map; null: none. */
+  highlight: (id: string | null) => void
+  /** The watch tier's roads and lines on the map (Layers): off by default. */
+  atRisk: { on: boolean; onToggle: () => void }
 }
 
 /** Impact results for the scrubber's timestep as map layers, a tooltip, and panel props. */
@@ -56,7 +59,7 @@ export function useImpactMap(
   infra: InfraByType,
   horizon: Horizon = 0,
   blockOf: BlockOf | null = null,
-  map: MapLibreMap | null = null,
+  view: 'hazard' | 'risk' = 'hazard',
 ): ImpactMap {
   const timestep = useTimeline().timesteps[timestepIndex]
   const { state, shown } = useImpacts(timestep, horizon)
@@ -76,17 +79,14 @@ export function useImpactMap(
   const affected = useMemo(() => aggregate(shown), [shown])
   const data = useMemo(() => layerData(affected, isolatedNow), [affected, isolatedNow])
   const lookup = useMemo(() => infraLookup(infra), [infra])
-  // The halo pulses only while isolated facilities are in view on a visible page; static under
-  // prefers-reduced-motion. Otherwise nothing animates and the map stays idle.
-  const reducedMotion = useReducedMotion()
-  const pageVisible = usePageVisible()
-  const isolatedPoints = useMemo(
-    () => data.isolated.map((a) => a.geometry.coordinates as [number, number]),
-    [data.isolated],
+  // One primary thing per view: at-risk roads and lines only on request, at-risk facilities in
+  // the Risk view too. Markers are static (no animation).
+  const [atRiskOn, setAtRiskOn] = useState(false)
+  const toggleAtRisk = useCallback(() => setAtRiskOn((v) => !v), [])
+  const shownData = useMemo(
+    () => visibleData(data, { atRiskLines: atRiskOn, atRiskPoints: atRiskOn || view === 'risk' }),
+    [data, atRiskOn, view],
   )
-  const inView = useAnyInView(map, isolatedPoints)
-  const pulse = usePulse(inView && pageVisible && !reducedMotion, PULSE_MS, PULSE_REST_MS)
-  const halo: HaloState = reducedMotion ? 'static' : pulse ? 'grow' : 'shrink'
 
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [highlightId, setHighlightId] = useState<string | null>(null)
@@ -96,8 +96,8 @@ export function useImpactMap(
 
   const deck = useDeck()
   const { layers, highlight: highlightLayers } = useMemo(
-    () => (deck ? buildImpactLayers(deck, data, highlight, halo) : { layers: [], highlight: [] }),
-    [deck, data, highlight, halo],
+    () => (deck ? buildImpactLayers(deck, shownData, highlight) : { layers: [], highlight: [] }),
+    [deck, shownData, highlight],
   )
 
   const counts = useMemo(() => {
@@ -162,5 +162,7 @@ export function useImpactMap(
       onHighlight: setHighlightId,
       onClose: clear,
     },
+    highlight: setHighlightId,
+    atRisk: { on: atRiskOn, onToggle: toggleAtRisk },
   }
 }

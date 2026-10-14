@@ -24,7 +24,9 @@ export function fitPadded(map: MapLibreMap, bounds: LngLatBoundsLike, animate = 
   if (!w || !h) return
   const p = fitPadding()
   const roomy = w - p.left - p.right >= MIN_FIT_PX && h - p.top - p.bottom >= MIN_FIT_PX
-  map.fitBounds(bounds, { padding: roomy ? p : UI_GAP, animate })
+  // No camera flight under prefers-reduced-motion.
+  const still = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  map.fitBounds(bounds, { padding: roomy ? p : UI_GAP, animate: animate && !still })
 }
 
 export function fitAoi(map: MapLibreMap, animate = false) {

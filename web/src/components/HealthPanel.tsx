@@ -36,7 +36,7 @@ function BackendStatus({ health }: { health: HealthState }) {
   if (health.kind === 'loading') return <span className="text-xs text-slate-500">Connecting…</span>
   if (health.kind === 'error') {
     return (
-      <span className="text-xs text-red-700" title={health.message}>
+      <span className="text-xs text-sev-cut" title={health.message}>
         ● Can&apos;t reach the server
       </span>
     )
@@ -60,9 +60,9 @@ function BackendStatus({ health }: { health: HealthState }) {
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
         title={`${mode}: ${what}.\n${details}`}
-        className="text-xs text-slate-600 hover:text-slate-900"
+        className="text-[11px] text-ink-subtle hover:text-ink"
       >
-        <span className={ready === services.length ? 'text-emerald-500' : 'text-amber-500'}>●</span>{' '}
+        <span className={ready === services.length ? 'text-emerald-600' : 'text-ink-subtle'}>●</span>{' '}
         {mode} · {summary} {open ? '▾' : '▸'}
       </button>
       {open && (
@@ -175,11 +175,11 @@ export default function HealthPanel({
       {phone && <SheetHandle snap={sheet.snap} handle={sheet.handle} />}
       <div className="relative min-h-0 flex-1">
         <div ref={scrollRef} className={`h-full overflow-y-auto overscroll-contain pb-8 ${phone ? 'px-4 pt-1' : 'p-4'}`}>
-          <header className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-slate-100 pb-2">
-            <h1 className="text-base leading-5 font-semibold">Tempest</h1>
+          <header className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1">
+            <h1 className="text-title font-semibold text-ink">Tempest</h1>
             {!phone && (
-              <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide whitespace-nowrap text-slate-600">
-                REPLAY · Amphan 2020 · South 24 Parganas
+              <span className="rounded-full border border-line px-2 text-[11px] leading-5 whitespace-nowrap text-ink-subtle">
+                Replay · Amphan 2020 · South 24 Parganas
               </span>
             )}
             <div className="ml-auto">

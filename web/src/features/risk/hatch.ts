@@ -18,7 +18,7 @@ function hatchImage(size: number): ImageData {
   canvas.height = size
   const ctx = canvas.getContext('2d')!
   ctx.strokeStyle = HATCH.line
-  ctx.lineWidth = 1.5
+  ctx.lineWidth = 1
   ctx.beginPath()
   // The main diagonal plus the two corner pieces, so the pattern tiles without gaps.
   for (const offset of [-size, 0, size]) {
@@ -45,13 +45,13 @@ export function syncUnscored(
       id: FILL,
       type: 'fill',
       source: SOURCE,
-      paint: { 'fill-pattern': IMAGE, 'fill-opacity': 0.9 },
+      paint: { 'fill-pattern': IMAGE, 'fill-opacity': 0.7 },
     })
     map.addLayer({
       id: LINE,
       type: 'line',
       source: SOURCE,
-      paint: { 'line-color': HATCH.line, 'line-width': 1 },
+      paint: { 'line-color': HATCH.line, 'line-width': 0.75 },
     })
   }
   for (const id of [FILL, LINE]) {

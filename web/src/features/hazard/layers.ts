@@ -27,6 +27,7 @@ import {
   TRACK_FUTURE_COLOR,
   TRACK_NEXT_COLOR,
   TRACK_NEXT_H,
+  TRACK_WIDTH,
 } from './style'
 
 const EMPTY = { type: 'FeatureCollection' as const, features: [] as HazardLayer[] }
@@ -166,7 +167,7 @@ export function buildHazardFills(
         getText: (d) => `${d.kmh} km/h`,
         getSize: 11,
         getColor: ISOTACH_COLOR,
-        fontWeight: 600,
+        fontWeight: 500,
         background: true,
         getBackgroundColor: ISOTACH_LABEL_BG,
         backgroundPadding: [3, 1],
@@ -182,15 +183,15 @@ export function buildHazardFills(
 const lonLat = (p: CycloneTrackPoint): [number, number] => [p.lon, p.lat]
 
 /**
- * The track: solid up to the scrubber's timestep, dashed after it; the storm's position with its
- * IMD category as a label.
+ * The track: solid up to the scrubber's timestep, dashed after it, and the storm's position. No
+ * label on the map (it would cover the coast): the category is in the tooltip, the timeline and
+ * the Situation tab.
  */
 export function buildTrackLayers(deck: Deck, points: CycloneTrackPoint[], index: number): Layer[] {
   if (points.length === 0 || index < 0) return []
-  const { PathLayer, PathStyleExtension, ScatterplotLayer, TextLayer } = deck
+  const { PathLayer, PathStyleExtension, ScatterplotLayer } = deck
   const i = Math.min(index, points.length - 1)
   const current = points[i]
-  const category = imdCategory(toKmh(current.max_wind_mps))
   // The next 24 h of track (by time, so it doesn't depend on the step length), then the rest.
   const horizonMs = Date.parse(current.timestep) + TRACK_NEXT_H * 3600 * 1000
   let next = i
@@ -212,16 +213,16 @@ export function buildTrackLayers(deck: Deck, points: CycloneTrackPoint[], index:
       jointRounded: true,
     })
   return [
-    casing('track-past', past, 3),
-    casing('track-future', later, 2),
-    casing('track-next', soon, 4),
+    casing('track-past', past, TRACK_WIDTH.past),
+    casing('track-future', later, TRACK_WIDTH.later),
+    casing('track-next', soon, TRACK_WIDTH.next),
     new PathLayer<CycloneTrackPoint[]>({
       id: 'track-past',
       data: past,
       getPath: (d) => d.map(lonLat),
       getColor: TRACK_COLOR,
       widthUnits: 'pixels',
-      getWidth: 3,
+      getWidth: TRACK_WIDTH.past,
       capRounded: true,
       jointRounded: true,
     }),
@@ -231,7 +232,7 @@ export function buildTrackLayers(deck: Deck, points: CycloneTrackPoint[], index:
       getPath: (d) => d.map(lonLat),
       getColor: TRACK_FUTURE_COLOR,
       widthUnits: 'pixels',
-      getWidth: 2,
+      getWidth: TRACK_WIDTH.later,
       getDashArray: [6, 5],
       dashJustified: true,
       extensions: [new PathStyleExtension({ dash: true })],
@@ -242,7 +243,7 @@ export function buildTrackLayers(deck: Deck, points: CycloneTrackPoint[], index:
       getPath: (d) => d.map(lonLat),
       getColor: TRACK_NEXT_COLOR,
       widthUnits: 'pixels',
-      getWidth: 4,
+      getWidth: TRACK_WIDTH.next,
       capRounded: true,
       jointRounded: true,
     }),
@@ -253,7 +254,7 @@ export function buildTrackLayers(deck: Deck, points: CycloneTrackPoint[], index:
       pickable: false,
       getPosition: lonLat,
       radiusUnits: 'pixels',
-      getRadius: 16,
+      getRadius: 12,
       getFillColor: STORM_HALO,
     }),
     new ScatterplotLayer<CycloneTrackPoint>({
@@ -262,27 +263,12 @@ export function buildTrackLayers(deck: Deck, points: CycloneTrackPoint[], index:
       pickable: true,
       getPosition: lonLat,
       radiusUnits: 'pixels',
-      getRadius: 9,
+      getRadius: 6,
       getFillColor: STORM_FILL,
       stroked: true,
       getLineColor: STORM_OUTLINE,
       lineWidthUnits: 'pixels',
-      getLineWidth: 3,
-    }),
-    new TextLayer<CycloneTrackPoint>({
-      id: 'track-label',
-      data: [current],
-      getPosition: lonLat,
-      getText: () => category?.name ?? 'Below depression strength',
-      getSize: 12,
-      getColor: [15, 23, 42, 255],
-      getPixelOffset: [12, 0],
-      getTextAnchor: 'start',
-      getAlignmentBaseline: 'center',
-      background: true,
-      getBackgroundColor: [255, 255, 255, 220],
-      backgroundPadding: [4, 2],
-      fontWeight: 600,
+      getLineWidth: 2,
     }),
   ]
 }

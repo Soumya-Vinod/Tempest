@@ -1,12 +1,11 @@
+import { HEADING, SECTION } from '../../lib/panel'
 import { ABOUT_THE_DATA } from './sources'
 
 /** "About the data": collapsed by default, at the bottom of the side panel. */
 export default function AboutPanel() {
   return (
-    <details className="mt-5 border-t border-slate-200 pt-3">
-      <summary className="cursor-pointer text-xs font-semibold tracking-wide text-slate-500 uppercase">
-        About the data
-      </summary>
+    <details className={SECTION}>
+      <summary className={`cursor-pointer ${HEADING}`}>About the data</summary>
       <div className="mt-2 space-y-3">
         {ABOUT_THE_DATA.map((group) => (
           <section key={group.title}>

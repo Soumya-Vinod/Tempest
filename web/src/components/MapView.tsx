@@ -4,6 +4,7 @@ import { AttributionControl, Map as MapLibreMap, NavigationControl, setWorkerUrl
 import maplibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 import { useEffect, useRef, type CSSProperties } from 'react'
 
+import { calmBasemap } from '../lib/basemap'
 import { AOI_BBOX, BASEMAP_STYLE_URL } from '../lib/constants'
 import { above, cssLength, useLayout } from '../lib/layout'
 import { mapAlive } from '../lib/mapAlive'
@@ -77,6 +78,7 @@ export default function MapView({ layers = [], getTooltip, onClick, onMapLoad, o
     })
     map.on('load', () => {
       loaded = true
+      calmBasemap(map)
       fitAoi(map)
       onMapLoadRef.current?.(map)
     })

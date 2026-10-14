@@ -133,7 +133,7 @@ export default function PathwayCard(props: PathwayCardProps) {
         <button
           type="button"
           onClick={props.onClose}
-          className="-mt-1 ml-auto px-1 text-lg leading-none text-slate-400 hover:text-slate-700"
+          className="-mt-1 ml-auto px-1 text-lg leading-none text-ink-subtle hover:text-ink"
           aria-label="Close pathway"
         >
           ×
@@ -141,7 +141,7 @@ export default function PathwayCard(props: PathwayCardProps) {
       </div>
       {access && <p className="text-xs text-slate-500">{access}</p>}
       {props.shelterCutOffFrom && (
-        <p className="mt-1 text-xs font-medium text-red-700">
+        <p className="mt-1 text-xs font-medium text-sev-cut">
           Cut off from {props.shelterCutOffFrom}
         </p>
       )}
