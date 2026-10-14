@@ -43,7 +43,7 @@ export function useHazardMap(
   const timeline = useTimeline()
   const timestep = timeline.timesteps[timestepIndex]
   const hazardView = view === 'hazard'
-  const [windOn, setWindOn] = useState(false)
+  const [windOn, setWindOn] = useState(true) // isotachs on by default (Now and Next 24 h)
   const [floodOn, setFloodOn] = useState(false)
   const [fullTrack, setFullTrack] = useState(false)
 

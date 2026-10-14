@@ -12,8 +12,11 @@ import { type Colorize, hazardImage } from './raster'
 import {
   floodColor,
   imdCategory,
-  ISOTACH_COLOR,
+  ISOTACH_CASING,
+  ISOTACH_CASING_PX,
   ISOTACH_LABEL_BG,
+  isotachColor,
+  isotachLabelColor,
   isotachWidth,
   STORM_FILL,
   STORM_HALO,
@@ -105,7 +108,7 @@ function cellValues(cells: {
 
 /**
  * Hazard fills, bottom to top: flood susceptibility (masked cells), surge (smoothed, masked
- * image), wind isotachs (masked lines with km/h labels), then one invisible, masked hover layer
+ * image), wind isotachs (masked, cased lines with km/h labels), then one invisible, masked hover layer
  * per cell for the tooltip. Everything is clipped to land by the mask layer.
  */
 export function buildHazardFills(
@@ -148,11 +151,24 @@ export function buildHazardFills(
   if (cells.wind) {
     const { lines, labels } = isotachs(cells.wind)
     layers.push(
+      // A thin white casing under each line keeps it apart from the surge's blues.
+      new PathLayer<Isotach>({
+        id: 'hazard-isotach-casing',
+        data: lines,
+        getPath: (d) => d.path,
+        getColor: ISOTACH_CASING,
+        widthUnits: 'pixels',
+        getWidth: (d) => isotachWidth(d.level) + ISOTACH_CASING_PX,
+        jointRounded: true,
+        capRounded: true,
+        pickable: false,
+        ...MASK,
+      }),
       new PathLayer<Isotach>({
         id: 'hazard-isotachs',
         data: lines,
         getPath: (d) => d.path,
-        getColor: ISOTACH_COLOR,
+        getColor: (d) => isotachColor(d.level),
         widthUnits: 'pixels',
         getWidth: (d) => isotachWidth(d.level),
         jointRounded: true,
@@ -165,12 +181,15 @@ export function buildHazardFills(
         data: labels,
         getPosition: (d) => d.position,
         getText: (d) => `${d.kmh} km/h`,
-        getSize: 11,
-        getColor: ISOTACH_COLOR,
-        fontWeight: 500,
+        getSize: 14, // readable on a projector at 1920 x 1080
+        fontFamily: 'system-ui, "Segoe UI", Roboto, sans-serif', // the app's font (index.css)
+        getColor: (d) => isotachLabelColor(d.level),
+        fontWeight: 600,
         background: true,
         getBackgroundColor: ISOTACH_LABEL_BG,
-        backgroundPadding: [3, 1],
+        getBorderColor: (d) => isotachColor(d.level),
+        getBorderWidth: 1,
+        backgroundPadding: [4, 2],
         extensions: [new MaskExtension()],
         maskId: LAND_MASK_ID,
         maskByInstance: true, // whole labels, by anchor

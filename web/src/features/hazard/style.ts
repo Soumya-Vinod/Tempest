@@ -68,14 +68,34 @@ export function imdCategory(kmh: number): ImdCategory | null {
   return found
 }
 
-// Wind is drawn as isotachs (contours.ts): dark slate lines at the category boundaries, heavier
-// for higher categories. No fill colour: red and orange are reserved for impact, and a fill
-// would hide the surge underneath.
-export const ISOTACH_COLOR: Color = [...NEUTRAL.muted, 190]
-export const ISOTACH_CSS = 'rgb(71 85 105)'
-export const ISOTACH_LABEL_BG: Color = [255, 255, 255, 200]
-/** Line width in px for isotach level 0 (50 km/h) … 5 (221 km/h): thin, a little heavier higher. */
-export const isotachWidth = (level: number) => 0.75 + 0.3 * level
+// Wind is drawn as isotachs (contours.ts): lines at the category boundaries on a cool sequential
+// tint, light slate-blue (Deep Depression) to deep indigo (Super Cyclonic Storm), heavier for
+// higher categories, on a thin white casing so they stay apart from the surge's blues. No fill
+// colour: red and orange are reserved for impact, and a fill would hide the surge underneath.
+const ISOTACH_RGB: [number, number, number][] = [
+  [130, 148, 196], // #8294c4  50 km/h  Deep Depression
+  [106, 122, 182], // #6a7ab6  62 km/h  Cyclonic Storm
+  [84, 96, 168], // #5460a8    89 km/h  Severe Cyclonic Storm
+  [66, 72, 150], // #424896   118 km/h  Very Severe Cyclonic Storm
+  [52, 50, 128], // #343280   166 km/h  Extremely Severe Cyclonic Storm
+  [40, 30, 104], // #281e68   221 km/h  Super Cyclonic Storm
+]
+const ISOTACH_ALPHA = 235
+const isotachRgb = (level: number) => ISOTACH_RGB[Math.min(Math.max(level, 0), ISOTACH_RGB.length - 1)]
+/** Line colour for isotach level 0 (50 km/h) … 5 (221 km/h). */
+export const isotachColor = (level: number): Color => [...isotachRgb(level), ISOTACH_ALPHA]
+/** The same colour for the legend. */
+export const isotachCss = (level: number) => `rgb(${isotachRgb(level).join(' ')} / ${ISOTACH_ALPHA / 255})`
+/** Label text: the line's tint, darkened towards ink so the lightest levels still read. */
+export const isotachLabelColor = (level: number): Color => [
+  ...(isotachRgb(level).map((c, k) => Math.round(lerp(c, NEUTRAL.ink[k], 0.35))) as [number, number, number]),
+  255,
+]
+export const ISOTACH_LABEL_BG: Color = [255, 255, 255, 225]
+export const ISOTACH_CASING: Color = [255, 255, 255, 170]
+export const ISOTACH_CASING_PX = 2 // added to the line width (1 px each side)
+/** Line width in px for isotach level 0 (50 km/h) … 5 (221 km/h): 1.5 to 3.5 px. */
+export const isotachWidth = (level: number) => 1.5 + 0.4 * level
 
 // --- Flood susceptibility (static, muted) --------------------------------------------------------
 

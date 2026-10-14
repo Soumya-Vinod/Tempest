@@ -5,7 +5,7 @@ import { ISOTACH_LEVELS } from './contours'
 import {
   FLOOD_RAMP_CSS,
   imdCategory,
-  ISOTACH_CSS,
+  isotachCss,
   isotachWidth,
   SURGE_RAMP_CSS,
   SURGE_TICKS_M,
@@ -192,7 +192,7 @@ export default function HazardPanel(props: HazardPanelProps) {
                   <li key={l.kmh} className="flex items-center gap-2">
                     <span
                       className="w-6 shrink-0 rounded-full"
-                      style={{ height: isotachWidth(level), background: ISOTACH_CSS }}
+                      style={{ height: isotachWidth(level), background: isotachCss(level) }}
                       aria-hidden
                     />
                     <span className="w-14 shrink-0 tabular-nums">{l.kmh} km/h</span>

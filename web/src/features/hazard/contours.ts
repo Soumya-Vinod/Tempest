@@ -26,11 +26,16 @@ export interface Isotach {
 export interface IsotachLabel {
   kmh: number
   category: string
+  level: number // index into ISOTACH_LEVELS (colour)
   position: [number, number]
 }
 
 /** Every Nth vertex is a label candidate; the first one on land is used. */
 const LABEL_STEP = 6
+/** Paths shorter than this (vertices) get no label of their own: small closed blobs and stubs. */
+const LABEL_MIN_VERTICES = 24
+/** Labels of one level closer than this (degrees) are one too many: the first one is kept. */
+const LABEL_MIN_GAP_DEG = 0.12
 
 type Pt = [number, number]
 
@@ -84,17 +89,33 @@ function onLand(p: Pt): boolean {
   )
 }
 
-function labelFor(paths: Pt[][]): Pt | null {
-  for (const path of [...paths].sort((a, b) => b.length - a.length)) {
-    const mid = Math.floor(path.length / 2)
-    // From the middle outwards, every LABEL_STEP vertices.
-    for (let k = 0; k <= mid; k += LABEL_STEP) {
-      for (const i of [mid - k, mid + k]) {
-        if (i >= 0 && i < path.length && onLand(path[i])) return path[i]
-      }
+/** A label anchor on the path: its middle-most vertex on land (every LABEL_STEP vertices). */
+function anchorOn(path: Pt[]): Pt | null {
+  const mid = Math.floor(path.length / 2)
+  for (let k = 0; k <= mid; k += LABEL_STEP) {
+    for (const i of [mid - k, mid + k]) {
+      if (i >= 0 && i < path.length && onLand(path[i])) return path[i]
     }
   }
   return null
+}
+
+/**
+ * One anchor per line of this level, longest first: every path long enough for a label, skipping
+ * anchors too close to one already placed; the first path with an anchor is labelled even if
+ * short, so each level drawn has at least one km/h label when it reaches land.
+ */
+function labelsFor(paths: Pt[][]): Pt[] {
+  const out: Pt[] = []
+  const sorted = [...paths].sort((a, b) => b.length - a.length)
+  for (const path of sorted) {
+    if (out.length > 0 && path.length < LABEL_MIN_VERTICES) break
+    const p = anchorOn(path)
+    if (!p) continue
+    if (out.some(([x, y]) => Math.hypot(x - p[0], y - p[1]) < LABEL_MIN_GAP_DEG)) continue
+    out.push(p)
+  }
+  return out
 }
 
 // --- Contours, cached per fetched wind layer ------------------------------------------------------
@@ -121,8 +142,7 @@ export function isotachs(cells: HazardLayer[]): Isotachs {
         polygon.flatMap((ring) => ringPaths(ring, g)),
       )
       for (const path of paths) out.lines.push({ kmh, category, level, path })
-      const position = labelFor(paths)
-      if (position) out.labels.push({ kmh, category, position })
+      for (const position of labelsFor(paths)) out.labels.push({ kmh, category, level, position })
     })
   }
   cache.set(cells, out)

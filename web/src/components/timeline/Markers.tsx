@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useLayout } from '../../lib/layout'
 import { useTimeline } from '../../lib/timeline'
 import type { KeyMoment, KeyMomentKind } from '../../types/contracts'
-import { MOMENT, MOMENT_ORDER as ORDER } from './moments'
+import { ALWAYS_CAPTIONED, MOMENT, MOMENT_ORDER as ORDER } from './moments'
 import { trackLeft } from './track'
 
 interface Group {
@@ -33,9 +33,10 @@ function fill(kinds: KeyMomentKind[]): string {
 }
 
 /**
- * Key moments above the track, click to jump. Quiet by default: a caption only on landfall and on
- * the hovered, focused or current marker; the full label is always in the tooltip. On phones the
- * caption is only the time (the bar is too narrow).
+ * Key moments above the track, click to jump. Quiet by default: a short caption always on the
+ * first alert, first cut-off and landfall (only that moment's name, even when merged with
+ * another), and on hover, focus or the current step for the others; the full label is always in
+ * the tooltip. On phones the caption is only the time (the bar is too narrow).
  */
 export default function Markers({
   moments,
@@ -55,10 +56,11 @@ export default function Markers({
     <div className="relative h-7" aria-label="Key moments">
       {groups(moments, timeline.indexOf).map(({ index, moments: ms }) => {
         const at = timeline.label(index)
-        const caption = ms.map((m) => MOMENT[m.kind].caption).join(' & ')
+        const key = ms.find((m) => ALWAYS_CAPTIONED.includes(m.kind))
+        const caption = key ? MOMENT[key.kind].caption : ms.map((m) => MOMENT[m.kind].caption).join(' & ')
         const full = `${ms.map((m) => m.label).join('; ')} (${at})`
         const fraction = index / landfallIndex
-        const captioned = index === landfallIndex || index === hovered || index === current
+        const captioned = key !== undefined || index === hovered || index === current
         // Keep the caption inside the bar at both ends.
         const align = fraction > 0.85 ? '-translate-x-full' : fraction < 0.15 ? '' : '-translate-x-1/2'
         return (
